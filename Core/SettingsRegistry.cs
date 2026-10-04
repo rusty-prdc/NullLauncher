@@ -11,7 +11,7 @@ public static class SettingsRegistry
     public static readonly Dictionary<string, object?> Defaults = new()
     {
         // внешний вид
-        ["theme"] = "dark",
+        ["theme"] = "light",
         ["accent"] = "#3ecf8e",
         ["density"] = "normal",
         ["uiScale"] = 100,

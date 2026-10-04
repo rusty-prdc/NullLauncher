@@ -174,6 +174,20 @@ public static class InstanceExtrasIpc
         r.Register("instances.importMrpack", async (p, ct) =>
         {
             var source = (p?.Str("sourcePath") ?? "").Trim();
+            var sourceUrl = (p?.Str("sourceUrl") ?? "").Trim();
+            var downloadedSrc = false;
+            if (source.Length == 0 && sourceUrl.Length > 0)
+            {
+                // установка модпака с Modrinth: качаем .mrpack во временную папку
+                if (!Uri.TryCreate(sourceUrl, UriKind.Absolute, out var su) ||
+                    (su.Scheme != Uri.UriSchemeHttps && su.Scheme != Uri.UriSchemeHttp))
+                    throw new LauncherException("Недопустимая ссылка на модпак", sourceUrl);
+                source = Path.Combine(s.Paths.TempDir,
+                    "mrpack-dl-" + Guid.NewGuid().ToString("N")[..8] + ".mrpack");
+                await s.Downloads.DownloadAsync(sourceUrl, source, "Модпак", kind: "modpack", ct: ct)
+                    .ConfigureAwait(false);
+                downloadedSrc = true;
+            }
             if (source.Length == 0) throw new LauncherException("Укажите файл модпака");
             if (!File.Exists(source)) throw new LauncherException("Файл модпака не найден", source);
 
@@ -249,6 +263,9 @@ public static class InstanceExtrasIpc
             {
                 try { if (Directory.Exists(tmp)) Directory.Delete(tmp, true); }
                 catch (Exception ex) { Log.Debug($"Не удалось удалить временную папку {tmp}: {ex.Message}"); }
+                if (downloadedSrc)
+                    try { if (File.Exists(source)) File.Delete(source); }
+                    catch (Exception ex) { Log.Debug($"Не удалось удалить {source}: {ex.Message}"); }
             }
         });
 

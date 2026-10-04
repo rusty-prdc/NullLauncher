@@ -114,6 +114,43 @@ public static class InstanceIpc
             }
             catch { return Task.FromResult<object?>(new List<string>()); }
         });
+        // картинка сборки (обложка/иконка) как data URL — UI не может читать файлы вне UI/
+        r.Register("instances.image", (p, _) => Task.FromResult<object?>(Image(s, p?.Str("id") ?? "", p?.Str("kind") ?? "cover")));
+    }
+
+    /// <summary>Отдаёт файл изображения сборки как data URL. Возвращает null, если файла нет или он слишком большой.</summary>
+    private static string? Image(AppServices s, string id, string kind)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        var rec = s.Instances.Get(id);
+        if (rec is null) return null;
+        var path = kind == "icon" ? rec.IconPath : rec.CoverPath;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        var mime = ext switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".webp" => "image/webp",
+            ".gif" => "image/gif",
+            ".bmp" => "image/bmp",
+            _ => null,
+        };
+        if (mime is null) return null;
+
+        try
+        {
+            var fi = new FileInfo(path);
+            if (fi.Length > 4 * 1024 * 1024) return null; // не раздуваем IPC-ответ
+            var bytes = File.ReadAllBytes(path);
+            return $"data:{mime};base64," + Convert.ToBase64String(bytes);
+        }
+        catch (Exception ex)
+        {
+            Log.Debug($"instances.image({id}): {ex.Message}");
+            return null;
+        }
     }
 
     private static string Sanitize(string name)

@@ -428,6 +428,10 @@
 
   async function installVersion(versionId) {
     if (!S.detailId) return;
+    if ((S.detailType || S.type || "") === "modpack") {
+      await installModpack(versionId);
+      return;
+    }
     var instId = S.instanceId;
     if (!instId) {
       var inst = await pickInstance();
@@ -463,6 +467,40 @@
       }
     } catch (e) {
       ui.notifyError(e, "Не удалось установить");
+    }
+  }
+
+  /* ---------- установка модпака (.mrpack) через Modrinth ---------- */
+  async function installModpack(versionId) {
+    if (!S.versions || !S.versions.length) { await loadVersions(); }
+    var v = (S.versions || []).find(function (x) { return x.id === versionId; }) || (S.versions || [])[0];
+    if (!v) { ui.notifyWarn("Нет версий", "Для этого модпака версии не найдены."); return; }
+    var file = (v.files || []).find(function (f) { return f && f.primary; }) || (v.files || [])[0];
+    if (!file || !file.url) { ui.notifyError("Файл модпака не найден", v.name || ""); return; }
+
+    var title = (S.project && (S.project.title || S.project.name)) || "модпак";
+    var ok = await ui.confirmDialog({
+      title: "Установить модпак",
+      message: "Будет создана новая сборка из модпака <b>" + ui.esc(title) + "</b>" +
+        (v.name ? " (" + ui.esc(v.name) + ")" : "") +
+        ". Лаунчер скачает .mrpack с Modrinth, развернёт его и загрузит все моды. Продолжить?",
+      okLabel: "Установить",
+      cancelLabel: "Отмена",
+    });
+    if (!ok || S.dead) return;
+
+    var btns = document.querySelectorAll('[data-inst="' + versionId + '"], [data-act="install-latest"]');
+    btns.forEach(function (b) { b.classList.add("loading"); });
+    try {
+      var inst = await api("instances.importMrpack", { sourceUrl: file.url, instanceName: title });
+      if (S.dead) return;
+      ui.notifySuccess("Модпак установлен",
+        inst && inst.name ? "Сборка «" + inst.name + "» готова к запуску" : "Сборка готова к запуску");
+      if (inst && inst.id) navigate("instance", { id: inst.id });
+    } catch (e) {
+      if (!S.dead) ui.notifyError(e, "Не удалось установить модпак");
+    } finally {
+      if (!S.dead) btns.forEach(function (b) { b.classList.remove("loading"); });
     }
   }
 
@@ -586,12 +624,88 @@
     return html;
   }
 
+  /* ---------- markdown (описания Modrinth) ---------- */
+  function mdInline(s) {
+    s = ui.esc(s);
+    s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, function (_, alt, url) {
+      if (url.charAt(0) === "/") url = "https://modrinth.com" + url;
+      return '<img src="' + url + '" alt="' + alt + '" loading="lazy">';
+    });
+    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (_, txt, url) {
+      if (url.charAt(0) === "/") url = "https://modrinth.com" + url;
+      return '<a href="' + url + '" target="_blank" rel="noopener">' + txt + "</a>";
+    });
+    s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+    s = s.replace(/\*\*\*([^*]+)\*\*\*/g, "<strong><em>$1</em></strong>");
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+    s = s.replace(/(^|[\s(])_([^_\n]+)_/g, "$1<em>$2</em>");
+    s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+    return s;
+  }
+  function renderMd(src) {
+    src = String(src || "").replace(/\r\n/g, "\n");
+    var codes = [];
+    src = src.replace(/```(?:([\w+-]*)\n)?([\s\S]*?)```/g, function (_, lang, code) {
+      codes.push(code);
+      return "\n\x00CB" + (codes.length - 1) + "\x00\n";
+    });
+    var lines = src.split("\n"), out = [], list = null, para = [];
+    function closeList() { if (list) { out.push(list === "ul" ? "</ul>" : "</ol>"); list = null; } }
+    function flushPara() { if (para.length) { out.push("<p>" + mdInline(para.join(" ")) + "</p>"); para = []; } }
+    function tableCells(row) {
+      return row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) { return c.trim(); });
+    }
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i], m;
+      if ((m = ln.match(/^\x00CB(\d+)\x00$/))) {
+        flushPara(); closeList();
+        out.push("<pre><code>" + ui.esc(codes[+m[1]]) + "</code></pre>");
+        continue;
+      }
+      if (!ln.trim()) { flushPara(); closeList(); continue; }
+      if ((m = ln.match(/^(#{1,6})\s+(.*)$/))) {
+        flushPara(); closeList();
+        var lv = m[1].length;
+        out.push("<h" + lv + ">" + mdInline(m[2]) + "</h" + lv + ">");
+        continue;
+      }
+      if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(ln)) { flushPara(); closeList(); out.push("<hr>"); continue; }
+      if ((m = ln.match(/^\s*>\s?(.*)$/))) { flushPara(); closeList(); out.push("<blockquote>" + mdInline(m[1]) + "</blockquote>"); continue; }
+      // таблица: строка с | + разделитель следующей строкой
+      if (ln.indexOf("|") >= 0 && i + 1 < lines.length && /^\s*\|?[\s:|-]*-{2,}[\s:|-]*$/.test(lines[i + 1])) {
+        flushPara(); closeList();
+        var head = tableCells(ln), rows = [];
+        i++;
+        while (i + 1 < lines.length && lines[i + 1].indexOf("|") >= 0) { i++; rows.push(tableCells(lines[i])); }
+        var t = "<table><thead><tr>" + head.map(function (c) { return "<th>" + mdInline(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
+        rows.forEach(function (r) {
+          t += "<tr>" + r.map(function (c) { return "<td>" + mdInline(c) + "</td>"; }).join("") + "</tr>";
+        });
+        out.push(t + "</tbody></table>");
+        continue;
+      }
+      if ((m = ln.match(/^\s*([-*+]|\d+[.)])\s+(.*)$/))) {
+        flushPara();
+        var type = /\d/.test(m[1]) ? "ol" : "ul";
+        if (list && list !== type) closeList();
+        if (!list) { list = type; out.push(type === "ul" ? "<ul>" : "<ol>"); }
+        out.push("<li>" + mdInline(m[2]) + "</li>");
+        continue;
+      }
+      closeList();
+      para.push(ln.trim());
+    }
+    flushPara(); closeList();
+    return out.join("\n");
+  }
+
   function renderAboutTab() {
     var p = S.project || {};
     var html = "";
 
     var desc = p.body || p.description || "";
-    if (desc) html += '<div class="card"><div class="card-title">Описание</div><div class="disco-md">' + sanitizeHtml(desc) + "</div></div>";
+    if (desc) html += '<div class="card"><div class="card-title">Описание</div><div class="disco-md">' + sanitizeHtml(renderMd(desc)) + "</div></div>";
 
     if (Array.isArray(p.gallery) && p.gallery.length) {
       html += '<div class="card"><div class="card-title">Галерея</div><div class="disco-gallery">';
@@ -717,7 +831,8 @@
     var isModpack = (S.detailType || p.projectType) === "modpack";
     var actions = "";
     if (isModpack) {
-      actions += '<button class="btn btn-primary" data-act="open-mr">' + ui.icon("external") + " Открыть на Modrinth</button>";
+      actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
+      actions += '<button class="btn" data-act="open-mr">' + ui.icon("external") + " На Modrinth</button>";
     } else {
       actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
       actions += '<button class="btn" data-act="versions">' + ui.icon("package") + " Версии</button>";

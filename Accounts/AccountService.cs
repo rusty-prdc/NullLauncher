@@ -197,7 +197,9 @@ public sealed class AccountService
             return new PollResult { Status = "expired", Message = "Код устарел, запросите новый" };
 
         using var http = HttpFactory.Get(_s);
-        using var req = new HttpRequestMessage(HttpMethod.Post, "https://login.live.com/oauth20_connect.srf");
+        // обмен кода идёт на oauth20_token.srf: oauth20_connect.srf теперь только выдаёт код
+        // и требует response_type, иначе — invalid_request.
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://login.live.com/oauth20_token.srf");
         req.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code",
@@ -490,6 +492,112 @@ public sealed class AccountService
         return session.session;
     }
 
+    /* ------------------------------------------------------------ смена скина */
+
+    /// <summary>
+    /// accounts.changeSkin → меняет скин лицензионного (Microsoft) аккаунта через Minecraft Services API
+    /// (PUT /minecraft/profile/skins) и обновляет skin_url в базе. Файл должен быть PNG 64×64 или 64×32.
+    /// </summary>
+    public async Task<AccountDto> ChangeSkinAsync(string? filePath, string variant, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            throw new LauncherException("Файл скина не найден", filePath ?? "путь не указан");
+        if (!string.Equals(Path.GetExtension(filePath), ".png", StringComparison.OrdinalIgnoreCase))
+            throw new LauncherException("Скин должен быть PNG", $"Получено: {Path.GetExtension(filePath)}");
+        var variantUp = variant.Equals("SLIM", StringComparison.OrdinalIgnoreCase) ? "SLIM" : "CLASSIC";
+
+        ValidateSkinPng(filePath);
+
+        var session = await ResolveForLaunchAsync(null, ct).ConfigureAwait(false);
+        if (session.Type != "microsoft" || string.IsNullOrWhiteSpace(session.AccessToken) || session.AccessToken == "0")
+            throw new LauncherException("Смена скина доступна только для лицензионного аккаунта",
+                "Войдите через Microsoft: Настройки → Аккаунты → Войти через Microsoft");
+
+        try
+        {
+            using var http = HttpFactory.Get(_s);
+            using var req = new HttpRequestMessage(HttpMethod.Put,
+                "https://api.minecraftservices.com/minecraft/profile/skins");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+            await using var fs = File.OpenRead(filePath);
+            using var form = new MultipartFormDataContent();
+            var fileContent = new StreamContent(fs);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            form.Add(fileContent, "file", Path.GetFileName(filePath));
+            form.Add(new StringContent(variantUp), "variant");
+            req.Content = form;
+
+            using var resp = await http.SendAsync(req, ct).ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                throw new LauncherException("Не удалось сменить скин",
+                    $"Minecraft Services ответил HTTP {(int)resp.StatusCode}. {ShortErr(body)}");
+            }
+        }
+        catch (LauncherException) { throw; }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { throw new LauncherException("Не удалось сменить скин", ex.Message, ex); }
+
+        // свежий url скина из профиля
+        string? skinUrl = null;
+        try
+        {
+            using var http = HttpFactory.Get(_s);
+            using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.minecraftservices.com/minecraft/profile");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+            using var prof = await http.SendAsync(req, ct).ConfigureAwait(false);
+            if (prof.IsSuccessStatusCode)
+            {
+                var pj = JsonNode.Parse(await prof.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
+                skinUrl = pj?["skins"]?.AsArray()
+                    .FirstOrDefault(x => x?["url"]?.GetValue<string>() is not null)?["url"]?.GetValue<string>();
+            }
+        }
+        catch (Exception ex) { Log.Debug($"Профиль после смены скина: {ex.Message}"); }
+
+        if (!string.IsNullOrWhiteSpace(skinUrl))
+            Database.DatabaseService.Execute("UPDATE accounts SET skin_url=@S WHERE uuid=@U",
+                new { S = skinUrl, U = session.Uuid });
+
+        var acc = List().FirstOrDefault(a => a.Uuid == session.Uuid)
+            ?? throw new LauncherException("Аккаунт не найден после смены скина", session.Uuid);
+        Log.Info($"Скин изменён ({variantUp}) для {acc.Name}");
+        return acc;
+    }
+
+    /// <summary>Проверяет сигнатуру PNG и размер текстуры (64×64 или 64×32).</summary>
+    private static void ValidateSkinPng(string path)
+    {
+        var fi = new FileInfo(path);
+        if (fi.Length < 8 || fi.Length > 1024 * 1024)
+            throw new LauncherException("Неподходящий файл скина",
+                $"Размер {fi.Length} байт; ожидается PNG до 1 МБ");
+
+        var header = new byte[24];
+        using (var fs = File.OpenRead(path))
+        {
+            var read = fs.Read(header, 0, 24);
+            if (read < 24) throw new LauncherException("Повреждённый PNG", "файл слишком мал");
+        }
+        ReadOnlySpan<byte> sig = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        if (!header.AsSpan(0, 8).SequenceEqual(sig))
+            throw new LauncherException("Файл не является PNG", Path.GetFileName(path));
+
+        int w = (header[16] << 24) | (header[17] << 16) | (header[18] << 8) | header[19];
+        int h = (header[20] << 24) | (header[21] << 16) | (header[22] << 8) | header[23];
+        if (w != 64 || (h != 64 && h != 32))
+            throw new LauncherException("Неподходящий размер скина",
+                $"{w}×{h}; Minecraft принимает текстуру 64×64 или 64×32");
+    }
+
+    private static string ShortErr(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return "";
+        body = body.Replace("\r", " ").Replace("\n", " ").Trim();
+        return body.Length > 200 ? body[..200] + "…" : body;
+    }
+
     private sealed class AccountFullRow
     {
         public string Uuid { get; set; } = "";
@@ -504,7 +612,7 @@ public sealed class AccountService
 
     private async Task<Refreshed> RefreshMsaAsync(HttpClient http, string refreshToken, CancellationToken ct)
     {
-        using var req = new HttpRequestMessage(HttpMethod.Post, "https://login.live.com/oauth20_connect.srf");
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://login.live.com/oauth20_token.srf");
         req.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "refresh_token",

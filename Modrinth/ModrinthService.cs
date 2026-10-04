@@ -801,6 +801,18 @@ internal sealed class ModrinthService
         catch (Exception ex) { Log.Debug($"modrinth.status: {ex.Message}"); }
     }
 
+    private static long _lastSyncTicks;
+    /// <summary>Запоминает момент последнего успешного ответа API (троттлинг — раз в минуту).</summary>
+    private void MarkSync()
+    {
+        var now = Environment.TickCount64;
+        var last = Interlocked.Read(ref _lastSyncTicks);
+        if (now - last < 60_000) return;
+        if (Interlocked.CompareExchange(ref _lastSyncTicks, now, last) != last) return;
+        try { Database.DatabaseService.Execute("INSERT INTO kv(key, value) VALUES('modrinthLastSync', @V) ON CONFLICT(key) DO UPDATE SET value = @V", new { V = DateTime.UtcNow.ToString("o") }); }
+        catch (Exception ex) { Log.Debug($"modrinthLastSync: {ex.Message}"); }
+    }
+
     /* ---------------------------------------------------------- кэш api_cache */
 
     private sealed class CacheEntry
@@ -879,6 +891,7 @@ internal sealed class ModrinthService
             var node = ParseOrThrow(body);   // сначала проверяем, что ответ валиден — в кэш кладём только его
             WriteCache(cacheKey, Store(body, wrapArray));
             SetOffline(false);
+            MarkSync();
             return new FetchResult { Node = node, FromNetwork = true };
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }

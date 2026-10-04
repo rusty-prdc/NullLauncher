@@ -11,7 +11,8 @@ namespace NullLauncher.Modules;
 public static class SystemIpc
 {
     [DllImport("kernel32.dll")] private static extern bool GetPhysicallyInstalledSystemMemory(out long totalKb);
-    [StructLayout(LayoutKind.Sequential)] private class MemoryStatusEx { public uint Length; public uint MemoryLoad; public ulong TotalPhys, TotalPageFile, TotalVirtual, AvailVirtual, AvailPageFile, AvailPhys; }
+    // Порядок ULONGLONG-полей как в MEMORYSTATUS (phys, pagefile, virtual), размер 64 байта обязателен.
+    [StructLayout(LayoutKind.Sequential)] private class MemoryStatusEx { public uint Length; public uint MemoryLoad; public ulong TotalPhys, AvailPhys, TotalPageFile, AvailPageFile, TotalVirtual, AvailVirtual, Extra; }
 
     [DllImport("kernel32.dll")] private static extern bool GlobalMemoryStatusEx([In] MemoryStatusEx lpBuffer);
 
@@ -39,9 +40,12 @@ public static class SystemIpc
             return Task.FromResult<object?>(new { ok = true });
         });
         r.Register("system.diagnose", (_, ct) => Task.FromResult<object?>(Diagnose(s, ct)));
+        r.Register("system.components", (_, _) => Task.FromResult<object?>(Components(s)));
         r.Register("system.storage", (_, _) => Task.FromResult<object?>(Storage(s)));
         r.Register("system.clearStorage", (p, _) => Task.FromResult<object?>(ClearStorage(s, p)));
         r.Register("system.checkUpdate", async (_, ct) => (object?)await CheckUpdateAsync(s, ct).ConfigureAwait(false));
+        r.Register("system.ping", async (_, ct) => (object?)await PingAsync(s, ct).ConfigureAwait(false));
+        r.Register("system.installUpdate", async (p, ct) => (object?)await InstallUpdateAsync(s, p, ct).ConfigureAwait(false));
         r.Register("system.firstRun", (_, _) => Task.FromResult<object?>(new
         {
             needed = !s.Settings.Get("onboardingDone", false),
@@ -71,7 +75,7 @@ public static class SystemIpc
         var ver = Environment.OSVersion.Version;
         if (ver.Major >= 10) os = ver.Build >= 22000 ? "Windows 11" : "Windows 10";
 
-        var (total, free) = Memory();
+        var (total, free, loadPercent) = Memory();
         return new
         {
             appVersion = typeof(AppServices).Assembly.GetName().Version?.ToString(3) ?? "1.0.0",
@@ -81,6 +85,8 @@ public static class SystemIpc
             configDir = s.Paths.ConfigRoot,
             ramTotalMb = total,
             ramFreeMb = free,
+            ramUsedMb = Math.Max(0, total - free),
+            ramLoadPercent = loadPercent,
             cpu = CpuName(),
             cpuCores = Environment.ProcessorCount,
             gpu = GpuName(),
@@ -93,12 +99,13 @@ public static class SystemIpc
         };
     }
 
-    public static (long totalMb, long freeMb) Memory()
+    /// <summary>Занятая и общая физическая память + процент загрузки (MemoryLoad из Windows).</summary>
+    public static (long totalMb, long freeMb, int loadPercent) Memory()
     {
         var st = new MemoryStatusEx { Length = (uint)Marshal.SizeOf<MemoryStatusEx>() };
         if (GlobalMemoryStatusEx(st))
-            return ((long)(st.TotalPhys / 1024 / 1024), (long)(st.AvailPhys / 1024 / 1024));
-        return (0, 0);
+            return ((long)(st.TotalPhys / 1024 / 1024), (long)(st.AvailPhys / 1024 / 1024), (int)st.MemoryLoad);
+        return (0, 0, 0);
     }
 
     private static string CpuName()
@@ -166,7 +173,8 @@ public static class SystemIpc
         var filter = (p?.Str("filter") ?? "all").ToLowerInvariant();
         var (title, spec) = filter switch
         {
-            "image" => ("Рзображение", "Рзображения|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.bmp|Все файлы|*.*"),
+            "image" => ("Изображение", "Изображения|*.png;*.jpg;*.jpeg;*.webp;*.gif;*.bmp|Все файлы|*.*"),
+            "skin" => ("Скин Minecraft", "Скин PNG (*.png)|*.png|Все файлы|*.*"),
             "jar" => ("Выберите мод", "Java-моды (*.jar)|*.jar|Все файлы|*.*"),
             "zip" => ("Выберите архив", "Архивы (*.zip)|*.zip|Все файлы|*.*"),
             "mrpack" => ("Модпак Modrinth", "Modrinth (*.mrpack)|*.mrpack|Все файлы|*.*"),
@@ -190,6 +198,92 @@ public static class SystemIpc
             if (dlg.ShowDialog() == true) files = dlg.FileNames;
         });
         return files;
+    }
+
+    /* ---------------------------------------------------------- компоненты для главной */
+    /// <summary>Реальные версии и даты обновления компонентов лаунчера (никаких выдуманных значений).</summary>
+    private static object Components(AppServices s)
+    {
+        var list = new List<object>();
+        void add(string key, string name, string? version, DateTime? updated, string detail, string logo) =>
+            list.Add(new { key, name, version = string.IsNullOrWhiteSpace(version) ? "—" : version, updated = updated?.ToString("o"), detail, logo });
+
+        // 1. Ядро лаунчера — версия сборки + дата самого exe
+        var exe = Environment.ProcessPath;
+        add("core", "NullLauncher Core",
+            typeof(AppServices).Assembly.GetName().Version?.ToString(3),
+            File.Exists(exe ?? "") ? File.GetLastWriteTime(exe!) : null,
+            "ядро лаунчера", "app");
+
+        // 2. Интерфейс — дата файла UI/index.html (когда ставился/обновлялся UI)
+        var indexHtml = Path.Combine(s.Paths.UiDir, "index.html");
+        add("ui", "Интерфейс",
+            typeof(AppServices).Assembly.GetName().Version?.ToString(3),
+            File.Exists(indexHtml) ? File.GetLastWriteTime(indexHtml) : null,
+            "фроненд (HTML/CSS/JS)", "ui");
+
+        // 3. WebView2 Runtime — реестр HKLM, pv = версии, дата = дата файла рантайма
+        string? wvVer = null; DateTime? wvUpd = null;
+        try
+        {
+            foreach (var root in new[] { @"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients", @"SOFTWARE\Microsoft\EdgeUpdate\Clients" })
+            using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(root + @"\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"))
+            {
+                wvVer = key?.GetValue("pv") as string;
+                if (!string.IsNullOrWhiteSpace(wvVer)) break;
+            }
+            if (!string.IsNullOrWhiteSpace(wvVer))
+            {
+                var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                var wvExe = Path.Combine(pf, "Microsoft", "EdgeWebView", "Application", wvVer, "msedgewebview2.exe");
+                if (File.Exists(wvExe)) wvUpd = File.GetLastWriteTime(wvExe);
+            }
+        }
+        catch (Exception ex) { Log.Debug($"WebView2 registry: {ex.Message}"); }
+        add("webview2", "WebView2 Runtime", wvVer, wvUpd, "браузерное ядро интерфейса", "microsoft");
+
+        // 4. .NET — версия рантайма процесса
+        add("dotnet", ".NET Runtime", Environment.Version.ToString(), null, "среда выполнения", "dotnet");
+
+        // 5. Манифест Mojang — последняя release-версия из кэша + дата файла кэша
+        string? latest = null; DateTime? mfUpd = null;
+        try
+        {
+            var mf = Path.Combine(s.Paths.MetadataDir, "versions.json");
+            if (File.Exists(mf))
+            {
+                mfUpd = File.GetLastWriteTime(mf);
+                var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(mf));
+                if (doc.RootElement.TryGetProperty("latest", out var l) && l.TryGetProperty("release", out var r))
+                    latest = r.GetString();
+            }
+        }
+        catch (Exception ex) { Log.Debug($"versions.json: {ex.Message}"); }
+        add("manifest", "Манифест Mojang", latest, mfUpd, "список версий Minecraft", "mojang");
+
+        // 6. Java — реально найденные установки (мажорные версии + когда обнаружены)
+        try
+        {
+            var javas = s.Java.Detect();
+            var majors = javas.Select(j => j.Major).Distinct().OrderBy(x => x).ToArray();
+            var lastSeen = javas.Count == 0 ? (DateTime?)null : javas.Max(j => j.LastSeen);
+            add("java", "Java", majors.Length == 0 ? null : string.Join(" · ", majors),
+                lastSeen, javas.Count == 0 ? "установки не найдены" : $"установок: {javas.Count}", "java");
+        }
+        catch (Exception ex) { add("java", "Java", null, null, "не удалось определить: " + ex.Message, "java"); }
+
+        // 7. Modrinth API — дата последнего успешного ответа (kv modrinthLastSync пишется при сетевом ответе)
+        DateTime? mrSync = null;
+        try
+        {
+            var v = Database.DatabaseService.Scalar<string>("SELECT value FROM kv WHERE key='modrinthLastSync'");
+            if (!string.IsNullOrEmpty(v) && DateTime.TryParse(v, null, System.Globalization.DateTimeStyles.RoundtripKind, out var d))
+                mrSync = d.ToLocalTime();
+        }
+        catch (Exception ex) { Log.Debug($"modrinthLastSync: {ex.Message}"); }
+        add("modrinth", "Modrinth API", "v2", mrSync, "поиск модов и обновления", "modrinth");
+
+        return new { items = list };
     }
 
     /* ---------------------------------------------------------- диагностика */
@@ -234,7 +328,7 @@ public static class SystemIpc
         {
             using var http = HttpFactory.Create(s);
             using var cts = new CancellationTokenSource(8000);
-            using var resp = http.GetAsync("https://api.modrinth.com/v2/status", cts.Token).GetAwaiter().GetResult();
+            using var resp = http.GetAsync("https://api.modrinth.com/v2/search?limit=1", cts.Token).GetAwaiter().GetResult();
             add("modrinth", "Modrinth API", resp.IsSuccessStatusCode ? "ok" : "warn", $"HTTP {(int)resp.StatusCode}");
         }
         catch (Exception ex) { add("modrinth", "Modrinth API", "warn", "Нет ответа: " + ex.Message); }
@@ -250,8 +344,8 @@ public static class SystemIpc
 
         add("webview2", "WebView2", "ok", "Установлен (приложение запущено)");
         {
-            var (t, f) = Memory();
-            add("mem", "Оперативная память", f < 1024 ? "warn" : "ok", $"Всего {t} МБ, свободно {f} МБ");
+            var (t, f, load) = Memory();
+            add("mem", "Оперативная память", f < 1024 ? "warn" : "ok", $"Всего {t} МБ, занято {load}% ({t - f} МБ), свободно {f} МБ");
         }
 
         return new { checks };
@@ -323,32 +417,182 @@ public static class SystemIpc
     }
 
     /* ---------------------------------------------------------- обновления */
-    public sealed record UpdateInfo(string Current, string? Latest, string? Url, string? Notes, bool UpdateAvailable, bool SourceConfigured);
+    public sealed record UpdateInfo(string Current, string? Latest, string? Url, string? Notes, bool UpdateAvailable, bool SourceConfigured, string? ZipUrl = null);
 
     public static Task<UpdateInfo> CheckForUpdates(AppServices s) => CheckUpdateAsync(s, CancellationToken.None);
 
+    private const string GitHubRepo = "rusty-prdc/NullLauncher";
+
+    /// <summary>
+    /// Проверка обновлений: если задан updateManifestUrl — берёт оттуда, иначе — с вкладки
+    /// «Releases» репозитория на GitHub (Setup.exe и zip из assets релиза).
+    /// </summary>
     private static async Task<UpdateInfo> CheckUpdateAsync(AppServices s, CancellationToken ct)
     {
-        var url = s.Settings.Get("updateManifestUrl", "");
+        var manifestUrl = s.Settings.Get("updateManifestUrl", "");
         var current = typeof(AppServices).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
-        if (string.IsNullOrWhiteSpace(url))
-            return new UpdateInfo(current, null, null, null, false, false);
 
         try
         {
             using var http = HttpFactory.Create(s);
-            var json = await http.GetStringAsync(url, ct).ConfigureAwait(false);
-            var node = JsonNode.Parse(json);
-            var latest = node?["version"]?.GetValue<string>() ?? "";
-            var notes = node?["notes"]?.GetValue<string>();
-            var download = node?["url"]?.GetValue<string>();
-            var available = IsNewer(latest, current);
-            return new UpdateInfo(current, latest, download, notes, available, true);
+
+            if (!string.IsNullOrWhiteSpace(manifestUrl))
+            {
+                var json = await http.GetStringAsync(manifestUrl, ct).ConfigureAwait(false);
+                var node = JsonNode.Parse(json);
+                var latest = node?["version"]?.GetValue<string>() ?? "";
+                var notes = node?["notes"]?.GetValue<string>();
+                var download = node?["url"]?.GetValue<string>();
+                var available = IsNewer(latest, current);
+                return new UpdateInfo(current, latest, download, notes, available, true);
+            }
+
+            /* источник по умолчанию — GitHub Releases */
+            http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+            var relJson = await http.GetStringAsync(
+                $"https://api.github.com/repos/{GitHubRepo}/releases/latest", ct).ConfigureAwait(false);
+            var rel = JsonNode.Parse(relJson)
+                ?? throw new LauncherException("Пустой ответ GitHub", "releases/latest");
+
+            var tag = (rel["tag_name"]?.GetValue<string>() ?? rel["name"]?.GetValue<string>() ?? "").Trim();
+            var latestVer = tag.TrimStart('v', 'V');
+            var notes2 = rel["body"]?.GetValue<string>();
+            string? setupUrl = null, zipUrl = null;
+            if (rel["assets"] is System.Text.Json.Nodes.JsonArray assets)
+                foreach (var a in assets)
+                {
+                    var name = a?["name"]?.GetValue<string>() ?? "";
+                    var browser = a?["browser_download_url"]?.GetValue<string>();
+                    if (string.IsNullOrEmpty(browser)) continue;
+                    if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) setupUrl ??= browser;
+                    else if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) zipUrl ??= browser;
+                }
+
+            var available2 = !string.IsNullOrEmpty(latestVer) && IsNewer(latestVer, current);
+            if (!available2) return new UpdateInfo(current, null, null, null, false, true);
+            return new UpdateInfo(current, latestVer, setupUrl ?? zipUrl, notes2, true, true, zipUrl);
         }
+        catch (OperationCanceledException) { throw; }
+        catch (LauncherException) { throw; }
         catch (Exception ex)
         {
             Log.Warn($"Проверка обновлений не удалась: {ex.Message}");
             return new UpdateInfo(current, null, null, null, false, true);
+        }
+    }
+
+    /// <summary>system.ping → реальный HTTP-замер задержки до ключевых хостов с учётом прокси.</summary>
+    private static async Task<object> PingAsync(AppServices s, CancellationToken ct)
+    {
+        var targets = new (string Key, string Title, string Url)[]
+        {
+            ("modrinth", "Modrinth", "https://api.modrinth.com/v2/search?limit=1"),
+            ("mojang", "Mojang", "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"),
+            ("github", "GitHub", $"https://api.github.com/repos/{GitHubRepo}"),
+            ("microsoft", "Microsoft", "https://login.live.com/"),
+        };
+
+        var items = new List<object>();
+        foreach (var (key, title, url) in targets)
+        {
+            ct.ThrowIfCancellationRequested();
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                using var http = HttpFactory.Create(s);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(TimeSpan.FromSeconds(10));
+                using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
+                sw.Stop();
+                items.Add(new
+                {
+                    key, title, ms = sw.ElapsedMilliseconds,
+                    ok = resp.IsSuccessStatusCode,
+                    detail = $"HTTP {(int)resp.StatusCode}",
+                });
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                items.Add(new { key, title, ms = 10000L, ok = false, detail = "Тайм-аут (10 сек)" });
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                items.Add(new { key, title, ms = sw.ElapsedMilliseconds, ok = false, detail = ex.Message });
+            }
+        }
+        return new { items };
+    }
+
+    /// <summary>
+    /// system.installUpdate { url } → скачивает Setup.exe (или zip) из релиза во временную папку
+    /// и запускает установщик. Вызывается только после подтверждения пользователя в UI.
+    /// </summary>
+    private static async Task<object> InstallUpdateAsync(AppServices s, JsonNode? p, CancellationToken ct)
+    {
+        var url = (p?.Str("url") ?? "").Trim();
+        if (url.Length == 0) throw new LauncherException("Не указан адрес обновления");
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+            throw new LauncherException("Недопустимый адрес обновления", url);
+
+        var dir = Path.Combine(s.Paths.TempDir, "update");
+        Directory.CreateDirectory(dir);
+        var isExe = Path.GetFileName(uri.AbsolutePath).EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+        var target = Path.Combine(dir, Path.GetFileName(uri.AbsolutePath));
+        if (string.IsNullOrWhiteSpace(Path.GetFileName(target)))
+            target = Path.Combine(dir, isExe ? "NullLauncher-Setup.exe" : "NullLauncher.zip");
+
+        try
+        {
+            using var http = HttpFactory.Create(s);
+            using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+                throw new LauncherException("Не удалось скачать обновление",
+                    $"GitHub ответил HTTP {(int)resp.StatusCode}");
+
+            var total = resp.Content.Headers.ContentLength ?? 0;
+            long received = 0;
+            await using var src = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+            await using var dst = File.Create(target);
+            var buf = new byte[81920];
+            var lastEmit = Stopwatch.StartNew();
+            int n;
+            while ((n = await src.ReadAsync(buf, ct).ConfigureAwait(false)) > 0)
+            {
+                await dst.WriteAsync(buf.AsMemory(0, n), ct).ConfigureAwait(false);
+                received += n;
+                if (lastEmit.ElapsedMilliseconds >= 250)
+                {
+                    lastEmit.Restart();
+                    s.Emit("update.progress", new
+                    {
+                        percent = total > 0 ? (int)(received * 100 / total) : 0,
+                        received, total,
+                    });
+                }
+            }
+            s.Emit("update.progress", new { percent = 100, received, total });
+        }
+        catch (LauncherException) { throw; }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            throw new LauncherException("Не удалось скачать обновление", ex.Message, ex);
+        }
+
+        if (!isExe)
+            return new { path = target, started = false, kind = "zip" };
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+            Log.Info($"Обновление: установщик запущен — {target}");
+            return new { path = target, started = true, kind = "setup" };
+        }
+        catch (Exception ex)
+        {
+            throw new LauncherException("Не удалось запустить установщик", ex.Message, ex);
         }
     }
 

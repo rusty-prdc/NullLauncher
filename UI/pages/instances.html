@@ -22,6 +22,7 @@
 .ipl-wz-head .step-num { font-size: 11.5px; color: var(--text-3); }
 .ipl-wz-err { color: var(--danger); font-size: 12px; }
 .ipl-wz-err[hidden] { display: none; }
+.ipl-wz .btn[hidden] { display: none; }
 .ipl-wz-list { max-height: 300px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .ipl-opt {
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; text-align: left;
@@ -44,6 +45,64 @@
 .ipl-ram-presets { display: flex; gap: 6px; flex-wrap: wrap; }
 .ipl-drop-hint { font-size: 12px; color: var(--text-3); }
 .ipl-color-input { width: 46px; height: 34px; padding: 2px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+
+/* ===== мастер создания: светлый мягкий стиль (эталон-фото) ===== */
+.wz-tpls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.wz-tpl {
+  display: flex; gap: 10px; align-items: flex-start; text-align: left;
+  padding: 11px 12px; background: var(--card-2); border: 1px solid transparent;
+  border-radius: var(--r-md); transition: background var(--t), border-color var(--t), box-shadow var(--t);
+}
+.wz-tpl:hover { background: var(--card-3); }
+.wz-tpl.sel { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.wz-tpl .ic {
+  width: 32px; height: 32px; border-radius: 9px; background: var(--card);
+  border: 1px solid var(--line); display: grid; place-items: center; flex: 0 0 auto; overflow: hidden;
+}
+.wz-tpl .ic img { width: 20px; height: 20px; object-fit: contain; border-radius: 4px; }
+.wz-tpl .ic svg { width: 16px; height: 16px; color: var(--text-3); }
+.wz-tpl .tx { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wz-tpl .nm { font-size: 13px; font-weight: 620; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wz-tpl .ds {
+  font-size: 11.5px; color: var(--text-3); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.wz-idrow { display: flex; gap: 14px; align-items: flex-start; }
+.wz-icon {
+  width: 64px; height: 64px; flex: 0 0 auto; border-radius: var(--r-md);
+  border: 1px dashed var(--line-strong); display: grid; place-items: center; gap: 3px;
+  background-image: repeating-linear-gradient(135deg, var(--card-2) 0 8px, var(--card-3) 8px 16px);
+  color: var(--text-3); font-size: 10px; transition: border-color var(--t), color var(--t);
+}
+.wz-icon:hover { border-color: var(--accent); color: var(--accent); }
+.wz-icon svg { width: 18px; height: 18px; }
+.wz-loaders { display: flex; flex-wrap: wrap; gap: 8px; }
+.wz-loaders .chip {
+  height: 38px; padding: 0 15px; gap: 8px; font-size: 13.5px; font-weight: 550;
+  border-radius: 999px; background: var(--card-2); color: var(--text-2);
+  transition: background var(--t), border-color var(--t), color var(--t), box-shadow var(--t);
+}
+.wz-loaders .chip img { width: 20px; height: 20px; border-radius: 5px; }
+.wz-loaders .chip:hover { background: var(--card-3); color: var(--text); }
+.wz-loaders .chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.wz-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wz-row .t { font-size: 13.5px; font-weight: 620; color: var(--text); }
+.wz-row .sw { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+.wz-mods { display: flex; gap: 6px; flex-wrap: wrap; }
+.wz-status { min-height: 16px; color: var(--accent); font-weight: 550; font-size: 12.5px; }
+.wz-status:empty { display: none; }
+/* крупные мягкие контролы внутри диалога мастера */
+.wz-dialog .dialog-foot .btn { height: 42px; padding: 0 24px; font-size: 14px; border-radius: 999px; }
+.wz-dialog .dialog-foot .btn-primary { min-width: 210px; font-weight: 620; }
+.wz-dialog .dialog-body { gap: 15px; }
+.wz-dialog input[type="text"], .wz-dialog input[type="search"] {
+  height: 42px; border-radius: 12px; font-size: 14px; padding: 0 14px;
+}
+.wz-dialog .search-box input { padding-left: 40px; }
+.wz-dialog textarea { border-radius: 12px; padding: 10px 14px; }
+.wz-dialog .ipl-wz-list { border-radius: var(--r-md); }
+.wz-dialog .ipl-opt { padding: 9px 12px; }
+.wz-dialog .ipl-opt.sel { box-shadow: inset 2px 0 0 var(--accent); }
 </style>
 
 <section class="page">
@@ -87,6 +146,31 @@
 
   var LOADER_LABELS = { vanilla: "Vanilla", fabric: "Fabric", forge: "Forge", neoforge: "NeoForge", quilt: "Quilt" };
   var RAM_PRESETS = [1024, 2048, 4096, 6144, 8192, 12288, 16384];
+
+  /* логотипы загрузчиков — настоящие файлы в UI/assets/logos */
+  var LOADER_LOGOS = {
+    vanilla: "assets/logos/mojang.png",
+    fabric: "assets/logos/fabric.png",
+    forge: "assets/logos/forge.jpg",
+    neoforge: "assets/logos/neoforge.png",
+    quilt: "assets/logos/quilt.png",
+  };
+
+  /* Шаблоны мастера: реальные загрузчики; mods — реальные slug'и проектов Modrinth,
+     которые реально установятся после создания (совместимость проверяется по версии и загрузчику). */
+  var TEMPLATES = [
+    { id: "vanilla", t: "Чистая", s: "Без модов, оригинальная игра", loader: "vanilla", mods: [], logo: LOADER_LOGOS.vanilla },
+    { id: "boost", t: "Fabric + Буст FPS", s: "Sodium, Lithium, FerriteCore", loader: "fabric",
+      mods: [{ slug: "sodium", name: "Sodium" }, { slug: "lithium", name: "Lithium" }, { slug: "ferritecore", name: "FerriteCore" }],
+      logo: LOADER_LOGOS.fabric },
+    { id: "shaders", t: "Шейдеры", s: "Sodium + Iris Shaders", loader: "fabric",
+      mods: [{ slug: "sodium", name: "Sodium" }, { slug: "iris", name: "Iris" }],
+      logo: LOADER_LOGOS.fabric },
+    { id: "forge", t: "Forge", s: "Классика для большинства модов", loader: "forge", mods: [], logo: LOADER_LOGOS.forge },
+    { id: "neoforge", t: "NeoForge", s: "Современная ветка Forge", loader: "neoforge", mods: [], logo: LOADER_LOGOS.neoforge },
+    { id: "quilt", t: "Quilt", s: "Экспериментальный загрузчик", loader: "quilt", mods: [], logo: LOADER_LOGOS.quilt },
+  ];
+  function presetById(id) { return TEMPLATES.filter(function (t) { return t.id === id; })[0] || TEMPLATES[0]; }
 
   var S = {
     dead: false, loading: true, error: null,
@@ -584,7 +668,8 @@
   function openWizard(preVersion) {
     var w = {
       step: 1, name: "", description: "", color: "#3ecf8e", iconPath: null,
-      mcVersion: preVersion || "", type: "release", experimental: true, vq: "",
+      preset: "vanilla",
+      mcVersion: preVersion || "", type: "release", experimental: false, vq: "",
       versions: [], versionsLoading: false, versionsLoaded: false,
       loader: "vanilla", loaderVersion: "", loaders: [], loadersLoading: false,
       javaMode: "auto", javaMajor: 0, javaList: [], javaLoaded: false,
@@ -597,6 +682,7 @@
 
     var dlg = ui.openDialog({
       title: "Новая сборка",
+      sub: "У каждой сборки своя папка — моды, миры и настройки не смешиваются с другими",
       icon: "plus",
       width: "wide",
       body: body,
@@ -605,6 +691,28 @@
         { id: "next", label: "Далее", role: "primary", keepOpen: true, onClick: nextStep },
       ],
     });
+    dlg.el.classList.add("wz-dialog");
+
+    /* имя-автоматика, как в эталоне: «Пусто — назовём сами: 26.3 Vanilla» */
+    function autoName() {
+      return ((w.mcVersion || "Minecraft") + " " + (LOADER_LABELS[w.loader] || "Vanilla")).trim();
+    }
+
+    /* последняя стабильная версия — реальные данные манифеста Mojang */
+    if (!w.mcVersion) {
+      api("versions.list", { type: "release", limit: 1 }).then(function (list) {
+        if (!list || !list.length || w.mcVersion) return;
+        w.mcVersion = list[0].id;
+        if (w.step === 1) {
+          var hint = body.querySelector("#wz-name-hint");
+          var inp = body.querySelector("#wz-name");
+          if (!w.name.trim() && hint) hint.textContent = "Пусто — назовём сами: " + autoName();
+          if (inp) inp.placeholder = autoName();
+          var vn = body.querySelector("#wz-tpl-vanilla");
+          if (vn) vn.textContent = "Чистая " + w.mcVersion;
+        }
+      }).catch(function () { /* офлайн — подставим версию на шаге 2 вручную */ });
+    }
 
     function chrome() {
       var back = dlg.foot.querySelector('[data-act="back"]');
@@ -628,54 +736,90 @@
         '<div class="ipl-wz-err" id="wz-err" hidden></div>';
     }
 
-    /* --- шаг 1 --- */
+    /* --- шаг 1: шаблон + название + иконка --- */
     function step1() {
-      body.innerHTML = stepHead("Название и оформление") +
-        '<div class="field"><label>Название *</label><input type="text" id="wz-name" placeholder="Например, Fabric Survival" value="' + ui.esc(w.name) + '" /></div>' +
-        '<div class="field"><label>Описание</label><textarea id="wz-desc" rows="2" placeholder="Необязательно">' + ui.esc(w.description) + "</textarea></div>" +
-        '<div class="row" style="gap:14px">' +
+      body.innerHTML = stepHead("Шаблон и название") +
+        '<div class="wz-tpls" id="wz-tpls">' + TEMPLATES.map(function (t) {
+          var title = t.id === "vanilla" && w.mcVersion ? t.t + " " + w.mcVersion : t.t;
+          return '<button type="button" class="wz-tpl' + (w.preset === t.id ? " sel" : "") + '" data-t="' + t.id + '">' +
+            '<span class="ic"><img src="' + t.logo + '" alt="" /></span>' +
+            '<span class="tx"><span class="nm"' + (t.id === "vanilla" ? ' id="wz-tpl-vanilla"' : "") + ">" + ui.esc(title) + "</span>" +
+            '<span class="ds">' + ui.esc(t.s) + "</span></span></button>";
+        }).join("") + "</div>" +
+        '<div class="wz-idrow">' +
+          '<button type="button" class="wz-icon" id="wz-icon" title="Выбрать изображение">' +
+            ui.icon("image") + "<span>Иконка</span></button>" +
+          '<div class="field" style="flex:1">' +
+            '<label>Название</label>' +
+            '<input type="text" id="wz-name" placeholder="' + ui.esc(autoName()) + '" value="' + ui.esc(w.name) + '" />' +
+            '<div class="hint" id="wz-name-hint">Пусто — назовём сами: ' + ui.esc(autoName()) + "</div>" +
+          "</div>" +
+        "</div>" +
+        '<div class="row" style="gap:12px;flex-wrap:wrap">' +
+          '<div class="field" style="flex:1;min-width:220px"><label>Описание</label><textarea id="wz-desc" rows="2" placeholder="Необязательно">' + ui.esc(w.description) + "</textarea></div>" +
           '<div class="field"><label>Цвет</label><div class="row"><input type="color" class="ipl-color-input" id="wz-color" value="' + ui.esc(w.color) + '" /><span class="dim small mono" id="wz-color-v">' + ui.esc(w.color) + "</span></div></div>" +
-          '<div class="field" style="flex:1"><label>Иконка</label><div class="row">' +
-            '<button class="btn btn-sm" id="wz-icon-pick">' + ui.icon("image") + " Выбрать изображение…</button>" +
-            '<button class="btn btn-sm btn-ghost" id="wz-icon-clear">Убрать</button>' +
-            '<span class="dim small truncate" id="wz-icon-name">' + (w.iconPath ? ui.esc(w.iconPath.split(/[\\/]/).pop()) : "не выбрана") + "</span>" +
-          "</div></div>" +
-        "</div>";
-      body.querySelector("#wz-name").oninput = function () { w.name = this.value; };
+        "</div>" +
+        '<div class="row" style="gap:8px"><button class="btn btn-sm btn-ghost" id="wz-icon-clear" ' + (w.iconPath ? "" : "hidden") + '>' + ui.icon("x") + " Убрать иконку</button>" +
+          '<span class="dim small truncate" id="wz-icon-name">' + (w.iconPath ? ui.esc(w.iconPath.split(/[\\/]/).pop()) : "") + "</span></div>";
+
+      function syncHint() {
+        var hint = body.querySelector("#wz-name-hint");
+        var inp = body.querySelector("#wz-name");
+        if (hint) hint.textContent = w.name.trim() ? "" : "Пусто — назовём сами: " + autoName();
+        if (inp) inp.placeholder = autoName();
+      }
+
+      body.querySelectorAll("#wz-tpls .wz-tpl").forEach(function (b) {
+        b.onclick = function () {
+          w.preset = b.dataset.t;
+          var t = presetById(w.preset);
+          if (w.loader !== t.loader) { w.loader = t.loader; w.loaderVersion = ""; w.loaders = []; }
+          body.querySelectorAll("#wz-tpls .wz-tpl").forEach(function (x) { x.classList.toggle("sel", x === b); });
+          showError("");
+          syncHint();
+        };
+      });
+      body.querySelector("#wz-name").oninput = function () { w.name = this.value; syncHint(); };
       body.querySelector("#wz-desc").oninput = function () { w.description = this.value; };
       body.querySelector("#wz-color").oninput = function () {
         w.color = this.value;
         body.querySelector("#wz-color-v").textContent = this.value;
       };
-      body.querySelector("#wz-icon-pick").onclick = async function () {
+      body.querySelector("#wz-icon").onclick = async function () {
         try {
           var files = await api("system.pickFiles", { title: "Иконка сборки", filter: "image" });
           if (!files || !files.length) return;
           w.iconPath = files[0];
           body.querySelector("#wz-icon-name").textContent = files[0].split(/[\\/]/).pop();
+          body.querySelector("#wz-icon-clear").hidden = false;
         } catch (e) { ui.notifyError(e); }
       };
       body.querySelector("#wz-icon-clear").onclick = function () {
         w.iconPath = null;
-        body.querySelector("#wz-icon-name").textContent = "не выбрана";
+        body.querySelector("#wz-icon-name").textContent = "";
+        this.hidden = true;
       };
+      syncHint();
     }
 
     /* --- шаг 2 --- */
     function typeSegs() {
       return [
-        { t: "", l: "Все" }, { t: "release", l: "Release" }, { t: "old_release", l: "Старые" },
+        { t: "", l: "Все" }, { t: "release", l: "Release" }, { t: "old", l: "Старые" },
       ];
     }
-    function effType() { return w.experimental ? (w.type || "release") : "release"; }
 
     function step2() {
       body.innerHTML = stepHead("Версия Minecraft") +
+        '<div class="wz-row">' +
+          '<span class="t">Minecraft</span><span class="spacer"></span>' +
+          '<label class="wz-row sw"><span>Снапшоты и старые</span>' +
+            '<span class="switch"><input type="checkbox" id="wz-exp" ' + (w.experimental ? "checked" : "") + " /><i></i></span></label>" +
+        "</div>" +
         '<div class="ipl-filters">' +
           '<div class="segmented" id="wz-segs">' + typeSegs().map(function (s) {
             return '<button data-t="' + s.t + '" class="' + (w.type === s.t ? "active" : "") + '">' + s.l + "</button>";
           }).join("") + "</div>" +
-          '<label class="ipl-check"><input type="checkbox" id="wz-exp" ' + (w.experimental ? "checked" : "") + " /> Показывать экспериментальные</label>" +
         "</div>" +
         '<div class="search-box" style="max-width:none">' + ui.icon("search") +
           '<input type="search" id="wz-vq" placeholder="Поиск версии…" value="' + ui.esc(w.vq) + '" autocomplete="off" /></div>' +
@@ -701,10 +845,26 @@
       w.versionsLoading = true;
       try {
         var params = { limit: 120 };
-        var t = effType();
-        if (t) params.type = t;
+        if (w.type) params.type = w.type;
         if (w.vq.trim()) params.query = w.vq.trim();
         var list = (await api("versions.list", params)) || [];
+        /* тумблер «Снапшоты и старые»: честно докидываем snapshot/old,
+           потому что «все» на бэке дополнительно фильтруется настройками */
+        if (w.experimental) {
+          var extra = [];
+          var wants = w.type ? [] : ["snapshot", "old"];
+          for (var i = 0; i < wants.length; i++) {
+            var p2 = { limit: 120, type: wants[i] };
+            if (w.vq.trim()) p2.query = w.vq.trim();
+            try { extra = extra.concat((await api("versions.list", p2)) || []); } catch (e) { /* этот тип не показываем */ }
+          }
+          list = list.concat(extra);
+        } else if (!w.type) {
+          list = list.filter(function (v) { return (v.type || "release") === "release"; });
+        }
+        var seen = {};
+        list = list.filter(function (v) { if (!v || seen[v.id]) return false; seen[v.id] = 1; return true; });
+        list.sort(function (a, b) { return new Date(b.releaseTime || 0) - new Date(a.releaseTime || 0); });
         w.versions = list;
         w.versionsLoading = false;
         if (!body.querySelector("#wz-versions")) return;
@@ -734,15 +894,17 @@
       }
     }
 
-    /* --- шаг 3 --- */
+    /* --- шаг 3: загрузчик — чипы с логотипами, как на фото --- */
     function step3() {
       var loaders = ["vanilla", "fabric", "forge", "neoforge", "quilt"];
-      body.innerHTML = stepHead("Загрузчик (loader)") +
-        '<div class="ipl-filters">' + loaders.map(function (l) {
-          return '<button class="chip' + (w.loader === l ? " active" : "") + '" data-l="' + l + '">' + (LOADER_LABELS[l]) + "</button>";
+      body.innerHTML = stepHead("Загрузчик") +
+        '<div class="wz-row"><span class="t">Loader</span><span class="spacer"></span>' +
+          '<span class="dim small">Minecraft ' + ui.esc(w.mcVersion || "—") + "</span></div>" +
+        '<div class="wz-loaders">' + loaders.map(function (l) {
+          return '<button class="chip' + (w.loader === l ? " active" : "") + '" data-l="' + l + '">' +
+            '<img src="' + LOADER_LOGOS[l] + '" alt="" />' + (LOADER_LABELS[l]) + "</button>";
         }).join("") + "</div>" +
-        '<div class="hint small dim">Сборка: Minecraft ' + ui.esc(w.mcVersion || "—") + "</div>" +
-        '<div id="wz-loaders"></div>';
+        '<div class="field"><label>Версия загрузчика</label><div id="wz-loaders"></div></div>';
       body.querySelectorAll("[data-l]").forEach(function (b) {
         b.onclick = function () {
           w.loader = b.dataset.l;
@@ -855,21 +1017,58 @@
     }
 
     /* --- шаг 5 --- */
+    function finalName() { return w.name.trim() || autoName(); }
+
     function step5() {
+      var t = presetById(w.preset);
       body.innerHTML = stepHead("Готово к созданию") +
         '<div class="ipl-summary">' +
-          row("Название", w.name || "—") +
+          row("Название", finalName() + (w.name.trim() ? "" : " (авто)")) +
           (w.description ? row("Описание", w.description) : "") +
+          row("Шаблон", t.t) +
           row("Minecraft", w.mcVersion || "—") +
           row("Загрузчик", (LOADER_LABELS[w.loader] || "Vanilla") + (w.loaderVersion ? " " + w.loaderVersion : "")) +
           row("Java", w.javaMode === "auto" ? "Авто" : "Java " + w.javaMajor) +
           row("Память", w.ramMin + "–" + w.ramMax + " МБ") +
           row("Иконка", w.iconPath ? w.iconPath.split(/[\\/]/).pop() : "стандартная") +
         "</div>" +
-        '<div class="hint">Кнопка «Создать сборку» установит выбранные компоненты и откроет страницу сборки.</div>';
+        (t.mods.length
+          ? '<div class="field"><label>Будут установлены моды (Modrinth)</label><div class="wz-mods">' +
+            t.mods.map(function (m) { return '<span class="chip">' + ui.esc(m.name) + "</span>"; }).join("") +
+            "</div></div>"
+          : "") +
+        '<div class="hint">' + (t.mods.length
+          ? "После создания моды установятся автоматически. Если для выбранной версии совместимой сборки нет — покажем предупреждение."
+          : "Кнопка «Создать сборку» создаст папку сборки и откроет её страницу.") + "</div>" +
+        '<div class="wz-status" id="wz-status"></div>';
       function row(k, v) {
         return '<div class="srow"><span class="k">' + ui.esc(k) + '</span><span class="v">' + ui.esc(v) + "</span></div>";
       }
+    }
+
+    function setStepStatus(msg) {
+      var el = body.querySelector("#wz-status");
+      if (el) el.textContent = msg || "";
+    }
+
+    /* реальная установка модов шаблона через Modrinth */
+    async function installTemplateMods(instanceId) {
+      var t = presetById(w.preset);
+      var ok = [], skipped = [], failed = [];
+      for (var i = 0; i < t.mods.length; i++) {
+        var m = t.mods[i];
+        setStepStatus("Установка модов: " + m.name + " (" + (i + 1) + "/" + t.mods.length + ")…");
+        try {
+          var vers = (await api("modrinth.versions", {
+            id: m.slug, loaders: [w.loader], gameVersions: [w.mcVersion],
+          })) || [];
+          var pick = vers.find(function (v) { return v.versionType === "release"; }) || vers[0];
+          if (!pick) { skipped.push(m.name); continue; }
+          await api("modrinth.install", { instanceId: instanceId, versionId: pick.id, kind: "mods" });
+          ok.push(m.name);
+        } catch (e) { failed.push(m.name + ": " + ui.errText(e)); }
+      }
+      return { ok: ok, skipped: skipped, failed: failed };
     }
 
     function renderStep() {
@@ -883,7 +1082,6 @@
     }
 
     function validate() {
-      if (w.step === 1 && !w.name.trim()) return "Укажите название сборки.";
       if (w.step === 2 && !w.mcVersion) return "Выберите версию Minecraft.";
       if (w.step === 3 && w.loader !== "vanilla" && !w.loaderVersion) return "Выберите версию загрузчика.";
       if (w.step === 4 && w.ramMax < w.ramMin) return "Максимальная память не может быть меньше минимальной.";
@@ -904,9 +1102,10 @@
       if (err5) { showError(err5); return false; }
       w.creating = true;
       chrome();
+      var name = finalName();
       try {
         var payload = {
-          name: w.name.trim(),
+          name: name,
           description: w.description.trim(),
           color: w.color,
           mcVersion: w.mcVersion,
@@ -914,16 +1113,27 @@
           ramMinMb: w.ramMin,
           ramMaxMb: w.ramMax,
         };
-        if (w.iconPath) payload.icon = w.iconPath;
+        if (w.iconPath) payload.iconPath = w.iconPath;
         if (w.loader !== "vanilla" && w.loaderVersion) payload.loaderVersion = w.loaderVersion;
         if (w.javaMode === "major" && w.javaMajor) payload.java = w.javaMajor;
         var created = await api("instances.create", payload);
-        ui.notifySuccess("Сборка создана", created && created.name ? created.name : w.name.trim());
+        var t = presetById(w.preset);
+        if (t.mods.length) {
+          var res = await installTemplateMods(created.id);
+          if (res.skipped.length) {
+            ui.notifyWarn("Моды пропущены",
+              "Нет совместимой версии для " + w.mcVersion + " / " + (LOADER_LABELS[w.loader] || "Vanilla") + ": " + res.skipped.join(", "));
+          }
+          if (res.failed.length) ui.notifyError(null, "Не установились: " + res.failed.join("; "));
+          if (res.ok.length) ui.notifySuccess("Моды установлены", res.ok.join(", "));
+        }
+        ui.notifySuccess("Сборка создана", created && created.name ? created.name : name);
         dlg.close();
         navigate("instance", { id: created.id });
         return false;
       } catch (e) {
         w.creating = false;
+        setStepStatus("");
         chrome();
         showError(ui.errText(e));
         var d = ui.errDetail(e);

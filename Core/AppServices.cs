@@ -92,6 +92,7 @@ public sealed class AppServices
         NullLauncher.Worlds.WorldsIpc.Register(Router, this);
         NullLauncher.Servers.ServersIpc.Register(Router, this);
         NullLauncher.Logs.LogsIpc.Register(Router, this);
+        NullLauncher.News.NewsIpc.Register(Router, this);
     }
 
     /// <summary>Всплывающее уведомление в UI.</summary>

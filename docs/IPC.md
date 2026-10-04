@@ -46,6 +46,7 @@ Errors are always user friendly: never raw .NET exception names. `detail` may ho
 | `system.firstRun` | – | `{ needed: bool, steps: [...] }` |
 | `system.completeFirstRun` | `{ folder?, java?, account?, ram?, theme? }` | `{ ok:true }` |
 | `system.diagnose` | – | `{ checks: [{id,title,status:"ok"\|"warn"\|"error",message}] }` |
+| `system.components` | – | `{ items: [{ key:"core"\|"ui"\|"webview2"\|"dotnet"\|"manifest"\|"java"\|"modrinth", name, version, updated?(ISO), detail, logo }] }` (реальные версии/даты: версия exe, mtime UI/index.html, реестр WebView2, Environment.Version, кэш `metadata/versions.json`, `JavaService.Detect()`, kv `modrinthLastSync`) |
 | `system.storage` | – | `{ items:[{key,label,bytes,path}], totalBytes, freeBytes }` |
 | `system.clearStorage` | `{ key }` | `{ freedBytes }` |
 | `system.checkUpdate` | – | `{ current, latest?, url?, notes?, updateAvailable, sourceConfigured }` (`sourceConfigured=false` — источник обновлений не задан) |
@@ -79,6 +80,7 @@ Errors are always user friendly: never raw .NET exception names. `detail` may ho
 | `instances.importMrpack` | `{ sourcePath, instanceName? }` | `Instance` |
 | `instances.recentLaunches` | `{ limit? }` | `[{ instanceId, name, startedAt, exitCode, durationMs, error? }]` |
 | `instances.installedVersions` | – | `string[]` (installed client json ids) |
+| `instances.image` | `{ id, kind: "cover"\|"icon" }` | `string?` (data URL `data:image/...;base64,...`, `null` если файла нет / формат не изображение / больше 4 МБ) |
 
 `Instance`:
 ```jsonc

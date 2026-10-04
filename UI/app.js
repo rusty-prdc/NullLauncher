@@ -116,8 +116,11 @@ function fmtEta(sec) {
   return `${Math.floor(sec / 3600)} ч ${Math.floor((sec % 3600) / 60)} мин`;
 }
 function initials(name) {
-  const p = String(name || "?").trim().split(/\s+/);
-  return ((p[0]?.[0] || "?") + (p[1]?.[0] || "")).toUpperCase();
+  // "_Rvsty_", "Steve the Miner" → «R», «SM»: отбрасываем не-буквы/цифры по краям
+  const clean = String(name || "?").replace(/[^A-Za-zА-Яа-я0-9_]+/g, " ").trim() || "?";
+  const p = clean.split(/\s+/);
+  const ch = (w) => { const m = w.match(/[A-Za-zА-Яа-я0-9]/); return m ? m[0] : ""; };
+  return ((ch(p[0]) || "?") + ch(p[1] || "")).toUpperCase();
 }
 function errText(e) {
   if (!e) return "Неизвестная ошибка";
@@ -168,6 +171,25 @@ const notifySuccess = (t, m) => notify("success", t, m);
 const notifyError = (e, t) => notify("error", t || "Не удалось выполнить действие", errText(e));
 const notifyWarn = (t, m) => notify("warn", t, m);
 const notifyInfo = (t, m) => notify("info", t, m);
+
+/* Копирует текст в буфер обмена: clipboard API, иначе — IPC system.clipboard. */
+async function copyText(text, okMsg) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
+    else await api("system.clipboard", { text });
+    notifySuccess("Скопировано", okMsg || "Текст в буфере обмена");
+    return true;
+  } catch (e) {
+    try {
+      await api("system.clipboard", { text });
+      notifySuccess("Скопировано", okMsg || "Текст в буфере обмена");
+      return true;
+    } catch (e2) {
+      notifyError(e2, "Не удалось скопировать");
+      return false;
+    }
+  }
+}
 
 /* ---------------- dialogs ---------------- */
 let _dialogStack = [];
@@ -550,7 +572,7 @@ function setupPalette() {
 function applySettings(s) {
   App.settings = s || {};
   const r = document.documentElement;
-  const theme = s.theme || "dark";
+  const theme = s.theme || "light";
   const resolved = theme === "system"
     ? (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
     : theme;
@@ -630,7 +652,7 @@ async function boot() {
   });
 
   $$(".nav-item").forEach((n) => n.addEventListener("click", () => navigate(n.dataset.route)));
-  $("#account-chip").onclick = () => navigate("settings", { section: "accounts" });
+  $("#account-chip").onclick = () => navigate("home");
 
   on("notify", (d) => notify(d.type || "info", d.title, d.message, d.actions));
   on("app.updateAvailable", (d) => {
@@ -683,9 +705,40 @@ async function updateAccountChip() {
     $("#account-name").textContent = acc.name;
     $("#account-sub").textContent = "Microsoft";
     const av = $("#account-avatar");
-    if (acc.skinUrl) { av.style.backgroundImage = `url("${acc.skinUrl}")`; av.textContent = ""; }
+    if (acc.skinUrl) { av.textContent = ""; applySkinFace(av, acc.skinUrl); }
     else { av.style.backgroundImage = ""; av.textContent = initials(acc.name); }
   } catch (e) { /* noop */ }
+}
+
+/* ---------- лицо скина вместо всей текстуры ----------
+   Текстура скина: лицо (front head) — пиксели (8,8)–(16,16).
+   При background-size 800% (8× размера аватара) это ровно размер аватара.
+   64×32 (легаси-текстуры) имеет другую пропорцию высоты — подставляем 400%/33.3333%. */
+const _skinFaceH = Object.create(null);
+function applySkinFace(el, url) {
+  if (!el || !url) return;
+  el.style.backgroundImage = `url("${url}")`;
+  el.style.backgroundRepeat = "no-repeat";
+  el.style.backgroundSize = "800% 800%";
+  el.style.backgroundPosition = "14.2857% 14.2857%";
+  el.style.imageRendering = "pixelated";
+  const h = _skinFaceH[url];
+  if (h !== undefined) { fixSkinFacePos(el, h); return; }
+  const img = new Image();
+  img.onload = function () {
+    _skinFaceH[url] = img.naturalHeight || 64;
+    fixSkinFacePos(el, _skinFaceH[url]);
+  };
+  img.src = url;
+}
+function fixSkinFacePos(el, h) {
+  if (h && h <= 32) {
+    el.style.backgroundSize = "800% 400%";
+    el.style.backgroundPosition = "14.2857% 33.3333%";
+  } else {
+    el.style.backgroundSize = "800% 800%";
+    el.style.backgroundPosition = "14.2857% 14.2857%";
+  }
 }
 
 /* экспорт для страниц */
@@ -698,10 +751,10 @@ window.navigate = navigate;
 window.ui = {
   $, $$, esc, icon, uid, debounce, clamp,
   fmtBytes, fmtNum, fmtDate, fmtRelative, fmtDuration, fmtSpeed, fmtEta, initials,
-  notify, notifySuccess, notifyError, notifyWarn, notifyInfo,
+  notify, notifySuccess, notifyError, notifyWarn, notifyInfo, copyText,
   openDialog, confirmDialog, promptDialog, contextMenu, bindContextMenu,
   onFilesDropped, errText, errDetail, goBack, updateAccountChip, applySettings,
-  openPalette, DefaultHotkeys,
+  openPalette, DefaultHotkeys, applySkinFace,
 };
 
 let _booted = false;

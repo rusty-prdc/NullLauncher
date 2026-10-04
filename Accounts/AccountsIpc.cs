@@ -52,5 +52,14 @@ public static class AccountsIpc
             s.Emit("accounts.changed", new { action = "added" });
             return Task.FromResult<object?>(acc);
         });
+
+        // смена скина лицензионного аккаунта (PNG 64×64 / 64×32, variant classic|slim)
+        r.Register("accounts.changeSkin", async (p, ct) =>
+        {
+            var acc = await s.Accounts.ChangeSkinAsync(p?.Str("path"), p?.Str("variant") ?? "classic", ct)
+                .ConfigureAwait(false);
+            s.Emit("accounts.changed", new { action = "skin", uuid = acc.Uuid });
+            return (object?)acc;
+        });
     }
 }

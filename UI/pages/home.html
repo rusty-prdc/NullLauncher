@@ -1,18 +1,45 @@
 <style>
 /* ===== home — страница-специфичные стили (префикс home-) ===== */
-.home-hero { display: flex; gap: 20px; align-items: center; padding: 22px; position: relative; overflow: hidden; }
+.home-greet { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 2px; }
+.home-greet .grow { flex: 1; min-width: 0; }
+.home-greet h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+.home-greet h1 span { color: var(--accent); }
+.home-greet .sub { margin-top: 5px; font-size: 13px; color: var(--text-3); }
+
+.home-hero { display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; }
+.home-hero-top { display: flex; gap: 20px; align-items: center; padding: 20px 22px; }
 .home-hero .grow { flex: 1; min-width: 0; }
-.home-cover { width: 96px; height: 96px; border-radius: var(--r-md); background: var(--card-3); display: grid; place-items: center; flex: 0 0 auto; }
-.home-cover .item-icon { width: 100%; height: 100%; border-radius: var(--r-md); font-size: 34px; }
-.home-title { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.3px; display: flex; align-items: center; gap: 9px; min-width: 0; }
+.home-cover { width: 196px; height: 118px; border-radius: var(--r-md); background: var(--card-3); display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; position: relative; }
+.home-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.home-cover .item-icon { width: 100%; height: 100%; border-radius: var(--r-md); font-size: 42px; }
+.home-kicker { font-size: 11px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--accent); }
+.home-title { margin: 6px 0 0; font-size: 22px; font-weight: 650; letter-spacing: -0.3px; display: flex; align-items: center; gap: 9px; min-width: 0; }
 .home-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-title .fav { color: var(--warn); fill: var(--warn); width: 17px; height: 17px; }
-.home-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 11px; }
+.home-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 11px; align-items: center; }
+.home-meta .chip img { width: 15px; height: 15px; object-fit: contain; background: #fff; border-radius: 3px; padding: 1px; margin-right: 3px; vertical-align: -3px; }
 .home-status { margin-top: 13px; display: flex; flex-direction: column; gap: 7px; max-width: 540px; }
 .home-status[hidden] { display: none; }
 .home-status .st-text { font-size: 12.5px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
-.home-actions { margin-left: auto; display: flex; flex-direction: column; gap: 9px; align-items: stretch; }
-.home-actions .btn-lg { min-width: 168px; }
+
+/* панель запуска: аккаунт + версия + Играть */
+.home-panel { display: flex; align-items: center; gap: 10px; padding: 13px 22px; border-top: 1px solid var(--line); background: var(--card-2); flex-wrap: wrap; }
+.home-pchip { display: inline-flex; align-items: center; gap: 9px; padding: 6px 12px 6px 7px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; cursor: pointer; font-size: 13px; color: var(--text); max-width: 240px; transition: background .15s, border-color .15s; }
+.home-pchip:hover { background: var(--card-3); border-color: var(--accent-line); }
+.home-pchip .avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--card-3); display: grid; place-items: center; font-size: 10.5px; font-weight: 700; flex: 0 0 auto; background-size: cover; background-position: center; overflow: hidden; }
+.home-pchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.home-pchip .pc-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.home-pchip .pc-sub { color: var(--text-3); font-weight: 400; font-size: 11.5px; }
+.home-pchip svg { width: 13px; height: 13px; color: var(--text-3); flex: 0 0 auto; }
+.home-pchip .pc-logo { width: 20px; height: 20px; object-fit: contain; background: #fff; border-radius: 4px; padding: 2px; flex: 0 0 auto; }
+.home-panel .spacer { flex: 1; min-width: 8px; }
+.home-panel .btn-lg { min-width: 176px; }
+
+/* двухколоночная сетка */
+.home-cols { display: grid; grid-template-columns: minmax(0, 1fr) 352px; gap: var(--gap); align-items: start; }
+.home-main, .home-side { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+@media (max-width: 1150px) { .home-cols { grid-template-columns: 1fr; } }
+
 .home-grid { grid-auto-flow: column; grid-auto-columns: minmax(248px, 1fr); overflow-x: auto; padding-bottom: 6px; }
 .home-sec { display: flex; flex-direction: column; gap: var(--gap); }
 .home-sec-head { display: flex; align-items: center; gap: 10px; }
@@ -43,14 +70,56 @@
 .home-welcome .actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
 .home-welcome .state-ic { width: 54px; height: 54px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin: 0 auto; }
 .home-welcome .state-ic svg { width: 26px; height: 26px; }
+
+/* карточка аккаунтов */
+.home-acc-add { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.home-acc-row { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.home-acc-row:last-child { border-bottom: none; }
+.home-acc-row .grow { flex: 1; min-width: 0; }
+.home-acc-row .name { font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.home-acc-row .sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; display: flex; gap: 8px; flex-wrap: wrap; }
+.home-acc-hint { font-size: 12px; color: var(--text-3); line-height: 1.55; margin-top: 10px; }
+.home-sset-code { font-family: var(--mono); font-size: 13px; background: var(--card-3); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px; text-align: center; word-break: break-all; }
+.ms-row { display: flex; gap: 8px; align-items: center; }
+.ms-row .ms-val { flex: 1; min-width: 0; }
+.ms-row .btn { flex: 0 0 auto; }
+.ms-row .ms-pin { text-align: center; font-size: 26px; font-weight: 700; letter-spacing: 3px; background: var(--card-3); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px; }
+
+/* новости */
+.news-featured { display: flex; gap: 14px; align-items: stretch; }
+.news-featured .news-img { width: 178px; flex: 0 0 auto; border-radius: var(--r-md); overflow: hidden; background: var(--card-3); align-self: center; aspect-ratio: 16 / 9; }
+.news-featured .news-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.news-featured .news-img .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--text-3); }
+.news-featured .news-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.news-meta { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-3); flex-wrap: wrap; }
+.news-title { font-size: 15px; font-weight: 650; line-height: 1.3; margin: 0; }
+.news-title a:hover { color: var(--accent); }
+.news-text { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin: 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.news-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 6px; }
+.news-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.news-row .grow { flex: 1; min-width: 0; }
+.news-row .nr-title { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.news-row:hover .nr-title { color: var(--accent); }
+.news-row .nr-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+.news-src { display: inline-flex; align-items: center; gap: 5px; }
+.news-src img { width: 13px; height: 13px; border-radius: 3px; object-fit: contain; background: #fff; }
 </style>
 
 <section class="page">
+  <div id="home-greet"></div>
   <div id="home-hero"></div>
-  <div id="home-insts"></div>
-  <div id="home-recent"></div>
-  <div id="home-updates"></div>
-  <div id="home-launcher"></div>
+  <div id="home-note"></div>
+  <div class="home-cols">
+    <div class="home-main">
+      <div id="home-insts"></div>
+      <div id="home-recent"></div>
+      <div id="home-updates"></div>
+      <div id="home-news"></div>
+    </div>
+    <div class="home-side">
+      <div id="home-accounts"></div>
+    </div>
+  </div>
 </section>
 
 <script>
@@ -59,8 +128,26 @@
 
   var S = {
     unsubs: [], activeId: null, playBtn: null, dead: false,
-    running: [], runningLimit: 1, busyStatus: false, runTimer: null,
+    running: [], runningLimit: 1, runTimer: null,
+    accounts: [], list: [], dialogs: [],
   };
+
+  /* логотипы загрузчиков и компаний (настоящие файлы в UI/assets/logos) */
+  var LOADER_LOGOS = {
+    vanilla: "assets/logos/mojang.png",
+    fabric: "assets/logos/fabric.png",
+    forge: "assets/logos/forge.jpg",
+    neoforge: "assets/logos/neoforge.png",
+    quilt: "assets/logos/quilt.png",
+  };
+  var LOADER_LABELS = { vanilla: "Vanilla", fabric: "Fabric", forge: "Forge", neoforge: "NeoForge", quilt: "Quilt" };
+
+  function loaderChip(l, ver) {
+    var label = LOADER_LABELS[l] || l || "vanilla";
+    var logo = LOADER_LOGOS[l];
+    return '<span class="chip">' + (logo ? '<img src="' + logo + '" alt="" />' : "") +
+      ui.esc(label) + (ver ? " " + ui.esc(ver) : "") + "</span>";
+  }
 
   /* ---------- маленькие помощники ---------- */
   function errBlock(e, onRetry) {
@@ -83,8 +170,43 @@
     var b = box.querySelector("[data-retry]");
     if (b) b.onclick = fn;
   }
+  function closeDialogs() {
+    S.dialogs.forEach(function (d) { try { d.close(); } catch (e) { /* noop */ } });
+    S.dialogs = [];
+  }
+  /* диалог страницы — закрывается при dispose, чтобы не осталось опросов device-code */
+  function openPageDialog(opts) {
+    var prevClose = opts.onClose;
+    var ctx = ui.openDialog(Object.assign({}, opts, {
+      onClose: function () {
+        var i = S.dialogs.indexOf(ctx);
+        if (i >= 0) S.dialogs.splice(i, 1);
+        if (prevClose) prevClose();
+      },
+    }));
+    S.dialogs.push(ctx);
+    return ctx;
+  }
 
-  /* ---------- hero: последняя сборка ---------- */
+  /* ---------- приветствие ---------- */
+  function activeAccount() {
+    var list = S.accounts || [];
+    return (App.settings.accountUuid && list.filter(function (a) { return a.uuid === App.settings.accountUuid; })[0]) ||
+      list.filter(function (a) { return a.default; })[0] || list[0] || null;
+  }
+
+  function renderGreeting(box) {
+    var acc = activeAccount();
+    var now = new Date();
+    var date = now.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+    date = date.charAt(0).toUpperCase() + date.slice(1);
+    box.innerHTML = '<div class="home-greet"><div class="grow">' +
+      "<h1>" + (acc ? "С возвращением, <span>" + ui.esc(acc.name) + "</span>" : "Добро пожаловать") + "</h1>" +
+      '<div class="sub">' + ui.esc(date) + " · " + (acc ? "Готовы к игре?" : "Войдите или добавьте аккаунт, чтобы играть") + "</div>" +
+      "</div></div>";
+  }
+
+  /* ---------- hero: продолжить игру ---------- */
   function pickActive(list) {
     if (!list.length) return null;
     var bySetting = App.settings.activeInstance && list.find(function (i) { return i.id === App.settings.activeInstance; });
@@ -98,7 +220,7 @@
     box.innerHTML =
       '<div class="card home-welcome">' +
         '<div class="state-ic">' + ui.icon("cube") + "</div>" +
-        "<h2>Добро пожаловать</h2>" +
+        "<h2>Сборок пока нет</h2>" +
         "<p>Создайте свою сборку Minecraft или импортируйте готовый архив — и играйте в один клик.</p>" +
         '<div class="actions">' +
           '<button class="btn btn-primary" data-act="create">' + ui.icon("plus") + " Создать сборку</button>" +
@@ -119,40 +241,90 @@
     } catch (e) { ui.notifyError(e, "Не удалось импортировать сборку"); }
   }
 
+  function versionChipHtml(inst) {
+    var logo = LOADER_LOGOS[inst.loader];
+    return '<button class="home-pchip" data-act="ver" type="button">' +
+      (logo ? '<img class="pc-logo" src="' + logo + '" alt="" />' : "") +
+      '<span class="pc-label">' + ui.esc(inst.mcVersion) +
+      '<span class="pc-sub"> · ' + ui.esc(LOADER_LABELS[inst.loader] || inst.loader || "Vanilla") + "</span></span>" +
+      ui.icon("chevron") + "</button>";
+  }
+
   function renderHero(box, inst) {
-    if (!inst) { renderWelcome(box); return; }
+    if (!inst) { S.activeId = null; renderWelcome(box); return; }
     S.activeId = inst.id;
     var color = inst.color || "#3ecf8e";
     var letter = ui.esc((inst.name || "?").trim().charAt(0).toUpperCase() || "?");
     box.innerHTML =
       '<div class="card home-hero">' +
-        '<div class="home-cover"><div class="item-icon" style="background:' + ui.esc(color) + ';color:#08130d">' + letter + "</div></div>" +
-        '<div class="grow">' +
-          '<h2 class="home-title"><span>' + ui.esc(inst.name) + "</span>" + (inst.favorite ? ui.icon("star", "fav") : "") + "</h2>" +
-          '<div class="home-meta">' +
-            '<span class="chip">Minecraft ' + ui.esc(inst.mcVersion) + "</span>" +
-            '<span class="chip">' + ui.esc((inst.loader || "vanilla")) + (inst.loaderVersion ? " " + ui.esc(inst.loaderVersion) : "") + "</span>" +
-            '<span class="chip">' + ui.icon("clock") + " Последний запуск: " + ui.esc(ui.fmtRelative(inst.lastPlayedAt)) + "</span>" +
-          "</div>" +
-          '<div class="home-status" id="home-status" hidden>' +
-            '<div class="progress indeterminate"><i style="width:35%"></i></div>' +
-            '<div class="st-text"><span class="spinner" style="width:13px;height:13px"></span><span id="home-status-text">Запуск…</span>' +
-              '<span class="dim tnum" id="home-status-meta" style="margin-left:auto"></span></div>' +
+        '<div class="home-hero-top">' +
+          '<div class="home-cover" id="home-cover"><div class="item-icon" style="background:' + ui.esc(color) + ';color:#08130d">' + letter + "</div></div>" +
+          '<div class="grow">' +
+            '<div class="home-kicker">Продолжить игру</div>' +
+            '<h2 class="home-title"><span>' + ui.esc(inst.name) + "</span>" + (inst.favorite ? ui.icon("star", "fav") : "") + "</h2>" +
+            '<div class="home-meta">' +
+              '<span class="chip">Minecraft ' + ui.esc(inst.mcVersion) + "</span>" +
+              loaderChip(inst.loader, inst.loaderVersion) +
+              '<span class="chip">' + ui.icon("clock") + " " + ui.esc(ui.fmtRelative(inst.lastPlayedAt)) + "</span>" +
+            "</div>" +
+            '<div class="home-status" id="home-status" hidden>' +
+              '<div class="progress indeterminate"><i style="width:35%"></i></div>' +
+              '<div class="st-text"><span class="spinner" style="width:13px;height:13px"></span><span id="home-status-text">Запуск…</span>' +
+                '<span class="dim tnum" id="home-status-meta" style="margin-left:auto"></span></div>' +
+            "</div>" +
           "</div>" +
         "</div>" +
-        '<div class="home-actions" id="home-hero-actions">' +
-          '<button class="btn play btn-lg" data-play-quick data-act="play">' + ui.icon("play") + " Играть</button>" +
+        '<div class="home-panel" id="home-hero-actions">' +
+          versionChipHtml(inst) +
+          '<span class="spacer"></span>' +
+          '<button class="btn btn-ghost" data-act="open">Открыть сборку</button>' +
           '<button class="btn btn-danger" data-act="stop" hidden>' + ui.icon("power") + " Остановить</button>" +
-          '<button class="btn btn-ghost btn-sm" data-act="open">Открыть сборку</button>' +
+          '<button class="btn play btn-lg" data-play-quick data-act="play">' + ui.icon("play") + " Играть</button>" +
         "</div>" +
-      "</div>" +
-      '<div class="home-note" id="home-note" hidden></div>';
+      "</div>";
+
     S.playBtn = box.querySelector('[data-act="play"]');
     S.playBtn.onclick = function () { startLaunch(inst.id); };
     var stopBtn = box.querySelector('[data-act="stop"]');
     if (stopBtn) stopBtn.onclick = stopLaunch;
     box.querySelector('[data-act="open"]').onclick = function () { navigate("instance", { id: inst.id }); };
+    box.querySelector('[data-act="ver"]').onclick = function (ev) { openVersionMenu(ev.currentTarget, inst.id); };
+
+    // обложка/иконка сборки (реальный файл, отдаётся IPC как data URL)
+    var coverBox = box.querySelector("#home-cover");
+    if (coverBox) {
+      api("instances.image", { id: inst.id, kind: "cover" }).then(function (url) {
+        if (!url) return api("instances.image", { id: inst.id, kind: "icon" });
+        return url;
+      }).then(function (url) {
+        if (S.dead || !coverBox.isConnected || !url) return;
+        coverBox.innerHTML = '<img src="' + url + '" alt="" />';
+      }).catch(function () { /* без картинки — остаётся буквенная плитка */ });
+    }
     applyRunningUI();
+  }
+
+  function openVersionMenu(anchor, currentId) {
+    var r = anchor.getBoundingClientRect();
+    var items = [{ label: "Сборка для запуска", header: true }];
+    if (!S.list.length) items.push({ label: "Сборок пока нет", disabled: true });
+    S.list.slice(0, 12).forEach(function (i) {
+      items.push({
+        label: i.name + " · " + i.mcVersion,
+        icon: i.id === currentId ? "check" : "cube",
+        onClick: function () { selectActive(i.id); },
+      });
+    });
+    if (S.list.length > 12) { items.push("-"); items.push({ label: "Все сборки…", icon: "grid", onClick: function () { navigate("instances"); } }); }
+    ui.contextMenu(r.left, r.bottom + 8, items);
+  }
+
+  async function selectActive(id) {
+    try {
+      await api("settings.set", { activeInstance: id });
+      var inst = S.list.filter(function (i) { return i.id === id; })[0];
+      if (inst) renderHero(document.getElementById("home-hero"), inst);
+    } catch (e) { ui.notifyError(e, "Не удалось сменить сборку"); }
   }
 
   function setStatus(text, percent, meta) {
@@ -220,7 +392,7 @@
     refreshRunning();
   }
 
-  /* ---------- состояние запуска: показываем везде, а не только на открытой сборке ---------- */
+  /* ---------- состояние запуска ---------- */
 
   function runningOf(id) { return S.running.filter(function (x) { return x.instanceId === id; })[0] || null; }
   function otherRunning(id) { return S.running.filter(function (x) { return x.instanceId !== id; })[0] || null; }
@@ -265,9 +437,9 @@
     if (note) {
       if (other) {
         note.hidden = false;
-        note.innerHTML = ui.icon("play") + "<span class=\"grow\">Уже запущена «" + ui.esc(other.name) + "»" +
+        note.innerHTML = '<div class="banner warn" style="margin-top:2px">' + ui.icon("play") + "<span class=\"grow\">Уже запущена «" + ui.esc(other.name) + "»" +
           (other.preparing ? " (идёт подготовка)" : "") + " — одновременно можно держать " + S.runningLimit + " сборку.</span>" +
-          '<button class="btn btn-sm btn-danger" data-act="stop-other">Остановить</button>';
+          '<button class="btn btn-sm btn-danger" data-act="stop-other">Остановить</button></div>';
         var b = note.querySelector('[data-act="stop-other"]');
         if (b) b.onclick = function () {
           var id = other.instanceId;
@@ -303,7 +475,7 @@
       "<h4>" + ui.esc(inst.name) + (inst.favorite ? ui.icon("star", "fav") : "") + "</h4>" +
       '<div class="meta">' +
         '<span class="chip">' + ui.esc(inst.mcVersion) + "</span>" +
-        '<span class="chip">' + ui.esc(inst.loader || "vanilla") + "</span>" +
+        loaderChip(inst.loader) +
         (inst.modCount ? '<span class="chip">' + ui.fmtNum(inst.modCount) + " модов</span>" : "") +
       "</div>" +
       '<div class="foot"><span class="last">Играть ' + ui.esc(ui.fmtRelative(inst.lastPlayedAt)) + "</span>" +
@@ -327,7 +499,7 @@
     return el;
   }
 
-  function renderInstances(box, list, onRetry) {
+  function renderInstances(box, list) {
     if (!list.length) {
       box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Мои сборки</h3></div>' +
         emptyBlock("grid", "Сборок пока нет — создайте первую") + "</div>";
@@ -482,36 +654,219 @@
     });
   }
 
-  /* ---------- секция «Обновление лаунчера» ---------- */
-  function renderLauncher(box) {
-    box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>NullLauncher</h3></div>' + skel(1) + "</div>";
-    api("system.checkUpdate").then(function (u) {
-      if (S.dead) return;
-      u = u || {};
-      if (u.updateAvailable && u.latest) {
-        box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Обновление лаунчера</h3></div>' +
-          '<div class="banner info">' + ui.icon("download") +
-          '<span class="grow">Доступно обновление NullLauncher ' + ui.esc(u.current || "") + " → " + ui.esc(u.latest) +
-          (u.notes ? '<div class="small dim" style="margin-top:3px">' + ui.esc(u.notes) + "</div>" : "") + "</span>" +
-          '<button class="btn btn-sm btn-primary" data-act="update">Обновить</button>' +
-          '<button class="btn btn-sm btn-ghost" data-act="later">Позже</button></div></div>';
-        box.querySelector('[data-act="update"]').onclick = function () {
-          if (u.url) api("system.openUrl", { url: u.url }).catch(function (e) { ui.notifyError(e); });
-          else navigate("settings", { section: "about" });
-        };
-        box.querySelector('[data-act="later"]').onclick = function () {
-          box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Обновление лаунчера</h3></div>' +
-            emptyBlock("check", "У вас актуальная версия") + "</div>";
-        };
-      } else {
-        box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Обновление лаунчера</h3></div>' +
-          emptyBlock("check", "У вас актуальная версия") + "</div>";
+  /* ---------- карточка «Аккаунты» ---------- */
+  function renderAccounts(box) {
+    box.innerHTML =
+      '<div class="card">' +
+        '<div class="home-sec-head" style="margin-bottom:12px"><h3>' + ui.icon("user") + " Аккаунты</h3><span class=\"spacer\"></span>" +
+          '<button class="btn btn-sm btn-primary" data-act="add">' + ui.icon("plus") + " Добавить</button></div>" +
+        '<div class="home-acc-add" style="display:none"></div>' +
+        '<div id="home-acc-list">' + skel(2) + "</div>" +
+        '<div class="home-acc-hint">Данные входа хранятся только на этом компьютере. Microsoft-токены шифруются через DPAPI Windows.</div>' +
+      "</div>";
+    box.querySelector('[data-act="add"]').onclick = function (ev) {
+      var r = ev.currentTarget.getBoundingClientRect();
+      ui.contextMenu(r.right - 180, r.bottom + 8, [
+        { label: "Войти через Microsoft", icon: "user", onClick: msLogin },
+        { label: "Офлайн-аккаунт", icon: "user", onClick: offlineLogin },
+        { label: "Гость", icon: "user", onClick: guestLogin },
+      ]);
+    };
+    loadAccounts(false);
+  }
+
+  async function afterAccountAdded(acc) {
+    ui.notifySuccess(acc && acc.type === "microsoft" ? "Аккаунт добавлен" : "Офлайн-аккаунт добавлен", acc ? acc.name : "");
+    await ui.updateAccountChip();
+    await loadAccounts(true);
+  }
+
+  async function loadAccounts(silent) {
+    if (S.dead) return;
+    var box = document.getElementById("home-acc-list");
+    if (!box) return;
+    if (!silent) box.innerHTML = skel(2);
+    try {
+      var list = await api("accounts.list");
+      if (S.dead || !box.isConnected) return;
+      S.accounts = list || [];
+      renderGreeting(document.getElementById("home-greet"));
+      if (!S.accounts.length) {
+        box.innerHTML = emptyBlock("user", "Аккаунтов нет — войдите, чтобы играть");
+        return;
       }
+      var h = "";
+      S.accounts.forEach(function (a, idx) {
+        var av = a.skinUrl
+          ? '<span class="item-icon" data-skin="' + ui.esc(a.skinUrl) + '"></span>'
+          : '<span class="item-icon">' + ui.esc(ui.initials(a.name)) + "</span>";
+        h += '<div class="home-acc-row">' + av +
+          '<div class="grow"><div class="name">' + ui.esc(a.name) +
+          (a.default ? ' <span class="chip on">основной</span>' : "") + "</div>" +
+          '<div class="sub"><span>' + ui.esc(a.type || "—") + "</span>" +
+          (a.expiresAt ? "<span>истекает " + ui.esc(ui.fmtDate(a.expiresAt)) + "</span>" : "") +
+          "</div></div>" +
+          '<div class="row" style="gap:6px">' +
+            (a.default ? "" : '<button class="btn btn-sm" data-act="set-default" data-idx="' + idx + '">Сделать основным</button>') +
+            '<button class="btn btn-sm btn-danger btn-icon" data-act="remove" data-idx="' + idx + '" title="Удалить аккаунт">' + ui.icon("trash") + "</button>" +
+          "</div></div>";
+      });
+      box.innerHTML = h;
+      /* аватары аккаунтов — лицо скина, не вся текстура */
+      box.querySelectorAll(".item-icon[data-skin]").forEach(function (el) {
+        ui.applySkinFace(el, el.dataset.skin);
+      });
+      box.querySelectorAll("[data-act]").forEach(function (b) {
+        b.onclick = function () {
+          var a = S.accounts[+b.dataset.idx];
+          if (!a) return;
+          if (b.dataset.act === "set-default") setDefaultAccount(a.uuid, b);
+          else removeAccount(a.uuid, b);
+        };
+      });
+    } catch (e) {
+      if (S.dead || !box.isConnected) return;
+      box.innerHTML = errBlock(e, true);
+      bindRetry(box, function () { loadAccounts(false); });
+    }
+  }
+
+  async function setDefaultAccount(uuid, btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      await api("accounts.setDefault", { uuid: uuid });
+      await api("settings.set", { accountUuid: uuid });
+      ui.notifySuccess("Основной аккаунт изменён", "");
+      await loadAccounts(true);
+      await ui.updateAccountChip();
+      renderGreeting(document.getElementById("home-greet"));
+      var hero = document.getElementById("home-hero");
+      var inst = S.list.filter(function (i) { return i.id === S.activeId; })[0];
+      if (hero && inst) renderHero(hero, inst);
+    } catch (e) {
+      ui.notifyError(e, "Не удалось сменить основной аккаунт");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  async function removeAccount(uuid, btnEl) {
+    var ok = await ui.confirmDialog({
+      title: "Удалить аккаунт?",
+      message: "Профиль будет удалён из лаунчера. Сами сборки и миры не пострадают.",
+      okLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      await api("accounts.remove", { uuid: uuid });
+      ui.notifySuccess("Аккаунт удалён", "");
+      await loadAccounts(true);
+      await ui.updateAccountChip();
+      renderGreeting(document.getElementById("home-greet"));
+      var hero = document.getElementById("home-hero");
+      var inst = S.list.filter(function (i) { return i.id === S.activeId; })[0];
+      if (hero && inst) renderHero(hero, inst);
+    } catch (e) {
+      ui.notifyError(e, "Не удалось удалить аккаунт");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  function offlineLogin() {
+    AccUI.openOffline({ onDone: afterAccountAdded });
+  }
+
+  async function guestLogin() {
+    try {
+      await api("accounts.addGuest", { name: "Player" });
+      ui.notifySuccess("Гостевой профиль добавлен", "Можно запускать игру");
+      await ui.updateAccountChip();
+      await loadAccounts(true);
+    } catch (e) {
+      ui.notifyError(e, "Не удалось создать гостевой профиль");
+    }
+  }
+
+  function msLogin() {
+    AccUI.openMicrosoft({ onDone: afterAccountAdded });
+  }
+
+  /* ---------- новости (реальные ленты Mojang + Modrinth) ---------- */
+  var NEWS_SRC = {
+    mojang: { label: "Minecraft", logo: "assets/logos/mojang.png" },
+    modrinth: { label: "Modrinth", logo: "assets/logos/modrinth.jpg" },
+  };
+
+  function renderNews(box) {
+    if (!box) return;
+    box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>' + ui.icon("globe") + " Новости</h3></div>" + skel(2) + "</div>";
+    api("news.list", { limit: 6 }).then(function (res) {
+      if (S.dead || !box.isConnected) return;
+      var items = (res && res.items) || [];
+      if (!items.length) {
+        box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>' + ui.icon("globe") + " Новости</h3></div>" +
+          emptyBlock("globe", "Новостей пока нет") + "</div>";
+        return;
+      }
+      var head = items[0];
+      var rest = items.slice(1, 5);
+      var src = NEWS_SRC[head.source] || { label: head.source || "Новости", logo: null };
+
+      var h = '<div class="home-sec">' +
+        '<div class="home-sec-head"><h3>' + ui.icon("globe") + " Новости</h3><span class=\"spacer\"></span>" +
+        '<button class="btn btn-ghost btn-sm" data-act="all-news">Все новости' + ui.icon("chevron") + "</button></div>" +
+        '<div class="card">' +
+          '<div class="news-featured">' +
+            '<div class="news-img">' + (head.image
+              ? '<img src="' + ui.esc(head.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'" />'
+              : '<div class="ph">' + ui.icon("globe") + "</div>") +
+            "</div>" +
+            '<div class="news-body">' +
+              '<div class="news-meta"><span class="chip on news-src">' + (src.logo ? '<img src="' + src.logo + '" alt="" />' : "") + ui.esc(src.label) + "</span>" +
+                "<span>" + ui.esc(ui.fmtDate(head.date)) + "</span></div>" +
+              '<h4 class="news-title">' + ui.esc(head.title) + "</h4>" +
+              (head.text ? '<p class="news-text">' + ui.esc(head.text) + "</p>" : "") +
+              '<div class="news-actions">' +
+                (head.url ? '<button class="btn btn-primary btn-sm" data-act="read0">Читать' + ui.icon("chevron") + "</button>" : "") +
+              "</div>" +
+            "</div>" +
+          "</div>";
+
+      if (rest.length) {
+        h += '<div style="margin-top:6px">';
+        rest.forEach(function (n, idx) {
+          var s = NEWS_SRC[n.source] || { label: n.source || "Новости", logo: null };
+          h += '<div class="news-row" data-idx="' + (idx + 1) + '" role="button" tabindex="0">' +
+            '<div class="grow"><div class="nr-title">' + ui.esc(n.title) + "</div>" +
+            '<div class="nr-sub"><span class="news-src">' + (s.logo ? '<img src="' + s.logo + '" alt="" />' : "") + ui.esc(s.label) +
+            "</span> · " + ui.esc(ui.fmtDate(n.date)) + "</div></div>" +
+            (n.url ? ui.icon("chevron") : "") + "</div>";
+        });
+        h += "</div>";
+      }
+      h += "</div></div>";
+      box.innerHTML = h;
+
+      var all = box.querySelector('[data-act="all-news"]');
+      if (all) all.onclick = function () {
+        api("system.openUrl", { url: "https://www.minecraft.net/en-us/updates" }).catch(function (e) { ui.notifyError(e); });
+      };
+      var read0 = box.querySelector('[data-act="read0"]');
+      if (read0) read0.onclick = function () {
+        api("system.openUrl", { url: head.url }).catch(function (e) { ui.notifyError(e); });
+      };
+      box.querySelectorAll(".news-row").forEach(function (row) {
+        row.onclick = function () {
+          var n = items[+row.dataset.idx];
+          if (n && n.url) api("system.openUrl", { url: n.url }).catch(function (e) { ui.notifyError(e); });
+        };
+      });
     }).catch(function (e) {
-      if (S.dead) return;
-      box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Обновление лаунчера</h3></div>' +
-        '<div class="card tight">' + errBlock(e) + "</div></div>";
-      bindRetry(box, function () { renderLauncher(box); });
+      if (S.dead || !box.isConnected) return;
+      box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>' + ui.icon("globe") + " Новости</h3></div>" +
+        '<div class="card tight">' + errBlock(e, true) + "</div></div>";
+      bindRetry(box, function () { renderNews(box); });
     });
   }
 
@@ -520,11 +875,14 @@
     title: "Главная",
     async init(ctx) {
       S.dead = false;
+      S.dialogs = [];
       var root = ctx.root;
+      var greet = root.querySelector("#home-greet");
       var hero = root.querySelector("#home-hero");
       var insts = root.querySelector("#home-insts");
 
-      hero.innerHTML = '<div class="card home-hero">' + skel(2) + "</div>";
+      greet.innerHTML = '<div class="home-greet"><div class="grow"><div class="skeleton" style="height:30px;width:280px"></div></div></div>';
+      hero.innerHTML = '<div class="card home-hero" style="padding:22px">' + skel(2) + "</div>";
       insts.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Мои сборки</h3></div>' +
         '<div class="grid grid-cards home-grid"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div></div>';
 
@@ -563,24 +921,32 @@
         }
         setTimeout(hideStatus, 6000);
       }));
+      /* аккаунты могут смениться из настроек/стороны — обновляем чипы */
+      S.unsubs.push(on("accounts.changed", function () { loadAccounts(true); }));
 
       var list = [];
       try {
         list = (await api("instances.list")) || [];
       } catch (e) {
+        greet.innerHTML = "";
         hero.innerHTML = '<div class="card">' + errBlock(e, true) + "</div>";
         insts.innerHTML = "";
         bindRetry(hero, function () { ctx.reload(); });
         renderRecent(root.querySelector("#home-recent"));
-        renderLauncher(root.querySelector("#home-launcher"));
+        renderNews(root.querySelector("#home-news"));
+        renderAccounts(root.querySelector("#home-accounts"));
         return;
       }
+      S.list = list;
+      try { S.accounts = (await api("accounts.list")) || []; } catch (e) { S.accounts = []; }
 
+      renderGreeting(greet);
       renderHero(hero, pickActive(list));
       renderInstances(insts, list);
       renderRecent(root.querySelector("#home-recent"));
       renderUpdates(root.querySelector("#home-updates"), list);
-      renderLauncher(root.querySelector("#home-launcher"));
+      renderNews(root.querySelector("#home-news"));
+      renderAccounts(root.querySelector("#home-accounts"));
 
       // состояние запуска показываем сразу и поддерживаем в актуальном виде
       refreshRunning();
@@ -589,12 +955,15 @@
     },
     dispose() {
       S.dead = true;
+      closeDialogs();
       if (S.runTimer) { clearInterval(S.runTimer); S.runTimer = null; }
       S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
       S.unsubs = [];
       S.playBtn = null;
       S.activeId = null;
       S.running = [];
+      S.accounts = [];
+      S.list = [];
     },
   });
 })();

@@ -55,6 +55,19 @@
 .sset-hk input:focus { border-color: var(--accent); }
 .sset-table td { vertical-align: middle; }
 .sset-empty { padding: 40px 20px; }
+/* компоненты (перенесены с главной) */
+.sset-cmp { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.sset-cmp:last-of-type { border-bottom: none; }
+.sset-cmp .logo { width: 34px; height: 34px; border-radius: 8px; background: #fff; display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; padding: 3px; box-sizing: border-box; }
+.sset-cmp .logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.sset-cmp .logo.sprite { background: var(--accent-soft); color: var(--accent); padding: 0; }
+.sset-cmp .logo.sprite svg { width: 18px; height: 18px; }
+.sset-cmp .grow { flex: 1; min-width: 0; }
+.sset-cmp .name { font-weight: 600; font-size: 13px; }
+.sset-cmp .det { font-size: 11.5px; color: var(--text-3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sset-cmp .right { text-align: right; flex: 0 0 auto; }
+.sset-cmp .ver { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+.sset-cmp .date { font-size: 11px; color: var(--text-3); margin-top: 2px; white-space: nowrap; }
 </style>
 
 <section class="page">
@@ -84,7 +97,6 @@
   var SECTIONS = [
     { id: "general", t: "Общие", ic: "sliders" },
     { id: "appearance", t: "Внешний вид", ic: "moon" },
-    { id: "accounts", t: "Аккаунты", ic: "user" },
     { id: "instances", t: "Сборки", ic: "grid" },
     { id: "java", t: "Java", ic: "coffee" },
     { id: "ram", t: "RAM и память", ic: "memory" },
@@ -199,7 +211,6 @@
   var DEFS = {
     general: { title: "Общие", render: renderGeneral },
     appearance: { title: "Внешний вид", render: renderAppearance },
-    accounts: { title: "Аккаунты", render: renderAccounts },
     instances: { title: "Сборки", render: renderInstances },
     java: { title: "Java", render: renderJava },
     ram: { title: "RAM и память", render: renderRam },
@@ -847,8 +858,43 @@
         row("networkTimeoutSec", "Тайм-аут сети", "Сколько секунд ждать ответа от сервера.",
           numIn("networkTimeoutSec", { min: 5, max: 600, w: 100, unit: "сек." })) +
         row("retryCount", "Повторов при ошибке", "Число автоматических повторов загрузки.",
-          numIn("retryCount", { min: 0, max: 10, w: 90, unit: "раз" })));
-    bind(pane, {});
+          numIn("retryCount", { min: 0, max: 10, w: 90, unit: "раз" })) +
+        row("", "Проверка сети", "Замеряет задержку до серверов Modrinth, Mojang, GitHub и Microsoft с учётом прокси.",
+          btn("Проверить пинг", "ping", "btn-primary", "zap")) +
+        '<div id="sset-ping" style="margin-top:10px"></div>');
+    bind(pane, { ping: runPing });
+  }
+
+  async function runPing(btnEl, pane) {
+    if (btnEl) btnEl.classList.add("loading");
+    var box = pane.querySelector("#sset-ping");
+    if (box) box.innerHTML = skelRows(3);
+    try {
+      var r = await api("system.ping");
+      if (btnEl) btnEl.classList.remove("loading");
+      if (!box || !box.isConnected) return;
+      var items = (r && r.items) || [];
+      if (!items.length) { box.innerHTML = '<div class="sset-hint">Серверы для проверки не найдены.</div>'; return; }
+      var h = '<div class="sset-facts">';
+      items.forEach(function (it) {
+        var cls = it.ok ? (it.ms <= 300 ? "ok" : it.ms <= 800 ? "warn" : "danger") : "danger";
+        h += '<div class="sset-fact"><div class="k">' + esc(it.title) + "</div>" +
+          '<div class="v"><span class="chip ' + cls + '">' +
+          (it.ok ? ui.fmtNum(it.ms) + " мс" : "нет связи") + "</span>" +
+          (it.detail ? '<span class="dim small" style="margin-left:6px">' + esc(it.detail) + "</span>" : "") +
+          "</div></div>";
+      });
+      h += "</div>";
+      box.innerHTML = h;
+    } catch (e) {
+      if (btnEl) btnEl.classList.remove("loading");
+      if (box && box.isConnected) {
+        box.innerHTML = errBlock(e, true);
+        bindRetry(box, function () { runPing(btnEl, pane); });
+      } else {
+        ui.notifyError(e, "Не удалось проверить пинг");
+      }
+    }
   }
 
   /* ---------- Уведомления ---------- */
@@ -878,193 +924,6 @@
         "Никогда не отправляются: токены доступа, пароли, идентификаторы аккаунтов, IP-адреса, содержимое сборок и миров. " +
         "Отчёты о сбоях игры отправляются только после вашего явного подтверждения.</div>");
     bind(pane, {});
-  }
-
-  /* ---------- Аккаунты ---------- */
-  function renderAccounts(pane) {
-    pane.innerHTML =
-      card("Профили игроков", "user",
-        '<div class="sset-actions" style="margin-top:0;margin-bottom:12px">' +
-          btn("Войти через Microsoft", "ms-login", "btn-primary", "user") +
-          btn("Офлайн-аккаунт", "off-login", "", "user") +
-          btn("Гость", "guest-login", "", "user") +
-        "</div>" +
-        '<div class="sset-hint" style="margin-bottom:12px">Microsoft — официальный вход в ваш профиль. ' +
-        "Офлайн-аккаунт работает без интернета и подходит для одиночной игры и локальных серверов. " +
-        "Гость — быстрый временный профиль для разовой игры.</div>" +
-        '<div id="sset-accounts">' + skelRows(2) + "</div>");
-    bind(pane, { "ms-login": msLogin, "off-login": offlineLogin, "guest-login": guestLogin });
-    loadAccounts();
-  }
-
-  async function offlineLogin() {
-    var name = await ui.promptDialog({
-      title: "Офлайн-аккаунт",
-      message: "Введите никнейм (3–16 символов: латиница, цифры, «_»).",
-      placeholder: "Steve",
-      okLabel: "Добавить",
-      validate: function (v) {
-        v = (v || "").trim();
-        if (!/^[A-Za-z0-9_]{3,16}$/.test(v)) return "От 3 до 16 символов: латиница, цифры и «_»";
-        return null;
-      },
-    });
-    if (!name) return;
-    try {
-      await api("accounts.addOffline", { name: name.trim() });
-      ui.notifySuccess("Офлайн-аккаунт добавлен", name.trim());
-      await ui.updateAccountChip();
-      await loadAccounts();
-    } catch (e) {
-      ui.notifyError(e, "Не удалось добавить аккаунт");
-    }
-  }
-
-  async function guestLogin() {
-    try {
-      await api("accounts.addGuest", { name: "Player" });
-      ui.notifySuccess("Гостевой профиль добавлен", "Можно запускать игру");
-      await ui.updateAccountChip();
-      await loadAccounts();
-    } catch (e) {
-      ui.notifyError(e, "Не удалось создать гостевой профиль");
-    }
-  }
-
-  async function loadAccounts() {
-    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
-    var box = S.els.panes.querySelector("#sset-accounts");
-    if (!box) return;
-    box.innerHTML = skelRows(2);
-    try {
-      var list = await api("accounts.list");
-      if (S.dead || !box.isConnected) return;
-      list = list || [];
-      if (!list.length) {
-        box.innerHTML = emptyState("user", "Аккаунтов нет",
-          "Войдите через Microsoft, добавьте офлайн-аккаунт или гостевой профиль — иначе запуск игры будет недоступен. Данные входа хранятся только на этом компьютере.");
-        return;
-      }
-      var h = '<div class="list">';
-      list.forEach(function (a) {
-        var av = a.skinUrl
-          ? '<span class="item-icon" style="background-image:url(&quot;' + esc(a.skinUrl) + '&quot;)"></span>'
-          : '<span class="item-icon">' + esc(ui.initials(a.name)) + "</span>";
-        h += '<div class="list-row">' + av +
-          '<div class="grow"><div class="title">' + esc(a.name) +
-          (a.default ? ' <span class="chip on">основной</span>' : "") + "</div>" +
-          '<div class="sub"><span class="mono">' + esc(a.uuid || "—") + "</span>" +
-          (a.type ? "<span>" + esc(a.type) + "</span>" : "") +
-          (a.expiresAt ? "<span>истекает " + esc(ui.fmtDate(a.expiresAt)) + "</span>" : "") +
-          "</div></div>" +
-          '<div class="row" style="gap:6px">' +
-            (a.default ? "" : '<button class="btn btn-sm" data-act="set-default" data-uuid="' + esc(a.uuid) + '">Сделать основным</button>') +
-            '<button class="btn btn-sm btn-danger" data-act="remove" data-uuid="' + esc(a.uuid) + '">Удалить</button>' +
-          "</div></div>";
-      });
-      h += "</div>";
-      box.innerHTML = h;
-      box.querySelectorAll("[data-act]").forEach(function (b) {
-        b.onclick = function () {
-          if (b.dataset.act === "set-default") setDefaultAccount(b.dataset.uuid, b);
-          else removeAccount(b.dataset.uuid, b);
-        };
-      });
-    } catch (e) {
-      if (S.dead || !box.isConnected) return;
-      box.innerHTML = errBlock(e, true);
-      bindRetry(box, loadAccounts);
-    }
-  }
-
-  async function setDefaultAccount(uuid, btnEl) {
-    if (btnEl) btnEl.classList.add("loading");
-    try {
-      await api("accounts.setDefault", { uuid: uuid });
-      ui.notifySuccess("Основной аккаунт изменён", "");
-      await ui.updateAccountChip();
-      await loadAccounts();
-    } catch (e) {
-      ui.notifyError(e, "Не удалось сменить основной аккаунт");
-    }
-    if (btnEl) btnEl.classList.remove("loading");
-  }
-
-  async function removeAccount(uuid, btnEl) {
-    var ok = await ui.confirmDialog({
-      title: "Удалить аккаунт?",
-      message: "Профиль будет удалён из лаунчера. Сами сборки и миры не пострадают.",
-      okLabel: "Удалить",
-      danger: true,
-    });
-    if (!ok) return;
-    if (btnEl) btnEl.classList.add("loading");
-    try {
-      await api("accounts.remove", { uuid: uuid });
-      ui.notifySuccess("Аккаунт удалён", "");
-      await ui.updateAccountChip();
-      await loadAccounts();
-    } catch (e) {
-      ui.notifyError(e, "Не удалось удалить аккаунт");
-    }
-    if (btnEl) btnEl.classList.remove("loading");
-  }
-
-  function msLogin(btnEl) {
-    if (btnEl) btnEl.classList.add("loading");
-    api("accounts.addMicrosoft").then(function (res) {
-      if (btnEl) btnEl.classList.remove("loading");
-      if (!res || !res.deviceCode) {
-        ui.notifyWarn("Сервис Microsoft недоступен", "Не удалось получить код устройства. Попробуйте позже.");
-        return;
-      }
-      var body = document.createElement("div");
-      body.className = "col";
-      body.innerHTML =
-        '<div class="sset-hint">Откройте страницу ниже, введите код и подтвердите вход в аккаунт Microsoft.</div>' +
-        '<div class="sset-code">' + esc(res.verificationUrl || "https://microsoft.com/link") + "</div>" +
-        '<div style="text-align:center;font-size:26px;font-weight:700;letter-spacing:3px" class="mono">' + esc(res.userCode || "") + "</div>" +
-        '<div class="sset-hint" id="sset-ms-status">Ожидание подтверждения…</div>' +
-        '<div class="progress indeterminate"><i style="width:35%"></i></div>';
-
-      var poll = null;
-      var dlg = openPageDialog({
-        title: "Вход через Microsoft",
-        icon: "user",
-        body: body,
-        buttons: [{ label: "Отмена", role: "cancel" }],
-        onClose: function () {
-          if (poll) { clearInterval(poll); poll = null; }
-        },
-      });
-
-      poll = setInterval(async function () {
-        try {
-          var r = await api("accounts.pollMicrosoft", { uuid: res.deviceCode });
-          if (!poll) return;
-          if (r && r.status === "done") {
-            clearInterval(poll); poll = null;
-            dlg.close();
-            ui.notifySuccess("Аккаунт добавлен", r.account ? r.account.name : "");
-            ui.updateAccountChip();
-            loadAccounts();
-          } else if (r && r.status === "expired") {
-            clearInterval(poll); poll = null;
-            dlg.close();
-            ui.notifyWarn("Код истёк", r.message || "Запросите новый код входа");
-          } else if (r && r.status === "error") {
-            clearInterval(poll); poll = null;
-            dlg.close();
-            ui.notifyError(r.message || "Не удалось завершить вход", "Ошибка входа");
-          }
-        } catch (e) {
-          /* сбоя опроса не прерываем — возможно, кратковременная недоступность */
-        }
-      }, 3000);
-    }).catch(function (e) {
-      if (btnEl) btnEl.classList.remove("loading");
-      ui.notifyError(e, "Не удалось начать вход через Microsoft");
-    });
   }
 
   /* ---------- Java ---------- */
@@ -1275,6 +1134,11 @@
     S.hook = function (key) {
       if (key === "ramMinMb" || key === "ramMaxMb" || key === "ramRecommend") updateRamInfo();
     };
+    // свежие значения занятой памяти (App.info статичен)
+    api("system.info").then(function (info) {
+      if (info) App.info = Object.assign({}, App.info || {}, info);
+      updateRamInfo();
+    }).catch(function () { updateRamInfo(); });
     updateRamInfo();
   }
 
@@ -1283,8 +1147,11 @@
     var box = S.els.panes.querySelector("#sset-raminfo");
     if (!box) return;
     var total = (App.info && App.info.ramTotalMb) ? Number(App.info.ramTotalMb) : 0;
+    var used = (App.info && App.info.ramUsedMb) ? Number(App.info.ramUsedMb) : 0;
+    var load = (App.info && App.info.ramLoadPercent) ? Number(App.info.ramLoadPercent) : 0;
     var min = Number(get("ramMinMb")), max = Number(get("ramMaxMb"));
     var h = '<div class="sset-hint">Всего RAM в системе: <b class="tnum">' + (total ? ui.fmtNum(total) + " МБ" : "неизвестно") + "</b>" +
+      (used ? ' · <b class="tnum">' + ui.fmtNum(used) + " МБ занято</b> (" + load + "%)" : "") +
       " · Рекомендуемый максимум для игр: 4096 МБ</div>";
     if (total && max > total) {
       h = '<div class="banner error" style="margin-bottom:8px">' + ui.icon("alert") +
@@ -1689,6 +1556,8 @@
       : (typeof info.screen === "string" ? info.screen : "—");
     var facts = [
       ["ОЗУ всего", info.ramTotalMb ? ui.fmtNum(info.ramTotalMb) + " МБ" : "—"],
+      ["ОЗУ занято", info.ramTotalMb ? (info.ramUsedMb ? ui.fmtNum(info.ramUsedMb) + " МБ" : "—") +
+        (info.ramLoadPercent ? " (" + info.ramLoadPercent + "%)" : "") : "—"],
       ["ОЗУ свободно", info.ramFreeMb ? ui.fmtNum(info.ramFreeMb) + " МБ" : "—"],
       ["Процессор", (info.cpu || "—") + (info.cpuCores ? " · " + info.cpuCores + " потоков" : "")],
       ["Видеокарта", info.gpu || "—"],
@@ -1715,6 +1584,27 @@
           rng("apiCacheMinutes", 1, 120, 1, " мин.")));
 
     bind(pane, { diagnose: runDiagnostics });
+    refreshSysInfo(pane);
+  }
+
+  /* свежие данные system.info (занятая ОЗУ обновляется, App.info статичен) */
+  function refreshSysInfo(pane) {
+    api("system.info").then(function (info) {
+      if (!info || !pane.isConnected) return;
+      App.info = Object.assign({}, App.info || {}, info);
+      var facts = pane.querySelectorAll(".sset-facts .sset-fact");
+      facts.forEach(function (f) {
+        var k = f.querySelector(".k"), v = f.querySelector(".v");
+        if (!k || !v) return;
+        if (k.textContent === "ОЗУ занято")
+          v.textContent = info.ramUsedMb ? ui.fmtNum(info.ramUsedMb) + " МБ" +
+            (info.ramLoadPercent ? " (" + info.ramLoadPercent + "%)" : "") : "—";
+        else if (k.textContent === "ОЗУ свободно")
+          v.textContent = info.ramFreeMb ? ui.fmtNum(info.ramFreeMb) + " МБ" : "—";
+        else if (k.textContent === "ОЗУ всего")
+          v.textContent = info.ramTotalMb ? ui.fmtNum(info.ramTotalMb) + " МБ" : "—";
+      });
+    }).catch(function () { /* noop */ });
   }
 
   async function runDiagnostics(btnEl, pane) {
@@ -2106,6 +1996,15 @@
   }
 
   /* ---------- О программе ---------- */
+  var CMP_LOGOS = {
+    app: "assets/icon.ico",
+    microsoft: "assets/logos/microsoft.svg",
+    dotnet: "assets/logos/dotnet-si.svg",
+    mojang: "assets/logos/mojang.png",
+    java: "assets/logos/java.svg",
+    modrinth: "assets/logos/modrinth.jpg",
+  };
+
   function renderAbout(pane) {
     var info = App.info || {};
     pane.innerHTML =
@@ -2121,6 +2020,9 @@
           btn("Открыть папку данных", "open-dir", "", "folder") +
         "</div>" +
         '<div id="sset-upd" style="margin-top:10px"></div>') +
+      card("Компоненты", "package",
+        '<div id="sset-cmp">' + skelRows(4) + "</div>" +
+        '<div class="sset-actions">' + btn("Проверить состав", "cmp-recheck", "", "refresh") + "</div>") +
       card("Ссылки", "external",
         row("", "Каталог Modrinth", "Официальный сайт каталога, из которого берутся моды и модпаки.",
           btn("Открыть Modrinth", "open-modrinth", "", "external")) +
@@ -2133,6 +2035,7 @@
 
     bind(pane, {
       "check-upd": checkUpdate,
+      "cmp-recheck": renderComponents,
       "open-dir": openDataDir,
       "open-modrinth": function () {
         api("system.openUrl", { url: "https://modrinth.com" }).catch(function (e) { ui.notifyError(e); });
@@ -2143,13 +2046,49 @@
         api("system.openPath", { path: dir }).catch(function (e) { ui.notifyError(e); });
       },
     });
+    renderComponents(null, pane);
   }
+
+  /* компоненты лаунчера (перенесено с главной) */
+  function renderComponents(btnEl, pane) {
+    var box = (pane || document).querySelector("#sset-cmp");
+    if (!box) return;
+    if (btnEl && btnEl.classList) btnEl.classList.add("loading");
+    box.innerHTML = skelRows(4);
+    api("system.components").then(function (res) {
+      if (btnEl && btnEl.classList) btnEl.classList.remove("loading");
+      if (!box.isConnected) return;
+      var items = (res && res.items) || [];
+      if (!items.length) { box.innerHTML = '<div class="sset-hint">Нет данных о компонентах.</div>'; return; }
+      var h = "";
+      items.forEach(function (c) {
+        var logo = CMP_LOGOS[c.key];
+        var logoHtml = logo
+          ? '<span class="logo"><img src="' + logo + '" alt="" onerror="this.parentNode.style.display=\'none\'" /></span>'
+          : '<span class="logo sprite">' + ui.icon(c.key === "ui" ? "layers" : "box") + "</span>";
+        h += '<div class="sset-cmp">' + logoHtml +
+          '<div class="grow"><div class="name">' + esc(c.name) + '</div><div class="det">' + esc(c.detail || "") + "</div></div>" +
+          '<div class="right"><div class="ver">' + esc(c.version || "—") + "</div>" +
+          '<div class="date">' + (c.updated ? esc(ui.fmtDate(c.updated)) : "без даты") + "</div></div>" +
+          "</div>";
+      });
+      box.innerHTML = h;
+    }).catch(function (e) {
+      if (btnEl && btnEl.classList) btnEl.classList.remove("loading");
+      if (!box.isConnected) return;
+      box.innerHTML = errBlock(e, true);
+      bindRetry(box, function () { renderComponents(); });
+    });
+  }
+
+  var LATEST_UPD = null;
 
   async function checkUpdate(btnEl, pane) {
     if (btnEl) btnEl.classList.add("loading");
     var box = pane.querySelector("#sset-upd");
     try {
       var r = await api("system.checkUpdate");
+      LATEST_UPD = r || null;
       if (btnEl) btnEl.classList.remove("loading");
       if (!box) return;
       if (r && r.sourceConfigured === false) {
@@ -2160,16 +2099,14 @@
       if (r && r.updateAvailable) {
         box.innerHTML = '<div class="banner warn">' + ui.icon("upload") +
           '<span class="grow">Доступна новая версия: <b>' + esc(r.current) + "</b> → <b>" + esc(r.latest) + "</b>" +
-          (r.notes ? '<div class="sset-hint" style="margin-top:4px">' + esc(r.notes) + "</div>" : "") + "</span></div>";
+          (r.notes ? '<div class="sset-hint" style="margin-top:4px">' + esc(r.notes) + "</div>" : "") +
+          '<div id="sset-upd-prog" style="margin-top:8px"></div></span></div>';
         var acts = document.createElement("div");
         acts.className = "sset-actions";
         var upd = document.createElement("button");
         upd.className = "btn btn-sm btn-primary";
-        upd.textContent = "Обновить";
-        upd.onclick = function () {
-          if (r.url) api("system.openUrl", { url: r.url }).catch(function (e) { ui.notifyError(e); });
-          else ui.notifyInfo("Обновление", "Дождитесь завершения загрузки установщика");
-        };
+        upd.textContent = "Установить обновление";
+        upd.onclick = function () { installUpdate(box, upd); };
         var later = document.createElement("button");
         later.className = "btn btn-sm";
         later.textContent = "Позже";
@@ -2189,6 +2126,44 @@
       } else {
         ui.notifyError(e, "Не удалось проверить обновление");
       }
+    }
+  }
+
+  /* установка обновления: setup скачивается с релиза GitHub и запускается
+     только после явного подтверждения пользователя */
+  async function installUpdate(box, btnEl) {
+    var r = LATEST_UPD;
+    if (!r || !r.url) { ui.notifyError("Обновление недоступно", "Ссылка на установщик отсутствует"); return; }
+    var ok = await ui.confirmDialog({
+      title: "Установить обновление",
+      message: "Будет скачан и запущен установщик <b>NullLauncher " + esc(r.latest || "") + "</b> из релиза на GitHub. " +
+        "Лаунчер закроется, чтобы установщик мог обновить файлы. Продолжить?",
+      okLabel: "Скачать и установить",
+      cancelLabel: "Отмена",
+    });
+    if (!ok) return;
+
+    var prog = box.querySelector("#sset-upd-prog");
+    var unsub = on("update.progress", function (d) {
+      if (!prog || !prog.isConnected) return;
+      var pct = (d && typeof d.percent === "number") ? d.percent : 0;
+      var txt = d && d.total ? " · " + ui.fmtBytes(d.received) + " из " + ui.fmtBytes(d.total) : "";
+      prog.innerHTML = '<div class="sset-hint">Скачивание обновления: <b class="tnum">' + pct + "%</b>" + txt +
+        '</div><div class="progress" style="height:6px;margin-top:4px"><div style="width:' + pct + '%;height:100%;background:var(--accent);border-radius:4px;transition:width .2s"></div></div>';
+    });
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var res = await api("system.installUpdate", { url: r.url });
+      if (unsub) { try { unsub(); } catch (e) { /* noop */ } }
+      if (btnEl) btnEl.classList.remove("loading");
+      ui.notifySuccess("Обновление скачано", "Запускаем установщик…");
+      // лаунчер закрывается — файлы должны быть свободны для установщика
+      if (res && res.started) setTimeout(function () { windowAction("close"); }, 600);
+    } catch (e) {
+      if (unsub) { try { unsub(); } catch (e2) { /* noop */ } }
+      if (btnEl) btnEl.classList.remove("loading");
+      ui.notifyError(e, "Не удалось установить обновление");
+      if (prog) prog.innerHTML = "";
     }
   }
 })();

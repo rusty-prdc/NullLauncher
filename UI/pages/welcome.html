@@ -50,6 +50,9 @@
 .ws-code { text-align: center; display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
 .ws-code .url { font-size: 12.5px; color: var(--text-2); word-break: break-all; }
 .ws-code .pin { font-size: 30px; font-weight: 700; letter-spacing: 4px; font-family: var(--mono); }
+.ws-code .ws-row { display: flex; gap: 8px; align-items: center; }
+.ws-code .ws-row .url, .ws-code .ws-row .pin { flex: 1; min-width: 0; }
+.ws-code .ws-row .btn { flex: 0 0 auto; }
 </style>
 
 <section class="page">
@@ -247,23 +250,15 @@
           '<button class="ws-opt" id="ws-acc-guest">' +
             '<span class="ws-opt-ic">' + icon("eye") + "</span>" +
             '<span class="grow"><span class="nm">Продолжить как гость</span>' +
-            '<span class="sub">Аккаунт можно добавить позже в настройках.</span></span></button>');
+            '<span class="sub">Аккаунт можно добавить позже на главной.</span></span></button>');
 
     var ms = document.getElementById("ws-acc-ms");
-    if (ms) ms.onclick = msLogin;
+    if (ms) ms.onclick = function () {
+      AccUI.openMicrosoft({ onDone: accDone, onBack: paintBody });
+    };
     var off = document.getElementById("ws-acc-off");
-    if (off) off.onclick = async function () {
-      var name = await ui.promptDialog({
-        title: "Оффлайн-аккаунт", message: "Игровое имя (3–16 символов, латиница и цифры):",
-        value: "Player", okLabel: "Добавить",
-        validate: function (v) { return /^[A-Za-z0-9_]{3,16}$/.test(v) ? null : "Имя: 3–16 символов, латиница, цифры и _"; },
-      });
-      if (!name) return;
-      try {
-        S.account = await api("accounts.addOffline", { name: name });
-        ui.updateAccountChip();
-        paintBody();
-      } catch (e) { ui.notifyError(e, "Не удалось добавить аккаунт"); }
+    if (off) off.onclick = function () {
+      AccUI.openOffline({ onDone: accDone, onBack: paintBody });
     };
     var guest = document.getElementById("ws-acc-guest");
     if (guest) guest.onclick = function () { S.account = null; next(); };
@@ -271,48 +266,10 @@
     if (reset) reset.onclick = function () { S.account = null; paintBody(); };
   }
 
-  function msLogin() {
-    api("accounts.addMicrosoft").then(function (res) {
-      if (!res || !res.deviceCode) {
-        ui.notifyError("Сервис Microsoft не вернул код устройства", "Попробуйте позже");
-        return;
-      }
-      var body = document.createElement("div");
-      body.className = "ws-code";
-      body.innerHTML =
-        '<div class="ws-note">Откройте ссылку, введите код и подтвердите вход.</div>' +
-        '<div class="url">' + esc(res.verificationUrl || "https://microsoft.com/link") + "</div>" +
-        '<div class="pin">' + esc(res.userCode || "") + "</div>" +
-        '<div class="ws-note" id="ws-ms-status">Ожидание подтверждения…</div>' +
-        '<div class="progress indeterminate"><i style="width:35%"></i></div>';
-
-      var poll = null;
-      var dlg = ui.openDialog({
-        title: "Вход через Microsoft",
-        icon: "user",
-        body: body,
-        buttons: [{ label: "Отмена", role: "cancel" }],
-        onClose: function () { if (poll) { clearInterval(poll); poll = null; } },
-      });
-
-      poll = setInterval(async function () {
-        try {
-          var r = await api("accounts.pollMicrosoft", { uuid: res.deviceCode });
-          if (!poll) return;
-          if (r && r.status === "done") {
-            clearInterval(poll); poll = null;
-            dlg.close();
-            S.account = r.account || null;
-            ui.updateAccountChip();
-            if (!S.dead) paintBody();
-          } else if (r && r.status === "expired") {
-            clearInterval(poll); poll = null;
-            dlg.close();
-            ui.notifyError("Код истёк", "Запросите новый код входа");
-          }
-        } catch (e) { /* кратковременные сбои опроса не прерываем */ }
-      }, 3000);
-    }).catch(function (e) { ui.notifyError(e, "Не удалось начать вход через Microsoft"); });
+  function accDone(acc) {
+    S.account = acc || null;
+    ui.updateAccountChip();
+    if (!S.dead) paintBody();
   }
 
   function bodyRam() {

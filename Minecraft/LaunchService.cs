@@ -147,7 +147,7 @@ public sealed class LaunchService
                 true, "java.install");
 
         // Память
-        var (totalMb, freeMb) = Modules.SystemIpc.Memory();
+        var (totalMb, freeMb, _) = Modules.SystemIpc.Memory();
         if (inst.RamMaxMb > totalMb)
             issue("warn", "Слишком большой объём RAM",
                 $"Выделено {inst.RamMaxMb} МБ, а всего в системе {totalMb} МБ. Игра может не запуститься.");
