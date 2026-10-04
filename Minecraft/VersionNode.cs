@@ -154,6 +154,12 @@ public sealed class VersionNode
                     Raw = l.Clone().Deserialize<JsonObject>(Core.IpcRouter.JsonOptions),
                 };
                 if (l.TryGetProperty("rules", out var rules)) lib.Rules = ParseRules(rules);
+                // Формат Forge/NeoForge/Fabric/Quilt: url, sha1 и size лежат на верхнем уровне
+                // библиотеки, а не в downloads.artifact — без них библиотека качалась
+                // с libraries.minecraft.net и падала с 404.
+                if (lib.Url is null) lib.Url = Get(l, "url");
+                if (lib.Sha1 is null) lib.Sha1 = Get(l, "sha1");
+                if (lib.Size == 0 && l.TryGetProperty("size", out var lsize)) lib.Size = lsize.GetInt64();
                 if (l.TryGetProperty("downloads", out var ldl))
                 {
                     if (ldl.TryGetProperty("artifact", out var art))
