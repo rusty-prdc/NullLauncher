@@ -1,0 +1,1050 @@
+<style>
+/* ===== instances — страница-специфичные стили (префикс ipl-) ===== */
+.ipl-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ipl-toolbar select { width: auto; min-width: 170px; }
+.ipl-toolbar .segmented button { display: inline-flex; align-items: center; gap: 6px; }
+.ipl-toolbar .segmented button svg { width: 14px; height: 14px; }
+.ipl-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.ipl-chips .chip.drop-over { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.ipl-chips .chip .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.ipl-grid { grid-auto-flow: row; }
+.ipl-table td:first-child { width: 44px; }
+.ipl-table .row-name { display: flex; align-items: center; gap: 9px; font-weight: 600; }
+.ipl-table .row-actions { display: flex; gap: 5px; justify-content: flex-end; }
+.ipl-empty { padding: 46px 20px; }
+.ipl-empty h3 { font-size: 16px; }
+.ipl-skel { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.ipl-skel .skeleton { height: 176px; border-radius: var(--r-md); }
+/* мастер создания */
+.ipl-wz { display: flex; flex-direction: column; gap: 14px; min-height: 240px; }
+.ipl-wz-head { display: flex; align-items: center; gap: 10px; }
+.ipl-wz-head .step-name { font-weight: 650; font-size: 14px; }
+.ipl-wz-head .step-num { font-size: 11.5px; color: var(--text-3); }
+.ipl-wz-err { color: var(--danger); font-size: 12px; }
+.ipl-wz-err[hidden] { display: none; }
+.ipl-wz-list { max-height: 300px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.ipl-opt {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; text-align: left;
+  border-bottom: 1px solid var(--line); transition: background var(--t);
+}
+.ipl-opt:last-child { border-bottom: none; }
+.ipl-opt:hover { background: var(--card-2); }
+.ipl-opt.sel { background: var(--accent-soft); }
+.ipl-opt .grow { flex: 1; min-width: 0; }
+.ipl-opt .nm { font-weight: 600; font-size: 13px; }
+.ipl-opt .sub { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+.ipl-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ipl-filters .search-box { max-width: none; }
+.ipl-check { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+.ipl-check input { width: 15px; height: 15px; accent-color: var(--accent); }
+.ipl-summary { display: flex; flex-direction: column; gap: 8px; }
+.ipl-summary .srow { display: flex; gap: 10px; font-size: 13px; }
+.ipl-summary .srow .k { color: var(--text-3); width: 160px; flex: 0 0 auto; }
+.ipl-summary .srow .v { font-weight: 600; }
+.ipl-ram-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.ipl-drop-hint { font-size: 12px; color: var(--text-3); }
+.ipl-color-input { width: 46px; height: 34px; padding: 2px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+</style>
+
+<section class="page">
+  <div class="page-head">
+    <div class="grow">
+      <h1 class="page-title">Мои сборки</h1>
+      <div class="page-sub" id="ipl-count">Загрузка…</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" id="ipl-create"><svg><use href="#i-plus"/></svg> Создать сборку</button>
+      <button class="btn" id="ipl-import"><svg><use href="#i-upload"/></svg> Импортировать</button>
+    </div>
+  </div>
+
+  <div class="ipl-toolbar">
+    <div class="search-box">
+      <svg><use href="#i-search"/></svg>
+      <input type="search" id="ipl-q" placeholder="Поиск по названию, версии, загрузчику…" autocomplete="off" />
+    </div>
+    <div class="segmented" id="ipl-view" role="group" aria-label="Вид">
+      <button data-view="grid" class="active"><svg><use href="#i-grid"/></svg> Сетка</button>
+      <button data-view="list"><svg><use href="#i-list"/></svg> Список</button>
+    </div>
+    <select id="ipl-sort" title="Сортировка">
+      <option value="name">Название</option>
+      <option value="lastPlayed">Последний запуск</option>
+      <option value="created">Дата создания</option>
+      <option value="version">Версия Minecraft</option>
+      <option value="mods">Кол-во модов</option>
+    </select>
+  </div>
+
+  <div class="ipl-chips" id="ipl-groups"></div>
+
+  <div id="ipl-body"></div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
+
+  var LOADER_LABELS = { vanilla: "Vanilla", fabric: "Fabric", forge: "Forge", neoforge: "NeoForge", quilt: "Quilt" };
+  var RAM_PRESETS = [1024, 2048, 4096, 6144, 8192, 12288, 16384];
+
+  var S = {
+    dead: false, loading: true, error: null,
+    list: [], groups: [],
+    q: "", view: "grid", sort: "name", group: null,
+    running: [], runningLimit: 1, runTimer: null,
+    unsubs: [], lastHostDrop: 0,
+    els: {},
+  };
+
+  /* ---------- утилиты ---------- */
+  function errBlock(e, retryLabel) {
+    var d = ui.errDetail(e);
+    return '<div class="state error">' + ui.icon("alert") +
+      "<h3>Не удалось выполнить действие</h3><p>" + ui.esc(ui.errText(e)) + "</p>" +
+      (d ? '<details class="ipl-details"><summary style="cursor:pointer;font-size:12px;color:var(--text-3)">Подробнее</summary><pre class="mono dim" style="white-space:pre-wrap;text-align:left">' + ui.esc(d) + "</pre></details>" : "") +
+      "</div>";
+  }
+  function instLetter(inst) { return ui.esc((inst.name || "?").trim().charAt(0).toUpperCase() || "?"); }
+  function instColor(inst) { return inst.color || "#3ecf8e"; }
+
+  function filtered() {
+    var q = S.q.trim().toLowerCase();
+    var out = S.list.filter(function (i) {
+      if (S.group && !(i.groupIds || []).includes(S.group)) return false;
+      if (!q) return true;
+      return (i.name || "").toLowerCase().includes(q) ||
+        (i.mcVersion || "").toLowerCase().includes(q) ||
+        (i.loader || "").toLowerCase().includes(q) ||
+        (i.description || "").toLowerCase().includes(q);
+    });
+    var s = S.sort;
+    out.sort(function (a, b) {
+      if (s === "lastPlayed") return new Date(b.lastPlayedAt || 0) - new Date(a.lastPlayedAt || 0);
+      if (s === "created") return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      if (s === "version") return String(b.mcVersion).localeCompare(String(a.mcVersion), undefined, { numeric: true });
+      if (s === "mods") return (b.modCount || 0) - (a.modCount || 0);
+      return String(a.name).localeCompare(String(b.name), "ru");
+    });
+    return out;
+  }
+
+  /* ---------- состояние запуска ---------- */
+  function runningOf(id) { return S.running.filter(function (x) { return x.instanceId === id; })[0] || null; }
+  function otherRunning(id) { return S.running.filter(function (x) { return x.instanceId !== id; })[0] || null; }
+
+  async function refreshRunning() {
+    try {
+      var r = await api("launch.running");
+      if (S.dead) return;
+      S.running = (r && r.items) || [];
+      S.runningLimit = (r && r.limit) || 1;
+      renderBody();
+    } catch (e) { /* noop */ }
+  }
+
+  function runChip(id) {
+    var run = runningOf(id);
+    if (!run) return "";
+    return '<span class="chip ok">' + (run.preparing ? "запускается…" : "запущено") + "</span>";
+  }
+
+  function playTitle(id) {
+    var run = runningOf(id);
+    if (run) return run.preparing ? "Идёт подготовка запуска" : "Сборка уже запущена";
+    var other = otherRunning(id);
+    return other ? ("Уже запущена «" + other.name + "»") : "Играть";
+  }
+
+  function playDisabled(id) { return !!(runningOf(id) || otherRunning(id)); }
+
+  /* ---------- карточка / строка ---------- */
+  function cardHTML(inst) {
+    return '<div class="inst-card" draggable="true" data-id="' + ui.esc(inst.id) + '">' +
+      '<div class="cover"><div class="item-icon" style="background:' + ui.esc(instColor(inst)) + ';color:#08130d">' + instLetter(inst) + "</div></div>" +
+      "<h4>" + ui.esc(inst.name) + (inst.favorite ? ui.icon("star", "fav") : "") + "</h4>" +
+      '<div class="meta">' +
+        '<span class="chip">Minecraft ' + ui.esc(inst.mcVersion) + "</span>" +
+        '<span class="chip">' + ui.esc(LOADER_LABELS[inst.loader] || inst.loader || "vanilla") + "</span>" +
+        (inst.modCount ? '<span class="chip">' + ui.fmtNum(inst.modCount) + " модов</span>" : "") +
+        runChip(inst.id) +
+      "</div>" +
+      '<div class="foot"><span class="last">Последний запуск ' + ui.esc(ui.fmtRelative(inst.lastPlayedAt)) + "</span>" +
+        '<button class="btn btn-sm play" data-act="play" title="' + ui.esc(playTitle(inst.id)) + '"' +
+          (playDisabled(inst.id) ? " disabled" : "") + ">" + ui.icon("play") + "</button>" +
+        '<button class="btn btn-icon btn-sm btn-ghost" data-act="more" title="Ещё">' + ui.icon("more") + "</button>" +
+      "</div>" +
+      "</div>";
+  }
+
+  function rowHTML(inst) {
+    return '<tr data-id="' + ui.esc(inst.id) + '" draggable="true">' +
+      '<td><div class="item-icon sm" style="background:' + ui.esc(instColor(inst)) + ';color:#08130d">' + instLetter(inst) + "</div></td>" +
+      '<td><div class="row-name">' + ui.esc(inst.name) + (inst.favorite ? ui.icon("star", "fav") : "") + " " + runChip(inst.id) + "</div>" +
+        (inst.description ? '<div class="small dim truncate" style="max-width:340px">' + ui.esc(inst.description) + "</div>" : "") + "</td>" +
+      "<td>" + ui.esc(inst.mcVersion) + "</td>" +
+      "<td>" + ui.esc(LOADER_LABELS[inst.loader] || inst.loader || "vanilla") + (inst.loaderVersion ? " " + ui.esc(inst.loaderVersion) : "") + "</td>" +
+      '<td class="num">' + ui.fmtNum(inst.modCount || 0) + "</td>" +
+      '<td class="dim small nowrap">' + ui.esc(ui.fmtRelative(inst.lastPlayedAt)) + "</td>" +
+      '<td><div class="row-actions">' +
+        '<button class="btn btn-sm play" data-act="play" title="' + ui.esc(playTitle(inst.id)) + '"' +
+          (playDisabled(inst.id) ? " disabled" : "") + ">" + ui.icon("play") + "</button>" +
+        '<button class="btn btn-icon btn-sm btn-ghost" data-act="more" title="Ещё">' + ui.icon("more") + "</button>" +
+      "</div></td></tr>";
+  }
+
+  /* ---------- отрисовка ---------- */
+  function renderCount() {
+    var el = S.els.count;
+    if (!el) return;
+    if (S.loading) { el.textContent = "Загрузка…"; return; }
+    if (S.error) { el.textContent = "Не удалось загрузить сборки"; return; }
+    var n = S.list.length;
+    el.textContent = n + " " + (n % 10 === 1 && n % 100 !== 11 ? "сборка" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "сборки" : "сборок");
+  }
+
+  function renderGroups() {
+    var box = S.els.groups;
+    if (!box) return;
+    var html = '<button class="chip' + (S.group === null ? " active" : "") + '" data-g="">Все · ' + S.list.length + "</button>";
+    S.groups.forEach(function (g) {
+      var n = (g.instanceIds || []).length;
+      html += '<button class="chip' + (S.group === g.id ? " active" : "") + '" data-g="' + ui.esc(g.id) + '">' +
+        '<span class="dot" style="background:' + ui.esc(g.color || "#3ecf8e") + '"></span>' + ui.esc(g.name) + " · " + n + "</button>";
+    });
+    html += '<button class="chip" data-act="new-group">' + ui.icon("plus") + " Группа</button>";
+    box.innerHTML = html;
+
+    box.querySelectorAll("[data-g]").forEach(function (chip) {
+      chip.onclick = function () {
+        S.group = chip.dataset.g === "" ? null : chip.dataset.g;
+        renderGroups(); renderBody();
+      };
+      if (chip.dataset.g) {
+        var g = S.groups.find(function (x) { return x.id === chip.dataset.g; });
+        ui.bindContextMenu(chip, function () { return groupMenu(g); });
+        chip.addEventListener("dragover", function (e) { e.preventDefault(); chip.classList.add("drop-over"); });
+        chip.addEventListener("dragleave", function () { chip.classList.remove("drop-over"); });
+        chip.addEventListener("drop", function (e) {
+          e.preventDefault();
+          chip.classList.remove("drop-over");
+          var id = e.dataTransfer && e.dataTransfer.getData("text/plain");
+          if (!id) return;
+          api("groups.addInstance", { groupId: g.id, instanceId: id }).then(function () {
+            ui.notifySuccess("Добавлено в группу", g.name);
+            reload();
+          }, function (err) { ui.notifyError(err, "Не удалось добавить в группу"); });
+        });
+      }
+    });
+    box.querySelector('[data-act="new-group"]').onclick = createGroup;
+  }
+
+  function groupMenu(g) {
+    return [
+      { label: g.name, header: true },
+      {
+        label: "Переименовать", icon: "edit",
+        onClick: async function () {
+          var name = await ui.promptDialog({ title: "Переименовать группу", value: g.name, okLabel: "Сохранить" });
+          if (!name) return;
+          try { await api("groups.update", { id: g.id, name: name }); ui.notifySuccess("Группа переименована"); reload(); }
+          catch (e) { ui.notifyError(e); }
+        }
+      },
+      {
+        label: "Цвет", icon: "image",
+        onClick: async function () {
+          var color = await ui.promptDialog({
+            title: "Цвет группы", value: g.color || "#3ecf8e", okLabel: "Применить",
+            validate: function (v) { return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v) ? "" : "Укажите цвет в формате #RRGGBB"; },
+          });
+          if (!color) return;
+          try { await api("groups.update", { id: g.id, color: color }); ui.notifySuccess("Цвет обновлён"); reload(); }
+          catch (e) { ui.notifyError(e); }
+        }
+      },
+      "-",
+      {
+        label: "Удалить", icon: "trash", danger: true,
+        onClick: async function () {
+          var ok = await ui.confirmDialog({ title: "Удалить группу?", message: "Сборки останутся — исчезнет только группа.", danger: true, okLabel: "Удалить" });
+          if (!ok) return;
+          try { await api("groups.delete", { id: g.id }); ui.notifySuccess("Группа удалена"); reload(); }
+          catch (e) { ui.notifyError(e); }
+        }
+      },
+    ];
+  }
+
+  async function createGroup() {
+    var name = await ui.promptDialog({ title: "Новая группа", placeholder: "Например, Техно", okLabel: "Создать" });
+    if (!name) return;
+    try { await api("groups.create", { name: name }); ui.notifySuccess("Группа создана", name); reload(); }
+    catch (e) { ui.notifyError(e, "Не удалось создать группу"); }
+  }
+
+  function renderBody() {
+    var box = S.els.body;
+    if (!box) return;
+    renderCount();
+
+    if (S.loading) {
+      box.innerHTML = '<div class="ipl-skel"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+      return;
+    }
+    if (S.error) { box.innerHTML = errBlock(S.error); return; }
+
+    if (!S.list.length) {
+      box.innerHTML = '<div class="state ipl-empty">' + ui.icon("package") +
+        "<h3>У вас пока нет сборок</h3><p>Создайте сборку в несколько шагов или импортируйте готовый архив .zip.</p>" +
+        '<div class="actions">' +
+        '<button class="btn btn-primary" data-act="create">' + ui.icon("plus") + " Создать сборку</button>" +
+        '<button class="btn" data-act="import">' + ui.icon("upload") + " Импортировать</button>" +
+        "</div></div>";
+      box.querySelector('[data-act="create"]').onclick = function () { openWizard(); };
+      box.querySelector('[data-act="import"]').onclick = importArchive;
+      return;
+    }
+
+    var items = filtered();
+    if (!items.length) {
+      box.innerHTML = '<div class="state">' + ui.icon("search") +
+        "<h3>Ничего не найдено</h3><p>По текущему запросу или фильтру групп сборок нет.</p>" +
+        '<div class="actions"><button class="btn" data-act="reset">Сбросить фильтры</button></div></div>';
+      box.querySelector('[data-act="reset"]').onclick = function () {
+        S.q = ""; S.group = null;
+        S.els.q.value = "";
+        renderGroups(); renderBody();
+      };
+      return;
+    }
+
+    if (S.view === "list") {
+      var html = '<div class="table-wrap"><table class="table ipl-table"><thead><tr>' +
+        "<th>Иконка</th><th>Название</th><th>Версия</th><th>Loader</th><th class=\"num\">Моды</th><th>Последний запуск</th><th></th>" +
+        "</tr></thead><tbody>";
+      items.forEach(function (i) { html += rowHTML(i); });
+      html += "</tbody></table></div>";
+      box.innerHTML = html;
+      box.querySelectorAll("tbody tr").forEach(function (tr) {
+        bindCard(tr, tr.dataset.id);
+      });
+    } else {
+      box.innerHTML = '<div class="grid grid-cards ipl-grid"></div>';
+      var grid = box.querySelector(".grid");
+      items.forEach(function (i) {
+        var div = document.createElement("div");
+        div.innerHTML = cardHTML(i);
+        var el = div.firstElementChild;
+        grid.appendChild(el);
+        bindCard(el, i.id);
+      });
+    }
+  }
+
+  function bindCard(el, id) {
+    var inst = S.list.find(function (i) { return i.id === id; });
+    if (!inst) return;
+
+    el.addEventListener("click", function (e) {
+      if (e.target.closest("[data-act]")) return;
+      navigate("instance", { id: id });
+    });
+
+    var playBtn = el.querySelector('[data-act="play"]');
+    if (playBtn) playBtn.onclick = function (e) {
+      e.stopPropagation();
+      var other = otherRunning(id);
+      if (other) { ui.notifyWarn("Уже запущена другая сборка", "«" + other.name + "» — сначала остановите её."); return; }
+      if (runningOf(id)) { ui.notifyInfo("Сборка уже запущена", inst.name); return; }
+      playBtn.classList.add("loading");
+      api("launch.start", { instanceId: id }).then(function () {
+        playBtn.classList.remove("loading");
+        ui.notifyInfo("Запуск", inst.name);
+      }, function (err) { playBtn.classList.remove("loading"); ui.notifyError(err, "Не удалось запустить"); })
+        .then(function () { refreshRunning(); });
+    };
+
+    var moreBtn = el.querySelector('[data-act="more"]');
+    if (moreBtn) moreBtn.onclick = function (e) {
+      e.stopPropagation();
+      var r = moreBtn.getBoundingClientRect();
+      ui.contextMenu(r.left, r.bottom + 6, instanceMenu(inst));
+    };
+
+    ui.bindContextMenu(el, function () { return instanceMenu(inst); });
+
+    el.addEventListener("dragstart", function (e) {
+      el.classList.add("dragging");
+      if (e.dataTransfer) { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "copy"; }
+    });
+    el.addEventListener("dragend", function () { el.classList.remove("dragging"); });
+  }
+
+  /* ---------- действия над сборкой ---------- */
+  function playInstance(inst) {
+    api("launch.start", { instanceId: inst.id }).then(function () {
+      ui.notifySuccess("Запуск", inst.name);
+    }, function (e) { ui.notifyError(e, "Не удалось запустить"); });
+  }
+
+  function instanceMenu(inst) {
+    return [
+      { label: inst.name, header: true },
+      { label: "Играть", icon: "play", onClick: function () { playInstance(inst); } },
+      { label: "Настройки", icon: "settings", onClick: function () { navigate("instance", { id: inst.id, tab: "settings" }); } },
+      "-",
+      {
+        label: "Переименовать", icon: "edit",
+        onClick: async function () {
+          var name = await ui.promptDialog({ title: "Переименовать сборку", value: inst.name, okLabel: "Сохранить" });
+          if (!name || name === inst.name) return;
+          try { await api("instances.update", { id: inst.id, name: name }); ui.notifySuccess("Переименовано"); reload(); }
+          catch (e) { ui.notifyError(e); }
+        }
+      },
+      {
+        label: "Изменить иконку", icon: "image",
+        onClick: async function () {
+          try {
+            var files = await api("system.pickFiles", { title: "Выберите изображение", filter: "image" });
+            if (!files || !files.length) return;
+            await api("instances.update", { id: inst.id, iconPath: files[0] });
+            ui.notifySuccess("Иконка обновлена");
+            reload();
+          } catch (e) { ui.notifyError(e); }
+        }
+      },
+      {
+        label: "Создать копию", icon: "copy",
+        onClick: async function () {
+          try {
+            var copy = await api("instances.duplicate", { id: inst.id });
+            ui.notifySuccess("Копия создана", copy && copy.name);
+            reload();
+          } catch (e) { ui.notifyError(e); }
+        }
+      },
+      {
+        label: "Резервная копия", icon: "save",
+        onClick: async function () {
+          try {
+            await api("backups.create", { instanceId: inst.id, kind: "full" });
+            ui.notifySuccess("Резервная копия создана", inst.name);
+          } catch (e) { ui.notifyError(e); }
+        }
+      },
+      {
+        label: "Экспортировать", icon: "upload",
+        onClick: async function () {
+          try {
+            var dir = await api("system.pickDirectory", { title: "Куда сохранить архив сборки" });
+            if (!dir || !dir.path) return;
+            var res = await api("instances.export", {
+              id: inst.id, targetPath: dir.path,
+              include: { mods: true, resourcepacks: true, shaders: true, configs: true, worlds: true, options: true },
+            });
+            ui.notifySuccess("Сборка экспортирована", (res && res.path) || "");
+          } catch (e) { ui.notifyError(e); }
+        }
+      },
+      { label: "Создать модпак", icon: "package", onClick: function () { modpackDialog(inst); } },
+      {
+        label: "Открыть папку", icon: "folder",
+        onClick: function () { api("instances.openFolder", { id: inst.id }).catch(function (e) { ui.notifyError(e); }); }
+      },
+      "-",
+      {
+        label: "Удалить", icon: "trash", danger: true,
+        onClick: async function () {
+          var ok = await ui.confirmDialog({
+            title: "Удалить сборку?", message: "«" + inst.name + "» будет удалена. Бэкап можно будет восстановить позже.",
+            danger: true, okLabel: "Удалить",
+          });
+          if (!ok) return;
+          try { await api("instances.delete", { id: inst.id, backup: true }); ui.notifySuccess("Сборка удалена"); reload(); }
+          catch (e) { ui.notifyError(e); }
+        }
+      },
+    ];
+  }
+
+  function modpackDialog(inst) {
+    var body = document.createElement("div");
+    body.className = "col";
+    body.innerHTML =
+      '<div class="field"><label>Название</label><input type="text" id="mp-name" value="' + ui.esc(inst.name) + '" /></div>' +
+      '<div class="field"><label>Описание</label><textarea id="mp-desc" rows="2">' + ui.esc(inst.description || "") + "</textarea></div>" +
+      '<div class="row" style="gap:12px">' +
+        '<div class="field" style="flex:1"><label>Автор</label><input type="text" id="mp-author" placeholder="Ваш ник" /></div>' +
+        '<div class="field" style="flex:1"><label>Версия модпака</label><input type="text" id="mp-ver" placeholder="1.0.0" /></div>' +
+      "</div>" +
+      '<div class="row" style="gap:12px">' +
+        '<div class="field" style="flex:1"><label>Minecraft</label><input type="text" id="mp-mc" value="' + ui.esc(inst.mcVersion) + '" readonly style="opacity:.7" /></div>' +
+        '<div class="field" style="flex:1"><label>Loader</label><input type="text" value="' + ui.esc(LOADER_LABELS[inst.loader] || inst.loader || "vanilla") + '" readonly style="opacity:.7" /></div>' +
+      "</div>" +
+      '<div class="field"><label>Файл</label><div class="hint" id="mp-path">Путь не выбран</div></div>';
+
+    var target = null;
+    ui.openDialog({
+      title: "Создать модпак (.mrpack)",
+      sub: "Экспорт сборки в формате Modrinth.",
+      icon: "package",
+      width: "wide",
+      body: body,
+      buttons: [
+        { label: "Отмена", role: "cancel" },
+        {
+          label: "Выбрать папку…", keepOpen: true,
+          onClick: async function () {
+            try {
+              var dir = await api("system.pickDirectory", { title: "Куда сохранить .mrpack" });
+              if (!dir || !dir.path) return false;
+              target = dir.path;
+              body.querySelector("#mp-path").textContent = target;
+              return false;
+            } catch (e) { ui.notifyError(e); return false; }
+          }
+        },
+        {
+          label: "Экспортировать", role: "primary", keepOpen: true,
+          onClick: async function (ctx) {
+            var name = body.querySelector("#mp-name").value.trim() || inst.name;
+            var desc = body.querySelector("#mp-desc").value.trim();
+            var author = body.querySelector("#mp-author").value.trim();
+            var versionId = body.querySelector("#mp-ver").value.trim() || "1.0.0";
+            if (!target) {
+              try {
+                var dir = await api("system.pickDirectory", { title: "Куда сохранить .mrpack" });
+                if (!dir || !dir.path) return false;
+                target = dir.path;
+              } catch (e) { ui.notifyError(e); return false; }
+            }
+            try {
+              var res = await api("instances.exportMrpack", {
+                id: inst.id, targetPath: target,
+                meta: { name: name, description: desc, author: author, versionId: versionId, mcVersion: inst.mcVersion, loader: inst.loader },
+              });
+              ui.notifySuccess("Модпак создан", (res && res.path) || "");
+              ctx.close();
+              return false;
+            } catch (e) { ui.notifyError(e, "Не удалось экспортировать модпак"); return false; }
+          }
+        },
+      ],
+    });
+  }
+
+  /* ---------- импорт / drag&drop ---------- */
+  async function importArchive() {
+    try {
+      var files = await api("system.pickFiles", { title: "Импорт сборки или модпака", filter: "zip" });
+      if (!files || !files.length) return;
+      var ok = 0, fail = 0;
+      for (var i = 0; i < files.length; i++) {
+        var f = files[i];
+        try {
+          if (/\.mrpack$/i.test(f)) await api("instances.importMrpack", { sourcePath: f });
+          else await api("instances.import", { sourcePath: f });
+          ok++;
+        } catch (e) { fail++; ui.notifyError(e, "Не удалось импортировать " + f.split(/[\\/]/).pop()); }
+      }
+      if (ok) ui.notifySuccess("Импорт завершён", "Успешно: " + ok + (fail ? ", ошибок: " + fail : ""));
+      reload();
+    } catch (e) { ui.notifyError(e, "Не удалось выбрать файл"); }
+  }
+
+  function looksLikePath(p) { return /[\\/]/.test(p) || /^[a-zA-Z]:/.test(p); }
+
+  async function importDropped(paths) {
+    var ok = 0;
+    for (var i = 0; i < paths.length; i++) {
+      var p = paths[i];
+      var name = p.split(/[\\/]/).pop();
+      try {
+        if (/\.mrpack$/i.test(name)) { await api("instances.importMrpack", { sourcePath: p }); ok++; }
+        else if (/\.zip$/i.test(name)) { await api("instances.import", { sourcePath: p }); ok++; }
+        else ui.notifyWarn("Файл пропущен", name + " — этот формат импортируется внутри сборки.");
+      } catch (e) { ui.notifyError(e, "Не удалось импортировать " + name); }
+    }
+    if (ok) { ui.notifySuccess("Импортировано", "Сборок добавлено: " + ok); reload(); }
+  }
+
+  function handleDropped(files) {
+    if (!files || !files.length) return;
+    S.lastHostDrop = Date.now();
+    var full = files.filter(looksLikePath);
+    if (full.length === files.length) { importDropped(full); return; }
+    ui.notifyWarn("Не удалось определить путь файла",
+      "Перетащённые файлы пришли без полного пути. Используйте кнопку «Импортировать».");
+  }
+
+  /* ---------- мастер создания ---------- */
+  function openWizard(preVersion) {
+    var w = {
+      step: 1, name: "", description: "", color: "#3ecf8e", iconPath: null,
+      mcVersion: preVersion || "", type: "release", experimental: true, vq: "",
+      versions: [], versionsLoading: false, versionsLoaded: false,
+      loader: "vanilla", loaderVersion: "", loaders: [], loadersLoading: false,
+      javaMode: "auto", javaMajor: 0, javaList: [], javaLoaded: false,
+      ramMax: 4096, ramMin: 512,
+      creating: false,
+    };
+
+    var body = document.createElement("div");
+    body.className = "ipl-wz";
+
+    var dlg = ui.openDialog({
+      title: "Новая сборка",
+      icon: "plus",
+      width: "wide",
+      body: body,
+      buttons: [
+        { id: "back", label: "Назад", left: true, keepOpen: true, onClick: function () { if (w.step > 1) { w.step--; renderStep(); chrome(); } return false; } },
+        { id: "next", label: "Далее", role: "primary", keepOpen: true, onClick: nextStep },
+      ],
+    });
+
+    function chrome() {
+      var back = dlg.foot.querySelector('[data-act="back"]');
+      var next = dlg.foot.querySelector('[data-act="next"]');
+      back.disabled = w.step === 1 || w.creating;
+      next.textContent = w.creating ? "Создание…" : (w.step === 5 ? "Создать сборку" : "Далее");
+      next.disabled = w.creating;
+    }
+
+    function showError(msg) {
+      var el = body.querySelector("#wz-err");
+      if (el) { el.textContent = msg || ""; el.hidden = !msg; }
+    }
+
+    function stepHead(name) {
+      return '<div class="ipl-wz-head"><span class="step-num">Шаг ' + w.step + " из 5</span>" +
+        '<span class="step-name">' + ui.esc(name) + "</span></div>" +
+        '<div class="wizard-steps">' +
+        [1, 2, 3, 4, 5].map(function (n) { return '<span class="st' + (n <= w.step ? " done" : "") + '"><i></i></span>'; }).join("") +
+        "</div>" +
+        '<div class="ipl-wz-err" id="wz-err" hidden></div>';
+    }
+
+    /* --- шаг 1 --- */
+    function step1() {
+      body.innerHTML = stepHead("Название и оформление") +
+        '<div class="field"><label>Название *</label><input type="text" id="wz-name" placeholder="Например, Fabric Survival" value="' + ui.esc(w.name) + '" /></div>' +
+        '<div class="field"><label>Описание</label><textarea id="wz-desc" rows="2" placeholder="Необязательно">' + ui.esc(w.description) + "</textarea></div>" +
+        '<div class="row" style="gap:14px">' +
+          '<div class="field"><label>Цвет</label><div class="row"><input type="color" class="ipl-color-input" id="wz-color" value="' + ui.esc(w.color) + '" /><span class="dim small mono" id="wz-color-v">' + ui.esc(w.color) + "</span></div></div>" +
+          '<div class="field" style="flex:1"><label>Иконка</label><div class="row">' +
+            '<button class="btn btn-sm" id="wz-icon-pick">' + ui.icon("image") + " Выбрать изображение…</button>" +
+            '<button class="btn btn-sm btn-ghost" id="wz-icon-clear">Убрать</button>' +
+            '<span class="dim small truncate" id="wz-icon-name">' + (w.iconPath ? ui.esc(w.iconPath.split(/[\\/]/).pop()) : "не выбрана") + "</span>" +
+          "</div></div>" +
+        "</div>";
+      body.querySelector("#wz-name").oninput = function () { w.name = this.value; };
+      body.querySelector("#wz-desc").oninput = function () { w.description = this.value; };
+      body.querySelector("#wz-color").oninput = function () {
+        w.color = this.value;
+        body.querySelector("#wz-color-v").textContent = this.value;
+      };
+      body.querySelector("#wz-icon-pick").onclick = async function () {
+        try {
+          var files = await api("system.pickFiles", { title: "Иконка сборки", filter: "image" });
+          if (!files || !files.length) return;
+          w.iconPath = files[0];
+          body.querySelector("#wz-icon-name").textContent = files[0].split(/[\\/]/).pop();
+        } catch (e) { ui.notifyError(e); }
+      };
+      body.querySelector("#wz-icon-clear").onclick = function () {
+        w.iconPath = null;
+        body.querySelector("#wz-icon-name").textContent = "не выбрана";
+      };
+    }
+
+    /* --- шаг 2 --- */
+    function typeSegs() {
+      return [
+        { t: "", l: "Все" }, { t: "release", l: "Release" }, { t: "old_release", l: "Старые" },
+      ];
+    }
+    function effType() { return w.experimental ? (w.type || "release") : "release"; }
+
+    function step2() {
+      body.innerHTML = stepHead("Версия Minecraft") +
+        '<div class="ipl-filters">' +
+          '<div class="segmented" id="wz-segs">' + typeSegs().map(function (s) {
+            return '<button data-t="' + s.t + '" class="' + (w.type === s.t ? "active" : "") + '">' + s.l + "</button>";
+          }).join("") + "</div>" +
+          '<label class="ipl-check"><input type="checkbox" id="wz-exp" ' + (w.experimental ? "checked" : "") + " /> Показывать экспериментальные</label>" +
+        "</div>" +
+        '<div class="search-box" style="max-width:none">' + ui.icon("search") +
+          '<input type="search" id="wz-vq" placeholder="Поиск версии…" value="' + ui.esc(w.vq) + '" autocomplete="off" /></div>' +
+        '<div class="ipl-wz-list" id="wz-versions"><div class="state"><span class="spinner"></span></div></div>';
+
+      body.querySelectorAll("#wz-segs button").forEach(function (b) {
+        b.onclick = function () {
+          w.type = b.dataset.t;
+          body.querySelectorAll("#wz-segs button").forEach(function (x) { x.classList.toggle("active", x === b); });
+          loadVersions();
+        };
+      });
+      body.querySelector("#wz-exp").onchange = function () { w.experimental = this.checked; loadVersions(); };
+      var qi = body.querySelector("#wz-vq");
+      qi.oninput = ui.debounce(function () { w.vq = qi.value; loadVersions(); }, 260);
+      loadVersions();
+    }
+
+    async function loadVersions() {
+      var box = body.querySelector("#wz-versions");
+      if (!box) return;
+      box.innerHTML = '<div class="state"><span class="spinner"></span></div>';
+      w.versionsLoading = true;
+      try {
+        var params = { limit: 120 };
+        var t = effType();
+        if (t) params.type = t;
+        if (w.vq.trim()) params.query = w.vq.trim();
+        var list = (await api("versions.list", params)) || [];
+        w.versions = list;
+        w.versionsLoading = false;
+        if (!body.querySelector("#wz-versions")) return;
+        if (!list.length) {
+          box.innerHTML = '<div class="state" style="padding:26px"><p>Версии не найдены. Измените фильтр или запрос.</p></div>';
+          return;
+        }
+        box.innerHTML = list.map(function (v) {
+          var sel = v.id === w.mcVersion;
+          return '<button class="ipl-opt' + (sel ? " sel" : "") + '" data-v="' + ui.esc(v.id) + '">' +
+            '<span class="grow"><span class="nm">' + ui.esc(v.id) + (v.installed ? " " + ui.icon("check") : "") + "</span>" +
+            '<span class="sub">' + ui.esc(ui.fmtDate(v.releaseTime)) + " · Java " + ui.esc(String(v.javaMajor || "")) + "</span></span>" +
+            '<span class="badge ' + ui.esc(v.type || "release") + '">' + ui.esc(v.type || "release") + "</span></button>";
+        }).join("");
+        box.querySelectorAll("[data-v]").forEach(function (b) {
+          b.onclick = function () {
+            w.mcVersion = b.dataset.v;
+            w.loaderVersion = "";
+            w.loaders = [];
+            box.querySelectorAll(".ipl-opt").forEach(function (x) { x.classList.toggle("sel", x === b); });
+            showError("");
+          };
+        });
+      } catch (e) {
+        w.versionsLoading = false;
+        if (body.querySelector("#wz-versions")) body.querySelector("#wz-versions").innerHTML = errBlock(e);
+      }
+    }
+
+    /* --- шаг 3 --- */
+    function step3() {
+      var loaders = ["vanilla", "fabric", "forge", "neoforge", "quilt"];
+      body.innerHTML = stepHead("Загрузчик (loader)") +
+        '<div class="ipl-filters">' + loaders.map(function (l) {
+          return '<button class="chip' + (w.loader === l ? " active" : "") + '" data-l="' + l + '">' + (LOADER_LABELS[l]) + "</button>";
+        }).join("") + "</div>" +
+        '<div class="hint small dim">Сборка: Minecraft ' + ui.esc(w.mcVersion || "—") + "</div>" +
+        '<div id="wz-loaders"></div>';
+      body.querySelectorAll("[data-l]").forEach(function (b) {
+        b.onclick = function () {
+          w.loader = b.dataset.l;
+          w.loaderVersion = "";
+          body.querySelectorAll("[data-l]").forEach(function (x) { x.classList.toggle("active", x === b); });
+          loadLoaders();
+        };
+      });
+      loadLoaders();
+    }
+
+    async function loadLoaders() {
+      var box = body.querySelector("#wz-loaders");
+      if (!box) return;
+      if (w.loader === "vanilla") { box.innerHTML = '<div class="hint small dim">Vanilla не требует загрузчик — версия будет установлена как есть.</div>'; return; }
+      box.innerHTML = '<div class="state" style="padding:26px"><span class="spinner"></span></div>';
+      try {
+        var all = (await api("versions.loaders", { mcVersion: w.mcVersion })) || [];
+        var list = all.filter(function (x) { return String(x.loader || "").toLowerCase() === w.loader; });
+        if (!list.length) {
+          box.innerHTML = '<div class="state" style="padding:26px"><p>Для ' + ui.esc(w.mcVersion) + " версий " + ui.esc(LOADER_LABELS[w.loader]) + " не найдено.</p></div>";
+          w.loaders = [];
+          return;
+        }
+        w.loaders = list;
+        if (!w.loaderVersion) {
+          var stable = list.find(function (x) { return x.stable; }) || list[0];
+          w.loaderVersion = stable.version;
+        }
+        if (!body.querySelector("#wz-loaders")) return;
+        box.innerHTML = '<div class="ipl-wz-list">' + list.map(function (x) {
+          var sel = x.version === w.loaderVersion;
+          return '<button class="ipl-opt' + (sel ? " sel" : "") + '" data-lv="' + ui.esc(x.version) + '">' +
+            '<span class="grow"><span class="nm">' + ui.esc(x.version) + "</span>" +
+            '<span class="sub">' + (x.stable ? "стабильная" : "экспериментальная") + "</span></span>" +
+            (x.stable ? '<span class="chip on">stable</span>' : '<span class="chip warn">beta</span>') + "</button>";
+        }).join("") + "</div>";
+        box.querySelectorAll("[data-lv]").forEach(function (b) {
+          b.onclick = function () {
+            w.loaderVersion = b.dataset.lv;
+            box.querySelectorAll(".ipl-opt").forEach(function (x) { x.classList.toggle("sel", x === b); });
+          };
+        });
+      } catch (e) {
+        if (body.querySelector("#wz-loaders")) body.querySelector("#wz-loaders").innerHTML = errBlock(e);
+      }
+    }
+
+    /* --- шаг 4 --- */
+    async function step4() {
+      body.innerHTML = stepHead("Java и память") +
+        '<div class="field"><label>Java</label><div id="wz-java"><span class="spinner" style="display:inline-block"></span></div></div>' +
+        '<div class="field"><label>Максимум RAM (МБ)</label>' +
+          '<div class="ipl-ram-presets" id="wz-ram">' + RAM_PRESETS.map(function (r) {
+            return '<button class="chip' + (w.ramMax === r ? " active" : "") + '" data-r="' + r + '">' + (r >= 1024 ? (r / 1024) + " ГБ" : r + " МБ") + "</button>";
+          }).join("") + "</div>" +
+          '<div class="row" style="gap:8px;margin-top:8px"><input type="number" id="wz-ram-custom" min="512" step="512" value="' + w.ramMax + '" style="max-width:160px" /><span class="dim small">МБ, свой ввод</span></div>' +
+          '<div class="hint">Минимум: <input type="number" id="wz-ram-min" min="128" step="128" value="' + w.ramMin + '" style="max-width:110px;display:inline-block" /> МБ</div>' +
+        "</div>" +
+        '<div id="wz-ram-warn"></div>';
+
+      function ramUI() {
+        body.querySelectorAll("#wz-ram [data-r]").forEach(function (b) {
+          b.classList.toggle("active", +b.dataset.r === w.ramMax);
+        });
+        var total = App.info && App.info.ramTotalMb;
+        var warnBox = body.querySelector("#wz-ram-warn");
+        if (total && w.ramMax > total) {
+          warnBox.innerHTML = '<div class="banner warn">' + ui.icon("alert") +
+            '<span class="grow">Указанный объём (' + w.ramMax + " МБ) больше доступной RAM (" + total + " МБ) — Minecraft может не запуститься.</span></div>";
+        } else if (total) {
+          warnBox.innerHTML = '<div class="hint small dim">Всего RAM в системе: ' + ui.fmtNum(total) + " МБ</div>";
+        } else warnBox.innerHTML = "";
+      }
+      body.querySelectorAll("#wz-ram [data-r]").forEach(function (b) {
+        b.onclick = function () { w.ramMax = +b.dataset.r; body.querySelector("#wz-ram-custom").value = w.ramMax; ramUI(); };
+      });
+      body.querySelector("#wz-ram-custom").oninput = function () { w.ramMax = Math.max(512, parseInt(this.value, 10) || 512); ramUI(); };
+      body.querySelector("#wz-ram-min").oninput = function () { w.ramMin = Math.max(128, parseInt(this.value, 10) || 512); };
+      ramUI();
+
+      var jbox = body.querySelector("#wz-java");
+      try {
+        var list = (await api("java.list")) || [];
+        w.javaList = list;
+        var valid = list.filter(function (j) { return j.valid; });
+        if (!w.javaMajor && valid.length) w.javaMajor = valid[0].major;
+        if (!body.querySelector("#wz-java")) return;
+        if (!valid.length) {
+          jbox.innerHTML = '<div class="hint">Совместимая Java не найдена — лаунчер установит её автоматически при первом запуске.</div>';
+          w.javaMode = "auto";
+          return;
+        }
+        jbox.innerHTML = '<div class="row wrap" style="gap:10px">' +
+          '<label class="ipl-check"><input type="radio" name="wz-java-mode" value="auto" ' + (w.javaMode === "auto" ? "checked" : "") + " /> Авто</label>" +
+          '<label class="ipl-check"><input type="radio" name="wz-java-mode" value="major" ' + (w.javaMode === "major" ? "checked" : "") + " /> Версия Java</label>" +
+          '<select id="wz-java-major" style="width:auto">' + valid.map(function (j) {
+            return '<option value="' + j.major + '"' + (j.major === w.javaMajor ? " selected" : "") + ">Java " + j.major + " — " + ui.esc(j.vendor || j.version || "") + "</option>";
+          }).join("") + "</select></div>" +
+          '<div class="hint" style="margin-top:6px">' + valid.length + " установлено версий. Рекомендуется та, что указана в карточке сборки после создания.</div>";
+        jbox.querySelectorAll('input[name="wz-java-mode"]').forEach(function (r) {
+          r.onchange = function () { w.javaMode = r.value; };
+        });
+        var sel = jbox.querySelector("#wz-java-major");
+        sel.onchange = function () { w.javaMajor = +this.value; w.javaMode = "major"; };
+      } catch (e) {
+        jbox.innerHTML = '<div class="hint">' + ui.esc(ui.errText(e)) + " — будет использован режим «Авто».</div>";
+        w.javaMode = "auto";
+      }
+    }
+
+    /* --- шаг 5 --- */
+    function step5() {
+      body.innerHTML = stepHead("Готово к созданию") +
+        '<div class="ipl-summary">' +
+          row("Название", w.name || "—") +
+          (w.description ? row("Описание", w.description) : "") +
+          row("Minecraft", w.mcVersion || "—") +
+          row("Загрузчик", (LOADER_LABELS[w.loader] || "Vanilla") + (w.loaderVersion ? " " + w.loaderVersion : "")) +
+          row("Java", w.javaMode === "auto" ? "Авто" : "Java " + w.javaMajor) +
+          row("Память", w.ramMin + "–" + w.ramMax + " МБ") +
+          row("Иконка", w.iconPath ? w.iconPath.split(/[\\/]/).pop() : "стандартная") +
+        "</div>" +
+        '<div class="hint">Кнопка «Создать сборку» установит выбранные компоненты и откроет страницу сборки.</div>';
+      function row(k, v) {
+        return '<div class="srow"><span class="k">' + ui.esc(k) + '</span><span class="v">' + ui.esc(v) + "</span></div>";
+      }
+    }
+
+    function renderStep() {
+      showError("");
+      if (w.step === 1) step1();
+      else if (w.step === 2) step2();
+      else if (w.step === 3) step3();
+      else if (w.step === 4) step4();
+      else step5();
+      chrome();
+    }
+
+    function validate() {
+      if (w.step === 1 && !w.name.trim()) return "Укажите название сборки.";
+      if (w.step === 2 && !w.mcVersion) return "Выберите версию Minecraft.";
+      if (w.step === 3 && w.loader !== "vanilla" && !w.loaderVersion) return "Выберите версию загрузчика.";
+      if (w.step === 4 && w.ramMax < w.ramMin) return "Максимальная память не может быть меньше минимальной.";
+      return null;
+    }
+
+    async function nextStep() {
+      if (w.creating) return false;
+      if (w.step < 5) {
+        var err = validate();
+        if (err) { showError(err); return false; }
+        w.step++;
+        renderStep();
+        return false;
+      }
+      /* финальное создание */
+      var err5 = validate();
+      if (err5) { showError(err5); return false; }
+      w.creating = true;
+      chrome();
+      try {
+        var payload = {
+          name: w.name.trim(),
+          description: w.description.trim(),
+          color: w.color,
+          mcVersion: w.mcVersion,
+          loader: w.loader,
+          ramMinMb: w.ramMin,
+          ramMaxMb: w.ramMax,
+        };
+        if (w.iconPath) payload.icon = w.iconPath;
+        if (w.loader !== "vanilla" && w.loaderVersion) payload.loaderVersion = w.loaderVersion;
+        if (w.javaMode === "major" && w.javaMajor) payload.java = w.javaMajor;
+        var created = await api("instances.create", payload);
+        ui.notifySuccess("Сборка создана", created && created.name ? created.name : w.name.trim());
+        dlg.close();
+        navigate("instance", { id: created.id });
+        return false;
+      } catch (e) {
+        w.creating = false;
+        chrome();
+        showError(ui.errText(e));
+        var d = ui.errDetail(e);
+        if (d) ui.notifyError(e, "Подробнее: " + d.slice(0, 180));
+        return false;
+      }
+    }
+
+    renderStep();
+  }
+
+  /* ---------- загрузка данных ---------- */
+  async function reload() {
+    S.loading = true;
+    S.error = null;
+    renderBody();
+    try {
+      var list = (await api("instances.list")) || [];
+      if (S.dead) return;
+      S.list = list;
+      S.loading = false;
+      renderGroups();
+      renderBody();
+    } catch (e) {
+      if (S.dead) return;
+      S.loading = false;
+      S.error = e;
+      renderCount();
+      renderBody();
+    }
+    try {
+      var groups = (await api("groups.list")) || [];
+      if (S.dead) return;
+      S.groups = groups;
+      renderGroups();
+    } catch (e) { /* группы — необязательные, тихо пропускаем */ }
+  }
+
+  /* ---------- register ---------- */
+  Pages.register("instances", {
+    title: "Мои сборки",
+    createInstance() { openWizard(); },
+
+    async init(ctx) {
+      S.dead = false;
+      S.view = App.settings.instanceView === "list" ? "list" : "grid";
+      S.sort = App.settings.instanceSort || "name";
+      S.group = null;
+      S.q = ctx.params.version ? String(ctx.params.version) : "";
+      S.loading = true;
+      S.error = null;
+
+      var root = ctx.root;
+      S.els = {
+        count: root.querySelector("#ipl-count"),
+        groups: root.querySelector("#ipl-groups"),
+        body: root.querySelector("#ipl-body"),
+        q: root.querySelector("#ipl-q"),
+        view: root.querySelector("#ipl-view"),
+        sort: root.querySelector("#ipl-sort"),
+      };
+
+      /* шапка */
+      root.querySelector("#ipl-create").onclick = function () { openWizard(); };
+      root.querySelector("#ipl-import").onclick = importArchive;
+
+      /* поиск */
+      S.els.q.value = S.q;
+      S.els.q.oninput = ui.debounce(function () { S.q = S.els.q.value; renderBody(); }, 180);
+
+      /* вид */
+      S.els.view.querySelectorAll("[data-view]").forEach(function (b) {
+        b.classList.toggle("active", b.dataset.view === S.view);
+        b.onclick = function () {
+          S.view = b.dataset.view;
+          S.els.view.querySelectorAll("[data-view]").forEach(function (x) { x.classList.toggle("active", x === b); });
+          renderBody();
+          api("settings.set", { instanceView: S.view }).then(function () { App.settings.instanceView = S.view; })
+            .catch(function (e) { ui.notifyError(e, "Не удалось сохранить настройку"); });
+        };
+      });
+
+      /* сортировка */
+      S.els.sort.value = S.sort;
+      S.els.sort.onchange = function () {
+        S.sort = this.value;
+        renderBody();
+        api("settings.set", { instanceSort: S.sort }).then(function () { App.settings.instanceSort = S.sort; })
+          .catch(function (e) { ui.notifyError(e, "Не удалось сохранить настройку"); });
+      };
+
+      /* drag&drop файлов */
+      S.unsubs.push(on("files.dropped", function (d) {
+        handleDropped(d && d.files);
+      }));
+      ui.onFilesDropped(function (files) {
+        if (Date.now() - S.lastHostDrop < 2000) return;
+        ui.notifyWarn("Не удалось определить путь файла",
+          "Перетащённые файлы пришли без полного пути. Используйте кнопку «Импортировать».");
+      });
+
+      /* состояние запуска: показываем на карточках и поддерживаем в актуальном виде */
+      S.unsubs.push(on("launch.state", function () { refreshRunning(); }));
+      refreshRunning();
+      if (S.runTimer) clearInterval(S.runTimer);
+      S.runTimer = setInterval(function () { if (!S.dead) refreshRunning(); }, 5000);
+
+      await reload();
+
+      if (ctx.params.create) openWizard();
+    },
+
+    dispose() {
+      S.dead = true;
+      if (S.runTimer) { clearInterval(S.runTimer); S.runTimer = null; }
+      S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
+      S.unsubs = [];
+      S.running = [];
+      ui.onFilesDropped(null);
+      S.els = {};
+    },
+  });
+})();
+</script>

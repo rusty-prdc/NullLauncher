@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NullLauncher</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.75 20v-5.5h4.5V20"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m15.2 8.8-1.9 4.5-4.5 1.9 1.9-4.5z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.5v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4.5 19.5h15"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.6 12h16.8"/><path d="M12 3.5c2.4 2.4 3.6 5.3 3.6 8.5S14.4 18.1 12 20.5c-2.4-2.4-3.6-5.3-3.6-8.5S9.6 5.9 12 3.5Z"/></symbol>
+  <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M4.5 8.5h11v6a4.5 4.5 0 0 1-4.5 4.5H9a4.5 4.5 0 0 1-4.5-4.5z"/><path d="M15.5 9.5h1.8a2.7 2.7 0 0 1 0 5.4h-1.8"/><path d="M8 3v2.4M11.5 3v2.4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 14.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.55V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1.03H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06A2 2 0 1 1 7.08 4.3l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.55V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9c.24.63.84 1.05 1.51 1.05H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1.03Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20c0-3.6 3.4-5.6 7.5-5.6s7.5 2 7.5 5.6"/></symbol>
+  <symbol id="i-hdd" viewBox="0 0 24 24"><rect x="3" y="12.5" width="18" height="7" rx="2"/><path d="M5.6 12.5 8 5.2h8l2.4 7.3"/><circle cx="7.4" cy="16" r="1"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7.5A1.5 1.5 0 0 0 6 5v14a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7.5z"/><path d="M14 3.5V7.5H18"/><path d="M9 12.5h6M9 16h4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 4.9v14.2L19 12z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.7l5.4-.8z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 6.8A1.8 1.8 0 0 1 5.3 5h3.4l2 2.4h8A1.8 1.8 0 0 1 20.5 9.2v8A1.8 1.8 0 0 1 18.7 19H5.3a1.8 1.8 0 0 1-1.8-1.8z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 6.8h15"/><path d="M9.5 6.8V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2v1.6"/><path d="M6.6 6.8 7.4 19a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.8-12.2"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4.5 19.5h4l10-10a2.1 2.1 0 0 0-3-3l-10 10z"/><path d="M14.5 6.5l3 3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="1.8"/><path d="M15.5 8.5v-2a1.8 1.8 0 0 0-1.8-1.8H6.3A1.8 1.8 0 0 0 4.5 6.5v7.4a1.8 1.8 0 0 0 1.8 1.8h2"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4.5 21 19.5H3z"/><path d="M12 10v4M12 16.6v.1"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 1 1-2.6-5.4"/><path d="M20.5 4v4.5H16"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="18.5" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M12 3.5 20 8v8l-8 4.5L4 16V8z"/><path d="m4 8 8 4.5L20 8"/><path d="M12 12.5V20.5"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3.5 8.5 4.5L12 12.5 3.5 8z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5"/><path d="m3.5 16.5 8.5 4.5 8.5-4.5"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 4.5-4 3.5 3 3-2.5 3 3.5"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.6"/><rect x="4" y="4" width="16" height="16" rx="2.4"/><path d="M9.5 1.8v2.2M14.5 1.8v2.2M9.5 20v2.2M14.5 20v2.2M1.8 9.5H4M1.8 14.5H4M20 9.5h2.2M20 14.5h2.2"/></symbol>
+  <symbol id="i-memory" viewBox="0 0 24 24"><rect x="3" y="7.5" width="18" height="9" rx="1.8"/><path d="M7 16.5v2.5M12 16.5v2.5M17 16.5v2.5M7 5v2.5M12 5v2.5M17 5v2.5"/><path d="M7.5 10.5h9v3h-9z"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6.5 10a5.5 5.5 0 0 1 11 0c0 4 1.5 5.5 1.5 5.5H5S6.5 14 6.5 10Z"/><path d="M10 18.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 5 6v6c0 4.2 3 7.4 7 8.5 4-1.1 7-4.3 7-8.5V6z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 19.5v-11"/><path d="m7.5 13.5 4.5-4.5 4.5 4.5"/><path d="M4.5 4.5h15"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M5.5 4.5h11L19.5 7.5V19a.5.5 0 0 1-.5.5H5.5A.5.5 0 0 1 5 19V5a.5.5 0 0 1 .5-.5Z"/><path d="M8.5 4.5v5h7v-5M8.5 19.5v-5h7v5"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M13.5 5.5H19V11"/><path d="M19 5.5 11 13.5"/><path d="M18 14.5v3.2a1.8 1.8 0 0 1-1.8 1.8H6.3a1.8 1.8 0 0 1-1.8-1.8V7.8A1.8 1.8 0 0 1 6.3 6h3.2"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6h16l-6.2 7.2v5.3l-3.6 1.8v-7.1z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8.5 6.5h11M8.5 12h11M8.5 17.5h11"/><circle cx="4.6" cy="6.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.6" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.6" cy="17.5" r="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 4v7"/><path d="M7.4 7.4a7 7 0 1 0 9.2 0"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.8 12S6.5 5.8 12 5.8 21.2 12 21.2 12 17.5 18.2 12 18.2 2.8 12 2.8 12Z"/><circle cx="12" cy="12" r="2.6"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M4 4.5 20 19.5"/><path d="M9.6 6.3A9.4 9.4 0 0 1 12 5.8c5.5 0 9.2 6.2 9.2 6.2a16 16 0 0 1-3 3.6M6.6 8A15.6 15.6 0 0 0 2.8 12s3.7 6.2 9.2 6.2a9.6 9.6 0 0 0 3.2-.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="15" rx="2"/><path d="M4 9.5h16M9.5 4.5v5"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3.5 20 8v8l-8 4.5L4 16V8z"/><path d="m4 8 8 4.5L20 8M12 12.5v8"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4.5 5.5A1.5 1.5 0 0 1 6 4h5v16H6a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M19.5 5.5A1.5 1.5 0 0 0 18 4h-5v16h5a1.5 1.5 0 0 0 1.5-1.5z"/></symbol>
+  <symbol id="i-bug" viewBox="0 0 24 24"><rect x="8" y="7.5" width="8" height="11" rx="4"/><path d="M9.5 7.5a2.5 2.5 0 0 1 5 0"/><path d="M4 11.5h4M16 11.5h4M4.5 17h3.5M16 17h3.5M5 7l2.5 2M19 7l-2.5 2M12 12v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13.5 3 5.5 13.5h5L10 21l8.5-10.5h-5z"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4.5 17.5a8.5 8.5 0 1 1 15 0"/><path d="m12 13.5 4-4"/><circle cx="12" cy="15" r="1.6"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M3.5 9.5a13 13 0 0 1 17 0"/><path d="M6.5 13a8.6 8.6 0 0 1 11 0"/><path d="M9.5 16.4a4.2 4.2 0 0 1 5 0"/><circle cx="12" cy="19.5" r="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><path d="m11 11 8 8M16 16l2-2M14 14l2-2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M5 5v6M5 15v4M12 5v3M12 12v7M19 5v9M19 18v1"/><circle cx="5" cy="13" r="1.8"/><circle cx="12" cy="10" r="1.8"/><circle cx="19" cy="16" r="1.8"/></symbol>
+</svg>
+
+<div id="window">
+  <div id="titlebar">
+    <div class="tb-drag" data-drag="1">
+      <div class="tb-brand">
+        <svg class="tb-logo" viewBox="0 0 24 24"><path d="M12 3.2 20 7.6v8.8L12 20.8 4 16.4V7.6z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 9.6v4.8M15 9.6v4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span>NullLauncher</span>
+      </div>
+      <div class="tb-title" id="tb-title">Главная</div>
+    </div>
+    <div class="tb-actions">
+      <button class="tb-btn" id="tb-min" title="Свернуть"><svg><use href="#i-minus"/></svg><span class="minimize-glyph"></span></button>
+      <button class="tb-btn" id="tb-max" title="Развернуть"><span class="maximize-glyph"></span></button>
+      <button class="tb-btn tb-close" id="tb-close" title="Закрыть"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></button>
+    </div>
+  </div>
+
+  <div id="shell">
+    <aside id="sidebar">
+      <nav id="nav">
+        <a class="nav-item" data-route="home"><svg><use href="#i-home"/></svg><span>Главная</span></a>
+        <a class="nav-item" data-route="instances"><svg><use href="#i-grid"/></svg><span>Мои сборки</span></a>
+        <a class="nav-item" data-route="discover"><svg><use href="#i-compass"/></svg><span>Modrinth</span></a>
+        <a class="nav-item" data-route="downloads"><svg><use href="#i-download"/></svg><span>Загрузки</span><em class="nav-badge" id="nav-downloads-badge" hidden></em></a>
+        <div class="nav-sep"></div>
+        <a class="nav-item" data-route="settings"><svg><use href="#i-settings"/></svg><span>Настройки</span></a>
+      </nav>
+      <div class="nav-foot">
+        <button class="account-chip" id="account-chip" title="Профиль и аккаунты">
+          <span class="avatar" id="account-avatar">?</span>
+          <span class="account-meta">
+            <strong id="account-name">Гость</strong>
+            <small id="account-sub">Не вошли</small>
+          </span>
+        </button>
+        <div class="version-chip">NullLauncher <span id="app-version">1.0.0</span></div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <div id="view" class="view"></div>
+    </main>
+  </div>
+</div>
+
+<div id="notify-host" aria-live="polite"></div>
+<div id="dialog-host"></div>
+<div id="ctx-host"></div>
+
+<div id="palette" hidden>
+  <div class="palette-backdrop" data-close="1"></div>
+  <div class="palette-box">
+    <div class="palette-input">
+      <svg><use href="#i-search"/></svg>
+      <input id="palette-q" type="text" placeholder="Поиск сборок, модов, настроек…" autocomplete="off" spellcheck="false" />
+      <kbd>Esc</kbd>
+    </div>
+    <div class="palette-results" id="palette-results"></div>
+  </div>
+</div>
+
+<div id="drop-overlay" hidden>
+  <div class="drop-box">
+    <svg><use href="#i-upload"/></svg>
+    <h3>Перетащите файлы</h3>
+    <p>.jar — мод · .zip — ресурс-пак / шейдер · .mrpack — модпак</p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

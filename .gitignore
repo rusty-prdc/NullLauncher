@@ -1,0 +1,32 @@
+# --- Сборка .NET ---
+bin/
+obj/
+publish/
+dist/
+*.user
+*.suo
+.vs/
+
+# --- Собранные бинарники в корне (make-exe.ps1) ---
+NullLauncher.exe
+SingleTest.exe
+e_sqlite3.dll
+WebView2Loader.dll
+
+# --- Мусор тестов и временные файлы ---
+.netcache/
+.dsh-verify/
+nulllauncher-startup-error.log
+*.log
+tools/*.png
+
+# --- Собранные дистрибутивы ---
+*.zip
+installer/*.exe
+
+# --- Данные/резервные копии, попавшие в дерево ---
+UI/assets.zip
+
+# --- Системный мусор Windows ---
+Thumbs.db
+desktop.ini

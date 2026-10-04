@@ -1,0 +1,864 @@
+<style>
+/* ===== discover — страница-специфичные стили (префикс disco-) ===== */
+.disco-toolbar { display: flex; flex-direction: column; gap: 10px; }
+.disco-row1 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.disco-row1 .search-box { max-width: none; flex: 1; min-width: 220px; }
+.disco-row1 select { width: auto; min-width: 155px; }
+.disco-fchips { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.disco-fchips .lbl { font-size: 11.5px; color: var(--text-3); margin-right: 2px; }
+
+.disco-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 14px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; text-align: left;
+  transition: border-color var(--t), transform var(--t), background var(--t);
+}
+.disco-card:hover { border-color: var(--line-strong); background: var(--card-2); transform: translateY(-2px); }
+.disco-top { display: flex; gap: 11px; align-items: center; min-width: 0; }
+.disco-names { min-width: 0; }
+.disco-title { font-weight: 620; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disco-author { font-size: 11.5px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disco-desc {
+  font-size: 12.5px; color: var(--text-2); line-height: 1.5; min-height: 37px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.disco-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.disco-skel { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.disco-skel .skeleton { height: 152px; border-radius: var(--r-md); }
+
+.disco-hero { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.disco-hero .grow { flex: 1; min-width: 220px; }
+.disco-hero h2 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -0.2px; }
+.disco-hero .meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+.disco-hero .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 13px; }
+.disco-facts { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.disco-facts .f { display: flex; gap: 10px; align-items: baseline; }
+.disco-facts .k { color: var(--text-3); width: 150px; flex: 0 0 auto; font-size: 12.5px; }
+.disco-facts .v { min-width: 0; word-break: break-word; user-select: text; }
+
+.disco-md {
+  font-size: 13.5px; line-height: 1.65; color: var(--text); user-select: text;
+  overflow-wrap: anywhere;
+}
+.disco-md img { max-width: 100%; border-radius: var(--r-sm); }
+.disco-md h1, .disco-md h2, .disco-md h3, .disco-md h4 { font-size: 15.5px; margin: 16px 0 8px; font-weight: 650; }
+.disco-md p { margin: 0 0 10px; }
+.disco-md ul, .disco-md ol { margin: 0 0 10px; padding-left: 22px; }
+.disco-md a { color: var(--accent); text-decoration: underline; }
+.disco-md code { font-family: var(--mono); background: var(--card-3); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+.disco-md pre { background: var(--card-3); padding: 10px 12px; border-radius: var(--r-sm); overflow: auto; }
+.disco-md pre code { background: none; padding: 0; }
+.disco-md blockquote { border-left: 3px solid var(--line-strong); margin: 0 0 10px; padding-left: 12px; color: var(--text-2); }
+.disco-md table { border-collapse: collapse; margin: 0 0 10px; }
+.disco-md td, .disco-md th { border: 1px solid var(--line); padding: 5px 8px; }
+.disco-md hr { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
+
+.disco-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.disco-gallery img {
+  width: 100%; height: 110px; object-fit: cover; border-radius: var(--r-sm);
+  background: var(--card-3); border: 1px solid var(--line); cursor: pointer; display: block;
+}
+.disco-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.disco-pick { display: flex; flex-direction: column; gap: 7px; }
+.disco-pick button {
+  display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: var(--r-sm);
+  text-align: left; border: 1px solid var(--line); background: var(--card-2); transition: background var(--t);
+}
+.disco-pick button:hover { background: var(--card-3); border-color: var(--line-strong); }
+.disco-pick .nm { font-weight: 600; font-size: 13px; }
+.disco-pick .sub { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+.disco-details summary { cursor: pointer; font-size: 12px; color: var(--text-3); }
+.disco-details pre { white-space: pre-wrap; word-break: break-word; font-size: 11px; color: var(--text-3); margin: 6px 0 0; font-family: var(--mono); text-align: left; }
+</style>
+
+<section class="page">
+  <div class="page-head">
+    <div class="grow">
+      <h1 class="page-title">Modrinth</h1>
+      <div class="page-sub" id="disco-sub">Поиск модов, модпаков, ресурс-паков и шейдеров</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-sm" id="disco-refresh"><svg><use href="#i-refresh"/></svg> Обновить</button>
+    </div>
+  </div>
+
+  <div class="disco-toolbar" id="disco-toolbar">
+    <div class="disco-row1">
+      <div class="search-box">
+        <svg><use href="#i-search"/></svg>
+        <input type="search" id="disco-q" placeholder="Поиск по Modrinth…" autocomplete="off" spellcheck="false" />
+      </div>
+      <select id="disco-sort" title="Сортировка">
+        <option value="relevance">По релевантности</option>
+        <option value="downloads">По загрузкам</option>
+        <option value="follows"> По подписчикам</option>
+        <option value="updated">По обновлению</option>
+      </select>
+    </div>
+    <div class="disco-fchips" id="disco-types">
+      <button class="chip active" data-t="">Все</button>
+      <button class="chip" data-t="mod">Моды</button>
+      <button class="chip" data-t="modpack">Модпаки</button>
+      <button class="chip" data-t="resourcepack">Ресурс-паки</button>
+      <button class="chip" data-t="shader">Шейдеры</button>
+      <button class="chip" data-t="datapack">Датапаки</button>
+    </div>
+    <div class="disco-row1">
+      <select id="disco-loader" title="Загрузчик">
+        <option value="">Все загрузчики</option>
+      </select>
+      <select id="disco-cat" title="Категория">
+        <option value="">Все категории</option>
+      </select>
+      <button class="btn btn-sm btn-ghost" id="disco-reset">Сбросить фильтры</button>
+    </div>
+    <div class="disco-fchips" id="disco-mc"><span class="lbl">Версии MC:</span></div>
+  </div>
+
+  <div id="disco-banner"></div>
+  <div id="disco-body"></div>
+
+  <div class="row between" id="disco-pager" hidden>
+    <span class="dim small" id="disco-total"></span>
+    <div class="row">
+      <button class="btn btn-sm" id="disco-prev"><svg><use href="#i-back"/></svg> Назад</button>
+      <span class="dim small tnum" id="disco-page"></span>
+      <button class="btn btn-sm" id="disco-next">Далее <svg><use href="#i-chevron"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
+
+  var TYPE_LABELS = { mod: "Мод", modpack: "Модпак", resourcepack: "Ресурс-пак", shader: "Шейдер", datapack: "Датапак" };
+  var KIND_BY_TYPE = { mod: "mods", resourcepack: "resourcepacks", shader: "shaderpacks", datapack: "datapacks" };
+  var LINK_LABELS = { source: "Источник", homepage: "Сайт", wiki: "Вики", discord: "Discord", donation: "Донат", support: "Поддержка" };
+
+  var S = {
+    dead: false,
+    q: "", type: "", loader: "", cat: "", mcs: [], sort: "relevance",
+    offset: 0, limit: 20, total: 0, hits: null, loading: false, error: null, offline: false,
+    tags: null, tagsError: null,
+    view: "list", project: null, detailId: "", detailType: "",
+    projLoading: false, projError: null, tab: "about",
+    versions: null, verLoading: false, verError: null,
+    instanceId: "", searchTimer: null, unsubs: [], els: {},
+  };
+
+  /* ---------- утилиты ---------- */
+  function errBlock(e, onRetry) {
+    var d = ui.errDetail(e);
+    return '<div class="state error">' + ui.icon("alert") +
+      "<h3>Не удалось загрузить</h3><p>" + ui.esc(ui.errText(e)) + "</p>" +
+      (d ? '<details class="disco-details"><summary>Подробнее</summary><pre>' + ui.esc(d) + "</pre></details>" : "") +
+      (onRetry ? '<div class="actions"><button class="btn" data-retry="1">' + ui.icon("refresh") + " Повторить</button></div>" : "") +
+      "</div>";
+  }
+  function bindRetry(box, fn) {
+    var b = box.querySelector("[data-retry]");
+    if (b) b.onclick = fn;
+  }
+  function typeLabel(t) { return TYPE_LABELS[t] || (t ? String(t) : "Проект"); }
+  function kindOf(projectType) { return KIND_BY_TYPE[projectType] || "mods"; }
+  function tagsList(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(function (x) {
+      if (typeof x === "string") return x;
+      return (x && (x.name || x.version || x.slug)) || "";
+    }).filter(Boolean);
+  }
+  function normalizeValue(v) {
+    if (v === null || v === undefined) return "";
+    if (typeof v === "string" || typeof v === "number") return String(v);
+    if (Array.isArray(v)) return v.map(function (x) { return normalizeValue(x); }).filter(Boolean).join(", ");
+    return (v.id || v.name || v.version || v.slug || v.url || "") + "";
+  }
+  function sanitizeHtml(html) {
+    return String(html || "")
+      .replace(/<![\s\S]*?-->/g, "")
+      .replace(/<(script|iframe|style|object|embed|form)[\s\S]*?<\/\1>/gi, "")
+      .replace(/<(script|iframe|style|object|embed|form)[^>]*\/?>/gi, "")
+      .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+      .replace(/javascript:/gi, "")
+      .replace(/(href|src|action)\s*=\s*(["'])\s*(?:javascript|data|vbscript)[^"']*\2/gi, '$1="#"');
+  }
+  function stripTags(html) {
+    return String(html || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  }
+  function projectUrl() {
+    var p = S.project || {};
+    var slug = p.slug || p.id || S.detailId;
+    return "https://modrinth.com/project/" + encodeURIComponent(slug);
+  }
+
+  /* ---------- баннер офлайна ---------- */
+  function renderBanner() {
+    var box = S.els.banner;
+    if (!box) return;
+    box.innerHTML = S.offline
+      ? '<div class="banner warn">' + ui.icon("alert") +
+        '<span class="grow">Нет подключения к Modrinth. Показаны сохранённые данные.</span></div>'
+      : "";
+  }
+
+  /* ---------- теги / фильтры ---------- */
+  function renderFilters() {
+    var t = S.tags;
+    var loaderSel = S.els.loader, catSel = S.els.cat, mcBox = S.els.mc;
+    if (!loaderSel || !catSel || !mcBox) return;
+    if (t) {
+      var loaders = tagsList(t.loaders);
+      var cats = tagsList(t.categories);
+      loaderSel.innerHTML = '<option value="">Все загрузчики</option>' + loaders.map(function (l) {
+        return '<option value="' + ui.esc(l) + '"' + (S.loader === l ? " selected" : "") + ">" + ui.esc(l) + "</option>";
+      }).join("");
+      catSel.innerHTML = '<option value="">Все категории</option>' + cats.map(function (c) {
+        return '<option value="' + ui.esc(c) + '"' + (S.cat === c ? " selected" : "") + ">" + ui.esc(c) + "</option>";
+      }).join("");
+      var mcs = tagsList(t.gameVersions).slice(0, 30);
+      mcBox.innerHTML = '<span class="lbl">Версии MC:</span>' + mcs.map(function (v) {
+        return '<button class="chip' + (S.mcs.indexOf(v) >= 0 ? " active" : "") + '" data-mc="' + ui.esc(v) + '">' + ui.esc(v) + "</button>";
+      }).join("");
+      mcBox.querySelectorAll("[data-mc]").forEach(function (b) {
+        b.onclick = function () {
+          var v = b.dataset.mc;
+          var i = S.mcs.indexOf(v);
+          if (i >= 0) S.mcs.splice(i, 1); else S.mcs.push(v);
+          b.classList.toggle("active", i < 0);
+          S.offset = 0;
+          doSearch();
+        };
+      });
+    } else if (S.tagsError) {
+      loaderSel.innerHTML = '<option value="">Фильтры недоступны</option>';
+      catSel.innerHTML = '<option value="">Фильтры недоступны</option>';
+      mcBox.innerHTML = '<span class="lbl dim">Фильтры по версиям недоступны: ' + ui.esc(ui.errText(S.tagsError)) + "</span>";
+    }
+  }
+
+  async function loadTags() {
+    try {
+      var t = await api("modrinth.tags");
+      if (S.dead) return;
+      S.tags = t || {};
+      S.tagsError = null;
+    } catch (e) {
+      if (S.dead) return;
+      S.tagsError = e;
+    }
+    renderFilters();
+  }
+
+  /* ---------- поиск ---------- */
+  function searchParams() {
+    var p = { limit: S.limit, offset: S.offset, sort: S.sort };
+    var q = S.q.trim();
+    if (q) p.query = q;
+    if (S.type) p.type = S.type;
+    if (S.loader) p.loaders = [S.loader];
+    if (S.cat) p.categories = [S.cat];
+    if (S.mcs.length) p.gameVersions = S.mcs.slice();
+    return p;
+  }
+
+  async function doSearch() {
+    if (S.view !== "list") return;
+    if (S.searchTimer) { clearTimeout(S.searchTimer); S.searchTimer = null; }
+    S.loading = true;
+    S.error = null;
+    renderBody();
+    renderPager();
+    try {
+      var res = await api("modrinth.search", searchParams());
+      if (S.dead) return;
+      S.hits = (res && res.hits) || [];
+      S.total = res && typeof res.total === "number" ? res.total : S.hits.length;
+      S.offline = !!(res && res.offline);
+      S.loading = false;
+      S.error = null;
+    } catch (e) {
+      if (S.dead) return;
+      S.hits = [];
+      S.loading = false;
+      S.error = e;
+    }
+    renderBanner();
+    renderBody();
+    renderPager();
+  }
+
+  function scheduleSearch(resetOffset) {
+    if (resetOffset) S.offset = 0;
+    if (S.searchTimer) clearTimeout(S.searchTimer);
+    S.searchTimer = setTimeout(function () { S.searchTimer = null; doSearch(); }, 350);
+  }
+
+  /* ---------- карточки ---------- */
+  function cardHTML(h) {
+    var title = h.title || h.slug || h.projectId || "Без названия";
+    var letter = ui.esc((title || "?").trim().charAt(0).toUpperCase() || "?");
+    var iconHtml = h.iconUrl
+      ? '<div class="item-icon lg" style="background-image:url(&quot;' + ui.esc(h.iconUrl) + '&quot;)">' + letter + "</div>"
+      : '<div class="item-icon lg">' + letter + "</div>";
+
+    var chips = '<span class="chip">' + ui.icon("download") + ui.fmtNum(h.downloads || 0) + "</span>";
+    var vers = Array.isArray(h.versions) ? h.versions : [];
+    if (vers.length) {
+      var shown = vers.slice(0, 2).join(", ");
+      if (vers.length > 2) shown += " +" + (vers.length - 2);
+      chips += '<span class="chip">' + ui.esc(shown) + "</span>";
+    }
+    if (Array.isArray(h.loaders) && h.loaders.length) chips += '<span class="chip">' + ui.esc(h.loaders[0]) + "</span>";
+    chips += '<span class="chip info">' + ui.esc(typeLabel(h.projectType)) + "</span>";
+
+    return '<div class="disco-card" data-id="' + ui.esc(h.projectId || h.slug || "") + '">' +
+      '<div class="disco-top">' + iconHtml +
+      '<div class="disco-names"><div class="disco-title">' + ui.esc(title) + "</div>" +
+      '<div class="disco-author">' + ui.esc(h.author || "—") + "</div></div></div>" +
+      '<div class="disco-desc">' + ui.esc(h.description || "") + "</div>" +
+      '<div class="disco-chips">' + chips + "</div></div>";
+  }
+
+  function skelGrid() {
+    var h = "";
+    for (var i = 0; i < 8; i++) h += '<div class="skeleton"></div>';
+    return '<div class="disco-skel">' + h + "</div>";
+  }
+
+  function renderBody() {
+    var box = S.els.body;
+    if (!box) return;
+
+    if (S.view === "detail") { renderDetail(box); return; }
+
+    var toolbar = S.els.toolbar, pager = S.els.pager;
+    if (toolbar) toolbar.hidden = false;
+    if (pager) pager.hidden = !S.hits || !S.hits.length;
+
+    if (S.loading) { box.innerHTML = skelGrid(); return; }
+    if (S.error) { box.innerHTML = errBlock(S.error, true); bindRetry(box, doSearch); return; }
+    if (!S.hits) { box.innerHTML = skelGrid(); return; }
+    if (!S.hits.length) {
+      box.innerHTML = '<div class="state">' + ui.icon("search") +
+        "<h3>Ничего не найдено</h3><p>По запросу или фильтрам ничего нет. Попробуйте изменить поиск, загрузчик или версию Minecraft.</p>" +
+        '<div class="actions"><button class="btn" data-act="reset">Сбросить фильтры</button></div></div>';
+      var rb = box.querySelector('[data-act="reset"]');
+      if (rb) rb.onclick = resetFilters;
+      return;
+    }
+    box.innerHTML = '<div class="grid grid-cards disco-grid"></div>';
+    var grid = box.querySelector(".disco-grid");
+    S.hits.forEach(function (h) {
+      var el = document.createElement("div");
+      el.innerHTML = cardHTML(h);
+      var card = el.firstElementChild;
+      card.onclick = function () { openDetail(h.projectId || h.slug, h.projectType); };
+      grid.appendChild(card);
+    });
+  }
+
+  function renderPager() {
+    var pager = S.els.pager;
+    if (!pager) return;
+    if (S.view !== "list" || !S.hits || !S.hits.length) { pager.hidden = true; return; }
+    pager.hidden = false;
+    var from = S.total ? S.offset + 1 : 0;
+    var to = S.offset + S.hits.length;
+    S.els.total.textContent = (S.offline ? "Сохранённые данные · " : "") + "Найдено: " + ui.fmtNum(S.total) +
+      (S.total > S.hits.length ? " · показано " + ui.fmtNum(from) + "–" + ui.fmtNum(to) : "");
+    S.els.page.textContent = (Math.floor(S.offset / Math.max(1, S.limit)) + 1) + " стр.";
+    S.els.prev.disabled = S.offset <= 0;
+    S.els.next.disabled = S.offset + S.hits.length >= S.total;
+    if (S.els.sub) {
+      S.els.sub.textContent = S.total
+        ? "Найдено проектов: " + ui.fmtNum(S.total) + (S.offline ? " · офлайн-данные" : "")
+        : "Поиск модов, модпаков, ресурс-паков и шейдеров";
+    }
+  }
+
+  function resetFilters() {
+    S.q = ""; S.type = ""; S.loader = ""; S.cat = ""; S.mcs = []; S.offset = 0; S.sort = "relevance";
+    if (S.els.q) S.els.q.value = "";
+    if (S.els.sort) S.els.sort.value = S.sort;
+    S.els.types.querySelectorAll("[data-t]").forEach(function (b) { b.classList.toggle("active", b.dataset.t === ""); });
+    renderFilters();
+    doSearch();
+  }
+
+  /* ---------- выбор сборки ---------- */
+  function pickInstance() {
+    return new Promise(function (resolve) {
+      api("instances.list").then(function (list) {
+        list = list || [];
+        if (!list.length) {
+          ui.notifyWarn("Нет сборок", "Создайте сборку, чтобы установить контент.");
+          resolve(null);
+          return;
+        }
+        var body = document.createElement("div");
+        body.className = "disco-pick";
+        body.innerHTML = list.map(function (inst, i) {
+          return '<button data-i="' + i + '"><span class="item-icon sm">' +
+            ui.esc(ui.initials(inst.name)) + "</span>" +
+            '<span class="grow"><span class="nm">' + ui.esc(inst.name) + "</span>" +
+            '<span class="sub">Minecraft ' + ui.esc(inst.mcVersion || "?") + " · " + ui.esc(inst.loader || "vanilla") + "</span></span></button>";
+        }).join("");
+        var dlg = ui.openDialog({
+          title: "Куда установить?",
+          sub: "Выберите сборку — контент будет установлен в неё.",
+          icon: "package",
+          body: body,
+          buttons: [{ label: "Отмена", role: "cancel", onClick: function () { resolve(null); } }],
+          onClose: function () { resolve(null); },
+        });
+        body.querySelectorAll("[data-i]").forEach(function (b) {
+          b.onclick = function () {
+            var inst = list[+b.dataset.i];
+            resolve(inst);
+            dlg.close();
+          };
+        });
+      }).catch(function (e) {
+        ui.notifyError(e, "Не удалось получить список сборок");
+        resolve(null);
+      });
+    });
+  }
+
+  async function installVersion(versionId) {
+    if (!S.detailId) return;
+    var instId = S.instanceId;
+    if (!instId) {
+      var inst = await pickInstance();
+      if (!inst) return;
+      instId = inst.id;
+      S.instanceId = inst.id;
+    }
+    var kind = kindOf(S.detailType || S.type || "mod");
+    try {
+      var res = await api("modrinth.install", { instanceId: instId, versionId: versionId, kind: kind, installDependencies: true });
+      if (S.dead) return;
+      var n = res && Array.isArray(res.installed) ? res.installed.length : 0;
+      var deps = res && Array.isArray(res.dependencies) ? res.dependencies : [];
+      var installedDeps = deps.filter(function (d) { return d && d.status === "installed"; });
+      var msg = n ? "Файлов установлено: " + n : "Готово";
+      if (installedDeps.length) {
+        msg += ". Зависимости: " + installedDeps.map(function (d) {
+          return (d.name || d.projectId) + (d.version ? " " + d.version : "");
+        }).join(", ");
+      }
+      ui.notifySuccess("Установлено", msg);
+      var failedDeps = deps.filter(function (d) { return d && d.status === "error"; });
+      var optionalDeps = deps.filter(function (d) { return d && d.status === "optional"; });
+      if (failedDeps.length) {
+        ui.notifyWarn("Часть зависимостей не установилась",
+          failedDeps.map(function (d) { return (d.name || d.projectId) + ": " + (d.error || "ошибка"); }).join(" · "));
+      } else if (optionalDeps.length) {
+        ui.notifyInfo("Есть опциональные зависимости",
+          optionalDeps.map(function (d) { return d.name || d.projectId; }).join(", ") + " — ставьте вручную, если нужно.");
+      }
+      if (res && Array.isArray(res.warnings) && res.warnings.length) {
+        ui.notifyWarn("Предупреждения", res.warnings.join(" · "));
+      }
+    } catch (e) {
+      ui.notifyError(e, "Не удалось установить");
+    }
+  }
+
+  /* ---------- детальный вид ---------- */
+  async function openDetail(id, projectType) {
+    if (!id) return;
+    S.view = "detail";
+    S.detailId = id;
+    S.detailType = projectType || "";
+    S.project = null;
+    S.projLoading = true;
+    S.projError = null;
+    S.tab = "about";
+    S.versions = null;
+    S.verLoading = false;
+    S.verError = null;
+    var toolbar = S.els.toolbar, pager = S.els.pager;
+    if (toolbar) toolbar.hidden = true;
+    if (pager) pager.hidden = true;
+    renderBody();
+    try {
+      var p = await api("modrinth.project", { id: id });
+      if (S.dead) return;
+      S.project = p || {};
+      S.projLoading = false;
+      S.detailType = S.project.projectType || S.project.type || S.detailType || S.type || "mod";
+    } catch (e) {
+      if (S.dead) return;
+      S.projLoading = false;
+      S.projError = e;
+    }
+    renderBody();
+  }
+
+  function closeDetail() {
+    S.view = "list";
+    S.project = null;
+    S.detailId = "";
+    S.versions = null;
+    renderBody();
+    renderPager();
+  }
+
+  async function loadVersions() {
+    if (!S.detailId) return;
+    if (S.versions || S.verLoading) { renderTab(); return; }
+    S.verLoading = true;
+    S.verError = null;
+    renderTab();
+    var p = {};
+    if (S.loader) p.loaders = [S.loader];
+    if (S.mcs.length) p.gameVersions = S.mcs.slice();
+    try {
+      var list = await api("modrinth.versions", Object.assign({ id: S.detailId }, p));
+      if (S.dead) return;
+      S.versions = list || [];
+      S.verLoading = false;
+    } catch (e) {
+      if (S.dead) return;
+      S.versions = [];
+      S.verLoading = false;
+      S.verError = e;
+    }
+    renderTab();
+  }
+
+  function channelBadge(v) {
+    var ch = v.channels;
+    var text;
+    if (Array.isArray(ch)) text = ch.map(function (c) { return typeof c === "string" ? c : (c.name || c.channel || c.type || ""); }).filter(Boolean).join(", ");
+    else text = normalizeValue(ch);
+    if (!text) text = "release";
+    var cls = /beta/i.test(text) ? "beta" : /alpha/i.test(text) ? "alpha" : /release/i.test(text) ? "release" : "snapshot";
+    return '<span class="badge ' + cls + '">' + ui.esc(text) + "</span>";
+  }
+
+  function versionsFilterNote() {
+    var f = [];
+    if (S.loader) f.push("загрузчик: " + S.loader);
+    if (S.mcs.length) f.push("Minecraft: " + S.mcs.join(", "));
+    return f.join(" · ");
+  }
+
+  function renderVersionsTab() {
+    if (S.verLoading) {
+      var sk = "";
+      for (var i = 0; i < 5; i++) sk += '<div class="skeleton" style="height:38px;margin-bottom:8px"></div>';
+      return sk;
+    }
+    if (S.verError) return errBlock(S.verError, true);
+    if (!S.versions || !S.versions.length) {
+      return '<div class="state">' + ui.icon("package") + "<h3>Версий нет</h3>" +
+        "<p>Под версии текущих фильтров ничего не найдено.</p>" +
+        '<button class="btn btn-sm" data-show-all="1">Показать все версии проекта</button></div>';
+    }
+    var note = versionsFilterNote();
+    var head = '<div class="row between wrap" style="gap:10px;margin-bottom:10px">' +
+      '<span class="small dim">Версий: ' + S.versions.length + (note ? " · фильтры — " + ui.esc(note) : "") + "</span>" +
+      (note ? '<button class="btn btn-sm" data-show-all="1">Показать все версии</button>' : "") +
+      "</div>";
+    var html = head + '<div class="table-wrap"><table class="table disco-ver"><thead><tr>' +
+      "<th>Версия</th><th>Дата</th><th>Minecraft</th><th>Loader</th><th class=\"num\">Размер</th><th>Канал</th><th></th>" +
+      "</tr></thead><tbody>";
+    S.versions.forEach(function (v, idx) {
+      var file = (v.files || []).find(function (f) { return f.primary; }) || (v.files || [])[0] || null;
+      var loaders = normalizeValue(v.loaders) || "—";
+      html += "<tr>" +
+        '<td><div style="font-weight:600">' + ui.esc(v.name || v.id || "—") + "</div>" +
+        (v.versionNumber ? '<div class="small dim mono">' + ui.esc(v.versionNumber) + "</div>" : "") + "</td>" +
+        '<td class="dim small nowrap">' + ui.esc(ui.fmtDate(v.datePublished)) + "</td>" +
+        "<td>" + ui.esc(normalizeValue(v.gameVersions) || "—") + "</td>" +
+        "<td>" + ui.esc(loaders) + "</td>" +
+        '<td class="num tnum">' + (file && file.size ? ui.esc(ui.fmtBytes(file.size)) : "—") + "</td>" +
+        "<td>" + channelBadge(v) + "</td>" +
+        '<td><div class="row" style="gap:6px;justify-content:flex-end">' +
+        '<button class="btn btn-sm btn-primary" data-inst="' + ui.esc(v.id || "") + '">Установить</button>' +
+        (file && file.url ? '<button class="btn btn-sm btn-ghost" data-url="' + ui.esc(file.url) + '" title="Скачать файл отдельно">' + ui.icon("download") + "</button>" : "") +
+        "</div></td></tr>";
+    });
+    html += "</tbody></table></div>";
+    return html;
+  }
+
+  function renderAboutTab() {
+    var p = S.project || {};
+    var html = "";
+
+    var desc = p.body || p.description || "";
+    if (desc) html += '<div class="card"><div class="card-title">Описание</div><div class="disco-md">' + sanitizeHtml(desc) + "</div></div>";
+
+    if (Array.isArray(p.gallery) && p.gallery.length) {
+      html += '<div class="card"><div class="card-title">Галерея</div><div class="disco-gallery">';
+      p.gallery.forEach(function (g, i) {
+        var url = typeof g === "string" ? g : (g.url || g.thumbnail || g.thumbnail_url || g.src || "");
+        if (url) html += '<img src="' + ui.esc(url) + '" data-g="' + i + '" alt="" loading="lazy" />';
+      });
+      html += "</div></div>";
+    }
+
+    var facts = [];
+    facts.push(["Загрузки", ui.fmtNum(p.downloads || 0)]);
+    if (p.follows) facts.push(["Подписчики", ui.fmtNum(p.follows)]);
+    if (p.author || p.owner) facts.push(["Автор", normalizeValue(p.author || p.owner)]);
+    if (p.license) facts.push(["Лицензия", normalizeValue(p.license)]);
+    if (p.datePublished) facts.push(["Опубликован", ui.fmtDate(p.datePublished)]);
+    if (p.dateModified) facts.push(["Обновлён", ui.fmtDate(p.dateModified)]);
+    if (Array.isArray(p.categories) && p.categories.length) facts.push(["Категории", p.categories.map(function (c) { return normalizeValue(c); }).filter(Boolean).join(", ")]);
+    if (Array.isArray(p.loaders) && p.loaders.length) facts.push(["Загрузчики", p.loaders.map(function (c) { return normalizeValue(c); }).filter(Boolean).join(", ")]);
+    if (Array.isArray(p.gameVersions) && p.gameVersions.length) facts.push(["Версии MC", p.gameVersions.slice(0, 8).join(", ") + (p.gameVersions.length > 8 ? " +" + (p.gameVersions.length - 8) : "")]);
+
+    html += '<div class="card"><div class="card-title">Информация</div><div class="disco-facts">' +
+      facts.map(function (f) {
+        return '<div class="f"><span class="k">' + ui.esc(f[0]) + '</span><span class="v">' + ui.esc(f[1]) + "</span></div>";
+      }).join("") + "</div></div>";
+
+    var links = p.links && typeof p.links === "object" ? p.links : null;
+    var linkBtns = "";
+    if (links) {
+      Object.keys(links).forEach(function (k) {
+        var url = links[k];
+        if (!url || typeof url !== "string") return;
+        linkBtns += '<button class="btn btn-sm" data-link="' + ui.esc(url) + '">' +
+          ui.icon("external") + ui.esc(LINK_LABELS[k] || k) + "</button>";
+      });
+    }
+    linkBtns += '<button class="btn btn-sm" data-link="' + ui.esc(projectUrl()) + '">' + ui.icon("compass") + " Открыть на Modrinth</button>";
+    html += '<div class="card"><div class="card-title">Ссылки</div><div class="disco-links">' + linkBtns + "</div></div>";
+
+    return html;
+  }
+
+  function renderTab() {
+    var box = S.els.tab;
+    if (!box) return;
+    var tabs = S.els.tabs;
+    if (tabs) {
+      tabs.querySelectorAll("[data-tab]").forEach(function (b) {
+        b.classList.toggle("active", b.dataset.tab === S.tab);
+      });
+    }
+    if (S.tab === "versions") {
+      box.innerHTML = renderVersionsTab();
+      box.querySelectorAll("[data-inst]").forEach(function (b) {
+        b.onclick = function () {
+          b.classList.add("loading");
+          var id = b.dataset.inst;
+          installVersion(id).then(function () { b.classList.remove("loading"); }, function () { b.classList.remove("loading"); });
+        };
+      });
+      box.querySelectorAll("[data-url]").forEach(function (b) {
+        b.onclick = function () { api("system.openUrl", { url: b.dataset.url }).catch(function (e) { ui.notifyError(e); }); };
+      });
+      var rb = box.querySelector("[data-retry]");
+      if (rb) rb.onclick = function () { S.versions = null; loadVersions(); };
+      box.querySelectorAll("[data-show-all]").forEach(function (b) {
+        b.onclick = function () {
+          // сбрасываем фильтры загрузчика и версии Minecraft — показываем весь список версий проекта
+          S.loader = "";
+          S.mcs = [];
+          if (S.els.loader) S.els.loader.value = "";
+          var chips = S.els.filters ? S.els.filters.querySelectorAll("[data-mc]") : [];
+          Array.prototype.forEach.call(chips, function (c) { c.classList.remove("active"); });
+          S.versions = null;
+          loadVersions();
+        };
+      });
+      return;
+    }
+    box.innerHTML = renderAboutTab();
+    box.querySelectorAll("[data-link]").forEach(function (b) {
+      b.onclick = function () { api("system.openUrl", { url: b.dataset.link }).catch(function (e) { ui.notifyError(e); }); };
+    });
+    box.querySelectorAll(".disco-gallery img").forEach(function (img) {
+      img.onclick = function () {
+        ui.openDialog({
+          title: "Галерея", icon: "image", width: "wide",
+          body: '<img src="' + ui.esc(img.src) + '" style="width:100%;border-radius:var(--r-sm)" alt="" />',
+          buttons: [{ label: "Закрыть", role: "cancel" }],
+        });
+      };
+    });
+  }
+
+  function renderDetail(box) {
+    if (S.projLoading) {
+      box.innerHTML = '<div class="card"><div class="disco-top" style="gap:14px">' +
+        '<div class="skeleton" style="width:54px;height:54px"></div>' +
+        '<div style="flex:1"><div class="skeleton" style="height:18px;width:40%;margin-bottom:8px"></div>' +
+        '<div class="skeleton" style="height:12px;width:25%"></div></div></div></div>' +
+        '<div class="skeleton" style="height:150px"></div>';
+      return;
+    }
+    if (S.projError) {
+      box.innerHTML = errBlock(S.projError, true);
+      bindRetry(box, function () { openDetail(S.detailId, S.detailType); });
+      return;
+    }
+    var p = S.project || {};
+    var title = p.title || p.name || p.slug || S.detailId;
+    var letter = ui.esc((title || "?").trim().charAt(0).toUpperCase() || "?");
+    var iconHtml = p.iconUrl
+      ? '<div class="item-icon lg" style="background-image:url(&quot;' + ui.esc(p.iconUrl) + '&quot;)">' + letter + "</div>"
+      : '<div class="item-icon lg">' + letter + "</div>";
+
+    var meta = '<span class="chip">' + ui.icon("download") + ui.fmtNum(p.downloads || 0) + "</span>";
+    if (p.follows) meta += '<span class="chip">' + ui.icon("star") + ui.fmtNum(p.follows) + "</span>";
+    meta += '<span class="chip info">' + ui.esc(typeLabel(S.detailType || p.projectType)) + "</span>";
+    var pLoaders = Array.isArray(p.loaders) ? p.loaders.map(normalizeValue).filter(Boolean) : [];
+    if (pLoaders.length) meta += '<span class="chip">' + ui.esc(pLoaders.join(", ")) + "</span>";
+    if (p.license) meta += '<span class="chip">' + ui.esc(normalizeValue(p.license)) + "</span>";
+
+    var isModpack = (S.detailType || p.projectType) === "modpack";
+    var actions = "";
+    if (isModpack) {
+      actions += '<button class="btn btn-primary" data-act="open-mr">' + ui.icon("external") + " Открыть на Modrinth</button>";
+    } else {
+      actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
+      actions += '<button class="btn" data-act="versions">' + ui.icon("package") + " Версии</button>";
+    }
+    actions += '<button class="btn btn-ghost" data-act="back">' + ui.icon("back") + " Назад</button>";
+
+    box.innerHTML =
+      '<div class="card disco-hero">' + iconHtml +
+        '<div class="grow">' +
+          "<h2>" + ui.esc(title) + "</h2>" +
+          '<div class="page-sub">' + ui.esc(stripTags(p.description || "")) + "</div>" +
+          '<div class="meta">' + meta + "</div>" +
+          '<div class="actions">' + actions + "</div>" +
+        "</div>" +
+      "</div>" +
+      '<div class="tabs" id="disco-tabs">' +
+        '<button class="tab active" data-tab="about">О проекте</button>' +
+        '<button class="tab" data-tab="versions">Версии</button>' +
+      "</div>" +
+      '<div id="disco-tab"></div>';
+
+    S.els.tabs = box.querySelector("#disco-tabs");
+    S.els.tab = box.querySelector("#disco-tab");
+    S.els.tabs.querySelectorAll("[data-tab]").forEach(function (b) {
+      b.onclick = function () {
+        S.tab = b.dataset.tab;
+        renderTab();
+        if (S.tab === "versions") loadVersions();
+      };
+    });
+    box.querySelector('[data-act="back"]').onclick = closeDetail;
+    var openMr = box.querySelector('[data-act="open-mr"]');
+    if (openMr) openMr.onclick = function () { api("system.openUrl", { url: projectUrl() }).catch(function (e) { ui.notifyError(e); }); };
+    var vers = box.querySelector('[data-act="versions"]');
+    if (vers) vers.onclick = function () { S.tab = "versions"; renderTab(); loadVersions(); };
+    var inst = box.querySelector('[data-act="install-latest"]');
+    if (inst) {
+      inst.onclick = async function () {
+        inst.classList.add("loading");
+        try {
+          if (!S.versions) await loadVersions();
+          if (S.dead) return;
+          if (!S.versions || !S.versions.length) { ui.notifyWarn("Нет версий", "Для этого проекта версии не найдены."); return; }
+          await installVersion(S.versions[0].id);
+        } finally {
+          if (!S.dead) inst.classList.remove("loading");
+        }
+      };
+    }
+    renderTab();
+    if (S.tab === "versions") loadVersions();
+  }
+
+  /* ---------- register ---------- */
+  Pages.register("discover", {
+    title: "Modrinth",
+    async init(ctx) {
+      S.dead = false;
+      S.q = ctx.params.q ? String(ctx.params.q) : "";
+      S.type = ctx.params.type ? String(ctx.params.type) : "";
+      S.instanceId = ctx.params.instanceId ? String(ctx.params.instanceId) : "";
+      S.offset = 0;
+      S.hits = null;
+      S.error = null;
+      S.offline = false;
+      S.view = "list";
+      S.project = null;
+      S.versions = null;
+      S.limit = Math.max(5, Math.min(100, Number(App.settings.modrinthPageSize) || 20));
+
+      var root = ctx.root;
+      S.els = {
+        sub: root.querySelector("#disco-sub"),
+        toolbar: root.querySelector("#disco-toolbar"),
+        q: root.querySelector("#disco-q"),
+        sort: root.querySelector("#disco-sort"),
+        types: root.querySelector("#disco-types"),
+        loader: root.querySelector("#disco-loader"),
+        cat: root.querySelector("#disco-cat"),
+        mc: root.querySelector("#disco-mc"),
+        banner: root.querySelector("#disco-banner"),
+        body: root.querySelector("#disco-body"),
+        pager: root.querySelector("#disco-pager"),
+        total: root.querySelector("#disco-total"),
+        page: root.querySelector("#disco-page"),
+        prev: root.querySelector("#disco-prev"),
+        next: root.querySelector("#disco-next"),
+        tabs: null, tab: null,
+      };
+
+      S.els.q.value = S.q;
+      S.els.sort.value = S.sort;
+      S.els.types.querySelectorAll("[data-t]").forEach(function (b) {
+        b.classList.toggle("active", b.dataset.t === S.type);
+        b.onclick = function () {
+          S.type = b.dataset.t;
+          S.els.types.querySelectorAll("[data-t]").forEach(function (x) { x.classList.toggle("active", x === b); });
+          S.offset = 0;
+          doSearch();
+        };
+      });
+
+      S.els.q.oninput = function () { S.q = S.els.q.value; scheduleSearch(true); };
+      S.els.sort.onchange = function () { S.sort = S.els.sort.value; S.offset = 0; doSearch(); };
+      S.els.loader.onchange = function () { S.loader = S.els.loader.value; S.offset = 0; doSearch(); };
+      S.els.cat.onchange = function () { S.cat = S.els.cat.value; S.offset = 0; doSearch(); };
+      root.querySelector("#disco-reset").onclick = resetFilters;
+      root.querySelector("#disco-refresh").onclick = function () { S.versions = null; loadTags(); doSearch(); };
+      S.els.prev.onclick = function () {
+        S.offset = Math.max(0, S.offset - S.limit);
+        doSearch();
+        root.scrollTop = 0;
+      };
+      S.els.next.onclick = function () {
+        if (S.offset + S.hits.length < S.total) { S.offset += S.limit; doSearch(); root.scrollTop = 0; }
+      };
+
+      S.unsubs.push(on("modrinth.status", function (d) {
+        S.offline = !!(d && d.offline);
+        renderBanner();
+      }));
+
+      renderFilters();
+      renderBanner();
+
+      if (ctx.params.project) {
+        await openDetail(String(ctx.params.project), S.type);
+        await loadTags();
+        return;
+      }
+      await loadTags();
+      await doSearch();
+    },
+
+    dispose() {
+      S.dead = true;
+      if (S.searchTimer) { clearTimeout(S.searchTimer); S.searchTimer = null; }
+      S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
+      S.unsubs = [];
+      S.els = {};
+    },
+  });
+})();
+</script>

@@ -1,0 +1,1969 @@
+<style>
+/* ===== instance — стили страницы (префикс .p-inst-) ===== */
+.p-inst-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.p-inst-toolbar .search-box { max-width: 300px; }
+.p-inst-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.p-inst-files { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+.p-inst-tile {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; text-align: left;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+  transition: border-color var(--t), background var(--t), transform var(--t);
+}
+.p-inst-tile:hover { border-color: var(--accent-line); background: var(--card-2); transform: translateY(-1px); }
+.p-inst-tile svg { color: var(--accent); width: 17px; height: 17px; }
+.p-inst-tile span { font-weight: 600; font-size: 13px; }
+.p-inst-grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.p-inst-world { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; display: flex; flex-direction: column; }
+.p-inst-world .thumb { height: 116px; background: var(--card-3); display: grid; place-items: center; overflow: hidden; }
+.p-inst-world .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.p-inst-world .wbody { padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; }
+.p-inst-world .wname { font-weight: 650; font-size: 14px; }
+.p-inst-world .wmeta { display: flex; gap: 6px; flex-wrap: wrap; }
+.p-inst-world .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.p-inst-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--pad); display: flex; flex-direction: column; gap: 13px; }
+.p-inst-card > h3 { margin: 0; font-size: 14.5px; font-weight: 650; }
+.p-inst-hero-name { cursor: pointer; }
+.p-inst-launch { display: flex; flex-direction: column; gap: 8px; }
+.p-inst-launch[hidden] { display: none; }
+.p-inst-issues { display: flex; flex-direction: column; gap: 8px; }
+.p-inst-issue { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; background: var(--card-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.p-inst-issue .t { font-weight: 600; font-size: 12.5px; }
+.p-inst-issue .m { font-size: 12px; color: var(--text-2); margin-top: 3px; line-height: 1.45; }
+.p-inst-rows { display: flex; flex-direction: column; }
+.p-inst-row { display: flex; align-items: center; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.p-inst-row:last-child { border-bottom: none; }
+.p-inst-row .info { flex: 1; min-width: 190px; }
+.p-inst-row .t { font-weight: 600; font-size: 13.5px; }
+.p-inst-row .d { font-size: 12px; color: var(--text-2); margin-top: 3px; line-height: 1.45; }
+.p-inst-row .ctrl { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
+.p-inst-row .ctrl select, .p-inst-row .ctrl input[type="text"], .p-inst-row .ctrl input[type="number"] { min-width: 150px; width: auto; }
+.p-inst-srow { display: flex; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.p-inst-srow:last-child { border-bottom: none; }
+.p-inst-srow .grow { flex: 1; min-width: 0; }
+.p-inst-skel { display: flex; flex-direction: column; gap: 10px; }
+.p-inst-skel .skeleton { height: 54px; }
+.p-inst-vlist { height: 184px; overflow-y: auto; padding: 4px; }
+.p-inst-vlist button {
+  display: flex; width: 100%; align-items: center; gap: 9px; padding: 7px 9px; border-radius: var(--r-xs);
+  text-align: left; font-size: 13px; transition: background var(--t);
+}
+.p-inst-vlist button:hover { background: var(--card-2); }
+.p-inst-vlist button.sel { background: var(--accent-soft); color: var(--accent); }
+.p-inst-log { max-height: 420px; }
+.p-inst-crash { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.p-inst-crash:last-child { border-bottom: none; }
+.p-inst-pre { white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--text-2); max-height: 320px; overflow: auto; user-select: text; }
+.p-inst-check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
+.p-inst-check input { width: 15px; height: 15px; accent-color: var(--accent); }
+.p-inst-note { font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+.p-inst-color { width: 56px; height: 34px; padding: 3px; }
+.p-inst-expert { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.p-inst-actions { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.p-inst-srv { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.p-inst-srv:last-child { border-bottom: none; }
+.p-inst-srv .grow { flex: 1; min-width: 0; }
+.p-inst-upd { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.p-inst-upd:last-child { border-bottom: none; }
+.p-inst-upd .grow { flex: 1; min-width: 0; }
+#p-inst-tabs[hidden] { display: none; }
+#cv-hint { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+.p-inst-vlist .state { padding: 18px; }
+</style>
+
+<section class="page">
+  <div id="p-inst-hero"></div>
+  <div id="p-inst-launch" class="p-inst-launch" hidden></div>
+  <div class="tabs" id="p-inst-tabs" hidden></div>
+  <div id="p-inst-body"></div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
+
+  var LOADER_LABELS = { vanilla: "Vanilla", fabric: "Fabric", forge: "Forge", neoforge: "NeoForge", quilt: "Quilt" };
+  var LOADERS = ["vanilla", "fabric", "forge", "neoforge", "quilt"];
+  var KINDS = [["resourcepacks", "Resource Packs"], ["shaderpacks", "Шейдеры"], ["datapacks", "Датапаки"]];
+  var ALL_KINDS = [["mods", "Моды"]].concat(KINDS);
+  var TABS = [
+    ["content", "Контент"], ["files", "Файлы"], ["worlds", "Миры"], ["servers", "Серверы"],
+    ["logs", "Журнал"], ["settings", "Настройки"], ["access", "Доступ"],
+  ];
+  var FILE_SUBS = [".minecraft", "mods", "config", "saves", "resourcepacks", "shaderpacks", "datapacks", "logs", "screenshots"];
+  var RAM_OPTS = [1024, 2048, 3072, 4096, 6144, 8192, 12288, 16384];
+
+  var S = {
+    dead: false, id: null, tab: "content", inst: null, ctx: null, els: {},
+    unsubs: [], timers: [],
+    contentKind: "mods", contentQuery: "", contentItems: [],
+    logFile: "", logPath: "", logQuery: "", logLevel: "all", logLines: [],
+    saveQueue: {}, saveTimer: null, lastToast: 0,
+    versions: [], loaders: [],
+  };
+
+  /* ================= helpers ================= */
+  function esc(s) { return ui.esc(s); }
+  function ic(n) { return ui.icon(n); }
+  function later(fn, ms) { var t = setTimeout(fn, ms); S.timers.push(t); return t; }
+  function loaderLabel(l) { return LOADER_LABELS[l] || l || "vanilla"; }
+  function letterOf(inst) { return esc((inst.name || "?").trim().charAt(0).toUpperCase() || "?"); }
+  function kindLabel(k) {
+    for (var i = 0; i < ALL_KINDS.length; i++) if (ALL_KINDS[i][0] === k) return ALL_KINDS[i][1];
+    return k;
+  }
+  function errState(e, title, withRetry) {
+    var d = ui.errDetail(e);
+    return '<div class="state error">' + ic("alert") +
+      "<h3>" + esc(title || "Ошибка") + "</h3><p>" + esc(ui.errText(e)) + "</p>" +
+      (d ? '<p class="p-inst-note mono" style="max-width:560px">' + esc(d) + "</p>" : "") +
+      (withRetry === false ? "" : '<div class="actions"><button class="btn" data-act="reload">' + ic("refresh") + " Повторить</button></div>") +
+      "</div>";
+  }
+  function bindRetry(root) {
+    var b = root.querySelector('[data-act="reload"]');
+    if (b) b.onclick = function () { renderTab(); };
+  }
+  function emptyState(icon, title, text, actions) {
+    return '<div class="state">' + ic(icon) + "<h3>" + esc(title) + "</h3>" +
+      (text ? "<p>" + esc(text) + "</p>" : "") +
+      (actions ? '<div class="actions">' + actions + "</div>" : "") + "</div>";
+  }
+  function setPlayLoading(on) {
+    var btn = ui.$("#p-inst-play", S.els.hero || document);
+    if (btn) btn.classList.toggle("loading", !!on);
+  }
+  function setRunning(on) {
+    S.running = !!on;
+    var btn = ui.$("#p-inst-play", S.els.hero || document);
+    var stop = ui.$("#p-inst-stop", S.els.hero || document);
+    if (btn) {
+      btn.classList.remove("loading");
+      btn.disabled = !!on;
+      btn.innerHTML = on ? ic("clock") + " Игра запущена" : ic("play") + " Играть";
+    }
+    if (stop) stop.hidden = !on;
+  }
+  function goTab(tab) {
+    S.tab = tab;
+    try { App.params = { id: S.id, tab: tab }; } catch (e) { /* noop */ }
+    renderTabs();
+    renderTab();
+  }
+  function nav(route, params) {
+    if (S.ctx && S.ctx.navigate) return S.ctx.navigate(route, params);
+    return navigate(route, params);
+  }
+
+  /* ================= init / dispose ================= */
+  function renderMissing(e) {
+    S.els.tabs.hidden = true;
+    S.els.launch.hidden = true;
+    S.els.hero.innerHTML = "";
+    S.els.body.innerHTML =
+      '<div class="state error">' + ic("alert") +
+      "<h3>" + (e ? "Не удалось открыть сборку" : "Сборка не найдена") + "</h3>" +
+      "<p>" + esc(e ? ui.errText(e) : "Возможно, она была удалена.") + "</p>" +
+      (e && ui.errDetail(e) ? '<p class="p-inst-note mono" style="max-width:560px">' + esc(ui.errDetail(e)) + "</p>" : "") +
+      '<div class="actions"><button class="btn btn-primary" data-act="lib">' + ic("grid") + " К библиотеке</button>" +
+      (e ? '<button class="btn" data-act="again">' + ic("refresh") + " Повторить</button>" : "") +
+      "</div></div>";
+    S.els.body.querySelector('[data-act="lib"]').onclick = function () { nav("instances", {}); };
+    var again = S.els.body.querySelector('[data-act="again"]');
+    if (again) again.onclick = function () { if (S.ctx && S.ctx.reload) S.ctx.reload(); };
+  }
+
+  async function init(ctx) {
+    S.dead = false;
+    S.ctx = ctx;
+    S.id = ctx.params && ctx.params.id;
+    S.tab = (ctx.params && ctx.params.tab) || "content";
+    S.inst = null;
+    S.saveQueue = {};
+    S.contentQuery = "";
+    S.logFile = ""; S.logPath = ""; S.logQuery = ""; S.logLevel = "all"; S.logLines = [];
+    S.mcPick = null; S.ldPick = null; S.lvPick = null;
+    S.els = {
+      hero: ui.$("#p-inst-hero", ctx.root),
+      launch: ui.$("#p-inst-launch", ctx.root),
+      tabs: ui.$("#p-inst-tabs", ctx.root),
+      body: ui.$("#p-inst-body", ctx.root),
+    };
+
+    S.els.hero.innerHTML = '<div class="inst-hero"><div class="cover skeleton"></div><div style="flex:1;min-width:0">' +
+      '<div class="skeleton sk-line" style="width:230px;height:20px"></div><div class="skeleton sk-line" style="width:330px"></div></div></div>';
+    S.els.body.innerHTML = '<div class="p-inst-skel"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+
+    S.unsubs.push(on("launch.progress", onProgress));
+    S.unsubs.push(on("launch.state", onState));
+    S.unsubs.push(on("content.changed", function (d) {
+      /* контент изменили извне (Modrinth-установка, пресет, импорт) — перерисовать вкладку */
+      if (S.dead || !d || d.instanceId !== S.id) return;
+      if (S.tab === "content" && !S.dead) renderContent();
+    }));
+
+    if (!S.id) { renderMissing(null); return; }
+    try {
+      S.inst = await api("instances.get", { id: S.id });
+    } catch (e) {
+      if (S.dead) return;
+      renderMissing(e);
+      return;
+    }
+    if (S.dead) return;
+    if (!S.inst || !S.inst.id) { renderMissing(null); return; }
+
+    renderHero();
+    S.els.tabs.hidden = false;
+    renderTabs();
+    renderTab();
+
+    /* восстановить состояние «игра запущена», если страницу открыли во время игры */
+    api("launch.lastStatus", { instanceId: S.id }).then(function (st) {
+      if (S.dead || !st) return;
+      if (st.running || (st.state && /^(running|preparing)$/i.test(String(st.state)) && st.exitCode === null && !st.endedAt)) {
+        setRunning(true);
+        S.els.launch.hidden = false;
+        S.els.launch.innerHTML = '<div class="banner ok">' + ic("play") +
+          '<span class="grow">' + (st.preparing || /preparing/i.test(String(st.state)) ? "Идёт подготовка запуска…" : "Minecraft запущен и работает") + "</span>" +
+          '<button class="btn btn-sm btn-danger" data-act="stop">Остановить</button></div>';
+        var sb = S.els.launch.querySelector('[data-act="stop"]');
+        if (sb) sb.onclick = function () { ui.$("#p-inst-stop", S.els.hero).click(); };
+      }
+    }).catch(function () { /* noop */ });
+
+    /* если запущена другая сборка — предупреждаем и гасим кнопку (лимит одновременных запусков) */
+    api("launch.running").then(function (r) {
+      if (S.dead || !r) return;
+      var other = (r.items || []).filter(function (x) { return x.instanceId !== S.id; })[0];
+      if (!other) return;
+      var btn = ui.$("#p-inst-play", S.els.hero);
+      if (btn && !S.running) {
+        btn.disabled = true;
+        btn.title = "Уже запущена «" + other.name + "»";
+      }
+      S.els.launch.hidden = false;
+      S.els.launch.innerHTML = '<div class="banner warn">' + ic("alert") +
+        '<span class="grow">Уже запущена «' + esc(other.name) + "»" + (other.preparing ? " (идёт подготовка)" : "") +
+        " — одновременно можно держать " + (r.limit || 1) + ' сборку.</span>' +
+        '<button class="btn btn-sm btn-danger" data-act="stop-other">Остановить</button></div>';
+      var b = S.els.launch.querySelector('[data-act="stop-other"]');
+      if (b) b.onclick = function () {
+        api("launch.stop", { instanceId: other.instanceId }).catch(function (e) { ui.notifyError(e, "Не удалось остановить игру"); })
+          .then(function () { App.reload(); });
+      };
+    }).catch(function () { /* noop */ });
+  }
+
+  function dispose() {
+    S.dead = true;
+    S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
+    S.unsubs = [];
+    S.timers.forEach(function (t) { clearTimeout(t); });
+    S.timers = [];
+    if (S.saveTimer) { clearTimeout(S.saveTimer); S.saveTimer = null; }
+    var q = S.saveQueue;
+    S.saveQueue = {};
+    if (Object.keys(q).length && S.id) {
+      api("instances.update", Object.assign({ id: S.id }, q)).catch(function () { /* noop */ });
+    }
+    S.els = {};
+  }
+
+  /* ================= hero ================= */
+  function renderHero() {
+    var i = S.inst;
+    var color = i.color || "#3ecf8e";
+    S.els.hero.innerHTML =
+      '<div class="inst-hero">' +
+        '<div class="cover"><div class="item-icon" style="background:' + esc(color) + ';color:#08130d">' + letterOf(i) + "</div></div>" +
+        '<div style="flex:1;min-width:0">' +
+          '<h1 class="p-inst-hero-name" title="Нажмите, чтобы переименовать">' + esc(i.name) + "</h1>" +
+          '<div class="sub">' +
+            '<span class="chip">Minecraft ' + esc(i.mcVersion) + "</span>" +
+            '<span class="chip">' + esc(loaderLabel(i.loader)) + (i.loaderVersion ? " " + esc(i.loaderVersion) : "") + "</span>" +
+            '<span class="chip">' + ic("clock") + esc(ui.fmtDuration(i.playTimeMs)) + "</span>" +
+            '<span class="chip">Последний запуск: ' + esc(ui.fmtRelative(i.lastPlayedAt)) + "</span>" +
+            (i.favorite ? '<span class="chip warn">' + ic("star") + "Избранное</span>" : "") +
+          "</div>" +
+        "</div>" +
+        '<div class="actions">' +
+          '<button class="btn btn-icon" id="p-inst-menu" title="Действия сборки">' + ic("more") + "</button>" +
+          '<button class="btn btn-danger" id="p-inst-stop" hidden>' + ic("power") + " Остановить</button>" +
+          '<button class="btn play btn-lg" data-play-quick id="p-inst-play">' + ic("play") + " Играть</button>" +
+        "</div>" +
+      "</div>";
+
+    S.els.hero.querySelector(".p-inst-hero-name").onclick = renameInstance;
+    S.els.hero.querySelector("#p-inst-menu").onclick = function (e) {
+      var r = e.currentTarget.getBoundingClientRect();
+      ui.contextMenu(r.left - 150, r.bottom + 6, heroMenu());
+    };
+    S.els.hero.querySelector("#p-inst-play").onclick = function () { startLaunch(false); };
+    S.els.hero.querySelector("#p-inst-stop").onclick = async function () {
+      var b = this;
+      if (b.classList.contains("loading")) return;
+      b.classList.add("loading");
+      try {
+        var res = await api("launch.stop", { instanceId: S.id });
+        if (res && res.stopped && res.wasPreparing) ui.notifyInfo("Запуск отменён", "Подготовка и скачивание файлов остановлены");
+        else if (res && res.stopped) ui.notifyInfo("Остановка", "Завершение процесса Minecraft…");
+        else ui.notifyInfo("Игра не запущена", "Сейчас ничего не выполняется");
+        if (!res || !res.wasRunning) setRunning(false);
+      } catch (e) {
+        ui.notifyError(e, "Не удалось остановить игру");
+      } finally {
+        b.classList.remove("loading");
+      }
+    };
+    if (S.running) setRunning(true);
+  }
+
+  async function renameInstance() {
+    var name = await ui.promptDialog({ title: "Переименовать сборку", value: S.inst.name, okLabel: "Сохранить" });
+    if (!name || name === S.inst.name) return;
+    try {
+      var upd = await api("instances.update", { id: S.id, name: name });
+      if (S.dead) return;
+      S.inst = upd && upd.id ? upd : Object.assign({}, S.inst, { name: name });
+      renderHero();
+      ui.notifySuccess("Название сохранено");
+    } catch (e) { ui.notifyError(e, "Не удалось переименовать"); }
+  }
+
+  function heroMenu() {
+    return [
+      { label: "Действия", header: true },
+      { label: "Настройки", icon: "settings", onClick: function () { goTab("settings"); } },
+      { label: "Изменить версию", icon: "refresh", onClick: changeVersionDialog },
+      { label: "Проверить целостность", icon: "shield", onClick: verifyDialog },
+      { label: "Клонировать", icon: "copy", onClick: duplicateInstance },
+      { label: "Экспорт", icon: "upload", onClick: function () { exportDialog(); } },
+      "-",
+      { label: "Безопасный запуск", icon: "zap", onClick: function () { startLaunch(true); } },
+      { label: "Открыть папку", icon: "folder", onClick: function () {
+          api("instances.openFolder", { id: S.id }).catch(function (e) { ui.notifyError(e); });
+        } },
+      "-",
+      { label: "Удалить", icon: "trash", danger: true, onClick: deleteInstance },
+    ];
+  }
+
+  async function duplicateInstance() {
+    try {
+      var copy = await api("instances.duplicate", { id: S.id });
+      ui.notifySuccess("Копия создана", copy && copy.name);
+      nav("instance", { id: copy && copy.id ? copy.id : S.id });
+    } catch (e) { ui.notifyError(e, "Не удалось клонировать сборку"); }
+  }
+
+  async function deleteInstance() {
+    var ok = await ui.confirmDialog({
+      title: "Удалить сборку?", danger: true, okLabel: "Удалить",
+      message: "«" + S.inst.name + "» будет удалена. При необходимости будет создан бэкап.",
+    });
+    if (!ok) return;
+    try {
+      await api("instances.delete", { id: S.id, backup: true });
+      ui.notifySuccess("Сборка удалена");
+      nav("instances", {});
+    } catch (e) { ui.notifyError(e, "Не удалось удалить сборку"); }
+  }
+
+  /* ================= запуск ================= */
+  function onProgress(d) {
+    if (S.dead || !d || d.instanceId !== S.id) return;
+    var pct = typeof d.percent === "number" ? Math.max(0, Math.min(100, d.percent)) : null;
+    var txt = d.message || d.stage || "Запуск…";
+    var meta = [];
+    if (d.speedBps > 0) meta.push(ui.fmtSpeed(d.speedBps));
+    if (d.etaS > 0) meta.push("осталось ~" + ui.fmtEta(d.etaS));
+    if (d.totalBytes > 0) meta.push(ui.fmtBytes(d.receivedBytes || 0) + " / " + ui.fmtBytes(d.totalBytes));
+    S.els.launch.hidden = false;
+    S.els.launch.innerHTML =
+      '<div class="card tight"><div class="row between">' +
+        '<div class="row" style="gap:8px"><span class="spinner" style="width:14px;height:14px"></span>' +
+          '<span class="small">' + esc(txt) + (d.stage ? ' <span class="dim">· ' + esc(d.stage) + "</span>" : "") + "</span></div>" +
+        (pct !== null ? '<span class="small dim tnum">' + pct + "%</span>" : "") +
+      "</div>" +
+      '<div class="progress' + (pct === null ? " indeterminate" : "") + '" style="margin-top:9px"><i style="width:' + (pct === null ? 35 : pct) + '%"></i></div>' +
+      (meta.length ? '<div class="row wrap" style="gap:10px;margin-top:7px"><span class="small dim">' + esc(meta.join(" · ")) + "</span></div>" : "") +
+      "</div>";
+  }
+
+  function onState(d) {
+    if (S.dead || !d || d.instanceId !== S.id) return;
+    var failed = !!d.error || (typeof d.exitCode === "number" && d.exitCode !== 0);
+    var running = /run|start|launch|load|prep/i.test(String(d.state || "")) && !failed && typeof d.exitCode !== "number";
+    setRunning(running);
+    if (running) return;
+    setPlayLoading(false);
+    S.els.launch.hidden = false;
+    if (failed) {
+      S.els.launch.innerHTML =
+        '<div class="banner error">' + ic("alert") +
+        '<span class="grow">Minecraft завершился с ошибкой' +
+        (typeof d.exitCode === "number" ? " (код " + d.exitCode + ")" : "") +
+        (d.error ? ": " + esc(d.error) : "") + "</span>" +
+        '<button class="btn btn-sm" data-act="log">Показать лог</button></div>';
+      var b = S.els.launch.querySelector('[data-act="log"]');
+      if (b) b.onclick = function () { goTab("logs"); };
+    } else {
+      S.els.launch.innerHTML = '<div class="banner ok">' + ic("check") +
+        '<span class="grow">Minecraft завершён, Exit Code 0</span></div>';
+      later(function () { if (!S.dead) S.els.launch.hidden = true; }, 6000);
+    }
+  }
+
+  function compatDialog(issues) {
+    return new Promise(function (resolve) {
+      var settled = false;
+      function done(v) { if (!settled) { settled = true; resolve(v); } }
+      var html = '<div class="p-inst-issues">' + issues.map(function (it) {
+        var cls = it.severity === "error" ? "chip danger" : (it.severity === "fixable" ? "chip warn" : "chip info");
+        return '<div class="p-inst-issue"><div style="flex:1;min-width:0">' +
+          '<div class="t">' + esc(it.title || "Проблема") + "</div>" +
+          (it.message ? '<div class="m">' + esc(it.message) + "</div>" : "") +
+          "</div>" +
+          '<span class="' + cls + '">' + esc(it.severity || "") + (it.fixable ? " · исправимо" : "") + "</span></div>";
+      }).join("") + "</div>";
+      ui.openDialog({
+        title: "Проверка совместимости",
+        sub: "Найдены проблемы, которые могут помешать запуску.",
+        icon: "shield", iconType: "warn",
+        body: html,
+        buttons: [
+          { label: "Отменить", role: "cancel", onClick: function () { done(false); } },
+          { label: "Исправить автоматически", role: "primary", onClick: function () { done(true); } },
+        ],
+        onClose: function () { done(false); },
+      });
+    });
+  }
+
+  async function startLaunch(safeMode) {
+    var btn = ui.$("#p-inst-play", S.els.hero);
+    if (btn && btn.classList.contains("loading")) return;
+    if (btn) btn.classList.add("loading");
+    try {
+      var res = await api("launch.compatCheck", { instanceId: S.id });
+      var issues = (res && res.issues) || [];
+      if (issues.length) {
+        var proceed = await compatDialog(issues);
+        if (!proceed) { if (btn) btn.classList.remove("loading"); return; }
+      }
+      await api("launch.start", safeMode ? { instanceId: S.id, safeMode: true } : { instanceId: S.id });
+      if (S.dead) return;
+      S.els.launch.hidden = false;
+      S.els.launch.innerHTML =
+        '<div class="card tight"><div class="row" style="gap:8px"><span class="spinner" style="width:14px;height:14px"></span>' +
+        '<span class="small">Запуск…</span></div><div class="progress indeterminate" style="margin-top:9px"><i style="width:35%"></i></div></div>';
+    } catch (e) {
+      if (btn) btn.classList.remove("loading");
+      if (S.dead) return;
+      S.els.launch.hidden = false;
+      S.els.launch.innerHTML = '<div class="banner error">' + ic("alert") +
+        '<span class="grow">Не удалось запустить: ' + esc(ui.errText(e)) + "</span></div>";
+    }
+  }
+
+  /* ================= вкладки ================= */
+  function renderTabs() {
+    S.els.tabs.innerHTML = TABS.map(function (t) {
+      return '<button class="tab' + (S.tab === t[0] ? " active" : "") + '" data-tab="' + t[0] + '">' + t[1] + "</button>";
+    }).join("");
+    Array.prototype.forEach.call(S.els.tabs.querySelectorAll("[data-tab]"), function (b) {
+      b.onclick = function () { goTab(b.dataset.tab); };
+    });
+  }
+
+  function renderTab() {
+    if (!S.inst) return;
+    S.els.body.innerHTML = '<div class="p-inst-skel"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+    var fn = {
+      content: renderContent, files: renderFiles, worlds: renderWorlds, servers: renderServers,
+      logs: renderLogs, settings: renderSettings, access: renderAccess,
+    }[S.tab] || renderContent;
+    fn();
+  }
+
+  /* ================= вкладка «Контент» ================= */
+  function activeKinds() { return S.contentKind ? [S.contentKind] : ALL_KINDS.map(function (k) { return k[0]; }); }
+
+  function renderContent() {
+    var chips = '<button class="chip' + (S.contentKind === "" ? " active" : "") + '" data-k="">Все</button>' +
+      ALL_KINDS.map(function (k) {
+        return '<button class="chip' + (S.contentKind === k[0] ? " active" : "") + '" data-k="' + k[0] + '">' + k[1] + "</button>";
+      }).join("");
+
+    S.els.body.innerHTML =
+      '<div class="p-inst-toolbar"><div class="p-inst-chips" id="p-inst-ckinds">' + chips + "</div></div>" +
+      '<div class="p-inst-toolbar">' +
+        '<button class="btn btn-sm btn-primary" data-act="add">' + ic("plus") + " Добавить файлы</button>" +
+        '<button class="btn btn-sm" data-act="find">' + ic("compass") + " Найти проекты</button>" +
+        '<button class="btn btn-sm" data-act="check">' + ic("refresh") + " Проверить обновления</button>" +
+        '<button class="btn btn-sm" data-act="updall">' + ic("download") + " Обновить всё</button>" +
+        '<button class="btn btn-sm" data-act="presets">' + ic("save") + " Пресеты</button>" +
+        '<span class="spacer"></span>' +
+        '<div class="search-box">' + ic("search") +
+          '<input type="search" id="p-inst-cq" placeholder="Поиск по списку…" autocomplete="off" value="' + esc(S.contentQuery) + '" />' +
+        "</div>" +
+      "</div>" +
+      '<div id="p-inst-cupd"></div>' +
+      '<div class="list" id="p-inst-clist"><div class="p-inst-skel" style="padding:14px"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></div>';
+
+    Array.prototype.forEach.call(S.els.body.querySelectorAll("#p-inst-ckinds [data-k]"), function (b) {
+      b.onclick = function () { S.contentKind = b.dataset.k; renderContent(); };
+    });
+    var q = ui.$("#p-inst-cq", S.els.body);
+    q.oninput = ui.debounce(function () { S.contentQuery = q.value; renderContentList(); }, 180);
+
+    S.els.body.querySelector('[data-act="add"]').onclick = contentImport;
+    S.els.body.querySelector('[data-act="find"]').onclick = function () {
+      nav("discover", { instanceId: S.id, type: S.contentKind || "mods" });
+    };
+    S.els.body.querySelector('[data-act="check"]').onclick = contentCheckUpdates;
+    S.els.body.querySelector('[data-act="updall"]').onclick = contentUpdateAll;
+    S.els.body.querySelector('[data-act="presets"]').onclick = presetsDialog;
+
+    loadContent();
+  }
+
+  async function loadContent() {
+    var box = ui.$("#p-inst-clist", S.els.body);
+    if (!box) return;
+    box.innerHTML = '<div class="p-inst-skel" style="padding:14px"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+    try {
+      var kinds = activeKinds();
+      var groups = await Promise.all(kinds.map(function (k) {
+        return api("content.list", { instanceId: S.id, kind: k });
+      }));
+      if (S.dead) return;
+      var items = [];
+      groups.forEach(function (list, ix) {
+        (list || []).forEach(function (it) { it._kind = kinds[ix]; items.push(it); });
+      });
+      S.contentItems = items;
+      renderContentList();
+
+      /* автопроверка обновлений: плашка «доступно обновление» ставится только по реальному результату */
+      if (!S.updatesChecked && App.settings && App.settings.modrinthAutoUpdateCheck !== false && items.some(function (x) { return x.projectId; })) {
+        S.updatesChecked = true;
+        api("modrinth.checkUpdates", { instanceId: S.id }).then(function () {
+          if (!S.dead) loadContent();
+        }).catch(function () { /* без сети просто не показываем плашки */ });
+      }
+    } catch (e) {
+      if (S.dead) return;
+      box = ui.$("#p-inst-clist", S.els.body);
+      if (box) { box.innerHTML = errState(e, "Не удалось загрузить содержимое"); bindRetry(box); }
+    }
+  }
+
+  function renderContentList() {
+    var box = ui.$("#p-inst-clist", S.els.body);
+    if (!box) return;
+    var q = S.contentQuery.trim().toLowerCase();
+    var items = S.contentItems.filter(function (it) {
+      if (!q) return true;
+      return String(it.name || it.filename || "").toLowerCase().includes(q) ||
+        String(it.author || "").toLowerCase().includes(q) ||
+        String(it.version || "").toLowerCase().includes(q);
+    });
+
+    if (!items.length) {
+      box.classList.remove("list");
+      box.innerHTML = emptyState("package",
+        q ? "Ничего не найдено" : "В этом разделе пока нет файлов",
+        q ? "Измените поисковый запрос." : "Установите проекты вручную или найдите их на Modrinth.",
+        '<button class="btn btn-primary" data-act="add2">' + ic("plus") + " Добавить файлы</button>" +
+        '<button class="btn" data-act="find2">' + ic("compass") + " Найти проекты</button>");
+      var a = box.querySelector('[data-act="add2"]'); if (a) a.onclick = contentImport;
+      var f = box.querySelector('[data-act="find2"]');
+      if (f) f.onclick = function () { nav("discover", { instanceId: S.id, type: S.contentKind || "mods" }); };
+      return;
+    }
+    box.classList.add("list");
+    box.innerHTML = items.map(contentRowHTML).join("");
+    bindContentRows(box, items);
+  }
+
+  function contentRowHTML(it) {
+    var kind = it._kind || "mods";
+    var title = it.name || it.filename || "—";
+    var sub = [it.version, it.author, ui.fmtBytes(it.sizeBytes)].filter(Boolean).map(esc).join(" · ");
+    return '<div class="content-row' + (it.enabled === false ? " disabled" : "") + '" data-id="' + esc(it.id) + '" data-kind="' + esc(kind) + '">' +
+      '<div class="item-icon sm">' + esc(ui.initials(title)) + "</div>" +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="title">' + esc(title) + (it.updatable ? ' <span class="chip warn">доступно обновление</span>' : "") + "</div>" +
+        '<div class="sub"><span>' + sub + "</span>" +
+          (it.mcVersions && it.mcVersions.length ? '<span class="chip">' + esc(it.mcVersions[0]) + "</span>" : "") +
+          (it.loaders && it.loaders.length ? '<span class="chip">' + esc(it.loaders[0]) + "</span>" : "") +
+          (kind !== S.contentKind && !S.contentKind ? '<span class="chip">' + esc(kindLabel(kind)) + "</span>" : "") +
+        "</div>" +
+      "</div>" +
+      '<label class="switch" title="Включён"><input type="checkbox" data-act="toggle" ' + (it.enabled !== false ? "checked" : "") + " /><i></i></label>" +
+      '<div class="actions">' +
+        (it.updatable ? '<button class="btn btn-sm btn-primary" data-act="upd">Обновить</button>' : "") +
+        (it.sourceUrl || it.projectId ? '<button class="btn btn-sm" data-act="open">Открыть Modrinth</button>' : "") +
+        '<button class="btn btn-sm btn-ghost" data-act="del">Удалить</button>' +
+        '<button class="btn btn-icon btn-sm btn-ghost" data-act="more">' + ic("more") + "</button>" +
+      "</div>" +
+    "</div>";
+  }
+
+  function bindContentRows(box, items) {
+    Array.prototype.forEach.call(box.querySelectorAll(".content-row"), function (row) {
+      var id = row.dataset.id;
+      var kind = row.dataset.kind;
+      var item = items.find(function (x) { return String(x.id) === String(id); }) || {};
+
+      var toggle = row.querySelector('[data-act="toggle"]');
+      toggle.onchange = async function () {
+        var enabled = toggle.checked;
+        toggle.disabled = true;
+        try {
+          await api("content.toggle", { instanceId: S.id, kind: kind, id: id, enabled: enabled });
+          item.enabled = enabled;
+          row.classList.toggle("disabled", !enabled);
+        } catch (e) {
+          toggle.checked = !enabled;
+          ui.notifyError(e, "Не удалось изменить состояние");
+        }
+        toggle.disabled = false;
+      };
+
+      var upd = row.querySelector('[data-act="upd"]');
+      if (upd) upd.onclick = async function () {
+        upd.classList.add("loading");
+        try {
+          await api("content.update", { instanceId: S.id, kind: kind, id: id });
+          ui.notifySuccess("Обновлено", item.name || item.filename || "");
+          loadContent();
+        } catch (e) { upd.classList.remove("loading"); ui.notifyError(e, "Не удалось обновить"); }
+      };
+
+      var open = row.querySelector('[data-act="open"]');
+      if (open) open.onclick = function () {
+        if (item.sourceUrl) api("system.openUrl", { url: item.sourceUrl }).catch(function (e) { ui.notifyError(e); });
+        else if (item.projectId) nav("discover", { project: item.projectId });
+      };
+
+      var del = row.querySelector('[data-act="del"]');
+      del.onclick = async function () {
+        var ok = await ui.confirmDialog({
+          title: "Удалить файл?", danger: true, okLabel: "Удалить",
+          message: (item.name || item.filename || "") + " будет удалён из сборки.",
+        });
+        if (!ok) return;
+        try {
+          await api("content.remove", { instanceId: S.id, kind: kind, id: id });
+          ui.notifySuccess("Файл удалён");
+          loadContent();
+        } catch (e) { ui.notifyError(e, "Не удалось удалить"); }
+      };
+
+      var more = row.querySelector('[data-act="more"]');
+      more.onclick = function (e) {
+        var r = more.getBoundingClientRect();
+        ui.contextMenu(r.left - 160, r.bottom + 6, [
+          { label: item.name || item.filename || "", header: true },
+          { label: "Обновить", icon: "refresh", disabled: !item.updatable, onClick: function () { upd && upd.click(); } },
+          { label: "Открыть Modrinth", icon: "external", disabled: !(item.sourceUrl || item.projectId), onClick: function () { open && open.click(); } },
+          { label: "Открыть папку", icon: "folder", onClick: function () {
+              api("content.openFolder", { instanceId: S.id, kind: kind }).catch(function (err) { ui.notifyError(err); });
+            } },
+          "-",
+          { label: "Удалить", icon: "trash", danger: true, onClick: function () { del.click(); } },
+        ]);
+      };
+    });
+  }
+
+  async function contentImport() {
+    try {
+      var kind = S.contentKind || "mods";
+      var filter = (kind === "resourcepacks" || kind === "shaderpacks" || kind === "datapacks") ? "zip" : "jar";
+      var files = await api("system.pickFiles", { title: "Выберите файлы", filter: filter });
+      if (!files || !files.length) return;
+      var res = await api("content.import", { instanceId: S.id, kind: kind, paths: files });
+      ui.notifySuccess("Импорт завершён",
+        "Установлено: " + ((res && res.imported) || 0) + ((res && res.skipped) ? ", пропущено: " + res.skipped : ""));
+      loadContent();
+    } catch (e) { ui.notifyError(e, "Не удалось импортировать файлы"); }
+  }
+
+  async function contentCheckUpdates() {
+    var box = ui.$("#p-inst-cupd", S.els.body);
+    if (!box) return;
+    box.innerHTML = '<div class="card tight"><div class="row" style="gap:8px"><span class="spinner" style="width:14px;height:14px"></span><span class="small">Проверка обновлений…</span></div></div>';
+    try {
+      var kinds = activeKinds();
+      var ups = (await api("modrinth.checkUpdates", { instanceId: S.id })) || [];
+      var integ = await Promise.all(kinds.map(function (k) {
+        return api("content.checkIntegrity", { instanceId: S.id, kind: k });
+      }));
+      if (S.dead) return;
+      var total = 0, issues = 0;
+      integ.forEach(function (r) { total += (r && r.total) || 0; issues += (r && (r.issues || []).length) || 0; });
+
+      var html = '<div class="card tight"><div class="row" style="gap:9px;margin-bottom:' + (ups.length || issues ? "9px" : "0") + '">' +
+        ic("refresh") + '<strong class="small">Проверено файлов: ' + ui.fmtNum(total) + ", проблем целостности: " + ui.fmtNum(issues) + "</strong></div>";
+      if (!ups.length && !issues) {
+        html += '<div class="banner ok">' + ic("check") + '<span class="grow">Всё актуально — обновлений не найдено.</span></div>';
+      } else if (ups.length) {
+        html += '<div class="banner info">' + ic("download") + '<span class="grow">Доступно обновлений: ' + ups.length + "</span></div>";
+        html += ups.map(function (u, ix) {
+          return '<div class="p-inst-upd"><div class="grow"><strong class="small">' + esc(u.projectName || u.filename) + "</strong>" +
+            '<span class="dim small"> · ' + esc(String(u.current)) + " → " + esc(String(u.latest)) + "</span></div>" +
+            '<button class="btn btn-sm btn-primary" data-upd="' + ix + '">Обновить</button></div>';
+        }).join("");
+      }
+      html += "</div>";
+      box.innerHTML = html;
+
+      Array.prototype.forEach.call(box.querySelectorAll("[data-upd]"), function (b) {
+        b.onclick = async function () {
+          var u = ups[+b.dataset.upd];
+          var item = S.contentItems.find(function (x) { return String(x.id) === String(u.modId) || x.filename === u.filename; });
+          var kind = item ? (item._kind || "mods") : (/\.jar(\.disabled)?$/i.test(String(u.filename)) ? "mods" : "resourcepacks");
+          var id = item ? item.id : u.modId;
+          b.classList.add("loading");
+          try {
+            await api("content.update", { instanceId: S.id, kind: kind, id: id, versionId: u.latestVersionId });
+            ui.notifySuccess("Обновлено", u.projectName || u.filename || "");
+            contentCheckUpdates();
+            loadContent();
+          } catch (e) { b.classList.remove("loading"); ui.notifyError(e, "Не удалось обновить"); }
+        };
+      });
+    } catch (e) {
+      if (S.dead) return;
+      box.innerHTML = '<div class="card tight">' + errState(e, "Не удалось проверить обновления") + "</div>";
+      bindRetry(box);
+    }
+  }
+
+  async function contentUpdateAll() {
+    try {
+      var kinds = activeKinds();
+      var updated = 0, failed = 0;
+      for (var i = 0; i < kinds.length; i++) {
+        try {
+          var r = await api("content.updateAll", { instanceId: S.id, kind: kinds[i] });
+          updated += (r && r.updated) || 0;
+          failed += (r && r.failed) || 0;
+        } catch (e) { failed++; }
+      }
+      if (failed) ui.notifyWarn("Обновлено частично", "Установлено: " + updated + ", ошибок: " + failed);
+      else ui.notifySuccess("Готово", "Обновлено файлов: " + updated);
+      loadContent();
+      var box = ui.$("#p-inst-cupd", S.els.body);
+      if (box) box.innerHTML = "";
+    } catch (e) { ui.notifyError(e, "Не удалось обновить содержимое"); }
+  }
+
+  function presetsDialog() {
+    var bodyEl = document.createElement("div");
+    bodyEl.innerHTML = '<div class="p-inst-skel"><div class="skeleton"></div><div class="skeleton"></div></div>';
+    var dlg = ui.openDialog({
+      title: "Пресеты модов",
+      sub: "Сохранённые наборы включённых файлов.",
+      icon: "save",
+      body: bodyEl,
+      buttons: [
+        { label: "Закрыть", role: "cancel" },
+        {
+          label: "Сохранить текущий", role: "primary", keepOpen: true,
+          onClick: async function () {
+            var name = await ui.promptDialog({ title: "Сохранить пресет", placeholder: "Например, PvP-набор", okLabel: "Сохранить" });
+            if (!name) return false;
+            try {
+              await api("content.savePreset", { instanceId: S.id, name: name });
+              ui.notifySuccess("Пресет сохранён", name);
+              load();
+              return false;
+            } catch (e) { ui.notifyError(e, "Не удалось сохранить пресет"); return false; }
+          },
+        },
+      ],
+    });
+
+    async function load() {
+      bodyEl.innerHTML = '<div class="p-inst-skel"><div class="skeleton"></div><div class="skeleton"></div></div>';
+      try {
+        var list = (await api("content.presets", { instanceId: S.id })) || [];
+        if (!list.length) {
+          bodyEl.innerHTML = emptyState("save", "Пресетов пока нет", "Сохраните текущий набор включённых модов.");
+          return;
+        }
+        bodyEl.innerHTML = list.map(function (p) {
+          return '<div class="p-inst-srow"><div class="grow"><div class="t" style="font-weight:600">' + esc(p.name) + "</div>" +
+            '<div class="dim small">' + esc(ui.fmtDate(p.createdAt)) + "</div></div>" +
+            '<button class="btn btn-sm btn-primary" data-apply="' + esc(p.id) + '">Применить</button>' +
+            '<button class="btn btn-sm btn-ghost" data-del="' + esc(p.id) + '">Удалить</button></div>';
+        }).join("");
+        Array.prototype.forEach.call(bodyEl.querySelectorAll("[data-apply]"), function (b) {
+          b.onclick = async function () {
+            b.classList.add("loading");
+            try {
+              await api("content.applyPreset", { instanceId: S.id, presetId: b.dataset.apply });
+              ui.notifySuccess("Пресет применён");
+              dlg.close();
+              loadContent();
+            } catch (e) { b.classList.remove("loading"); ui.notifyError(e, "Не удалось применить пресет"); }
+          };
+        });
+        Array.prototype.forEach.call(bodyEl.querySelectorAll("[data-del]"), function (b) {
+          b.onclick = async function () {
+            var ok = await ui.confirmDialog({ title: "Удалить пресет?", danger: true, okLabel: "Удалить" });
+            if (!ok) return;
+            try {
+              await api("content.deletePreset", { instanceId: S.id, presetId: b.dataset.del });
+              ui.notifySuccess("Пресет удалён");
+              load();
+            } catch (e) { ui.notifyError(e, "Не удалось удалить пресет"); }
+          };
+        });
+      } catch (e) {
+        bodyEl.innerHTML = errState(e, "Не удалось загрузить пресеты");
+        bindRetry(bodyEl);
+        var rb = bodyEl.querySelector('[data-act="reload"]');
+        if (rb) rb.onclick = load;
+      }
+    }
+    load();
+  }
+
+  /* ================= общие куски разметки ================= */
+  function row(t, d, ctrl) {
+    return '<div class="p-inst-row"><div class="info"><div class="t">' + t + '</div><div class="d">' + d + '</div></div>' +
+      '<div class="ctrl">' + ctrl + "</div></div>";
+  }
+  function option(v, label, sel) {
+    return '<option value="' + esc(v) + '"' + (String(v) === String(sel) ? " selected" : "") + ">" + esc(label) + "</option>";
+  }
+  function switchHtml(id, on) {
+    return '<label class="switch"><input type="checkbox" id="' + id + '"' + (on ? " checked" : "") + " /><i></i></label>";
+  }
+  function iconBtn(icon, title, act) {
+    return '<button class="btn btn-icon btn-sm" data-act="' + act + '" title="' + esc(title) + '">' + ic(icon) + "</button>";
+  }
+  function selectOf(id, items, sel) {
+    return '<select id="' + id + '">' + items.map(function (v) { return option(v[0], v[1], sel); }).join("") + "</select>";
+  }
+
+  async function reloadInstance() {
+    try {
+      var inst = await api("instances.get", { id: S.id });
+      if (S.dead || !inst) return;
+      S.inst = inst;
+      renderHero();
+    } catch (e) { /* тихо: данные останутся прежними */ }
+  }
+
+  /* ================= вкладка «Файлы» ================= */
+  function renderFiles() {
+    S.els.body.innerHTML =
+      '<div class="p-inst-files">' + FILE_SUBS.map(function (sub) {
+        return '<button class="p-inst-tile" data-sub="' + esc(sub) + '">' + ic("folder") + "<span>" + esc(sub) + "</span></button>";
+      }).join("") + "</div>" +
+      '<div class="p-inst-card"><h3>Действия</h3><div class="p-inst-rows">' +
+        row("Открыть папку сборки", "Корень сборки в Проводнике.", '<button class="btn" data-act="open">' + ic("folder") + " Открыть</button>") +
+        row("Проверить целостность", "Сверка файлов с манифестом версии.", '<button class="btn" data-act="verify">' + ic("shield") + " Проверить</button>") +
+        row("Изменить версию", "Версия Minecraft и загрузчик. Создаётся бэкап.", '<button class="btn btn-primary" data-act="ver">' + ic("refresh") + " Изменить</button>") +
+      "</div></div>";
+
+    Array.prototype.forEach.call(S.els.body.querySelectorAll("[data-sub]"), function (t) {
+      t.onclick = function () {
+        api("instances.openFolder", { id: S.id, sub: t.dataset.sub })
+          .catch(function (e) { ui.notifyError(e, "Не удалось открыть папку"); });
+      };
+    });
+    S.els.body.querySelector('[data-act="open"]').onclick = function () {
+      api("instances.openFolder", { id: S.id }).catch(function (e) { ui.notifyError(e, "Не удалось открыть папку"); });
+    };
+    S.els.body.querySelector('[data-act="verify"]').onclick = verifyDialog;
+    S.els.body.querySelector('[data-act="ver"]').onclick = changeVersionDialog;
+  }
+
+  function verifyDialog() {
+    var bodyEl = document.createElement("div");
+    bodyEl.innerHTML = '<div class="state" style="padding:26px"><span class="spinner"></span><p>Проверка файлов…</p></div>';
+    var dlg = ui.openDialog({
+      title: "Проверка целостности",
+      icon: "shield",
+      body: bodyEl,
+      buttons: [
+        { label: "Закрыть", role: "cancel" },
+        { id: "repair", label: "Скачать заново", role: "primary", keepOpen: true, onClick: repair },
+      ],
+    });
+
+    async function paint() {
+      try {
+        var r = await api("instances.verify", { id: S.id });
+        bodyEl.innerHTML =
+          '<div class="p-inst-rows">' +
+            row("Проверено файлов", "Всего в манифесте.", '<span class="chip">' + ui.fmtNum(r.total) + "</span>") +
+            row("В порядке", "Совпадают с эталоном.", '<span class="chip on">' + ui.fmtNum(r.ok) + "</span>") +
+            row("Повреждено / отсутствует", "Будут скачаны заново.", '<span class="chip danger">' + ui.fmtNum(r.missing) + "</span>") +
+            row("Исправлено", "За эту проверку.", '<span class="chip">' + ui.fmtNum(r.repaired) + "</span>") +
+          "</div>" +
+          (r.missing > 0
+            ? '<div class="banner warn">' + ic("alert") + '<span class="grow">Найдено повреждённых файлов: ' + ui.fmtNum(r.missing) + ". Нажмите «Скачать заново».</span></div>"
+            : '<div class="banner ok">' + ic("check") + '<span class="grow">Файлы в порядке.</span></div>');
+      } catch (e) {
+        bodyEl.innerHTML = errState(e, "Не удалось проверить целостность");
+        var rb = bodyEl.querySelector('[data-act="reload"]');
+        if (rb) rb.onclick = paint;
+      }
+    }
+
+    async function repair() {
+      var btn = dlg.foot.querySelector('[data-act="repair"]');
+      if (btn) btn.classList.add("loading");
+      try {
+        var r = await api("instances.repair", { id: S.id });
+        ui.notifySuccess("Восстановление завершено",
+          "Скачано: " + ui.fmtNum(r.downloaded || 0) + (r.failed ? ", ошибок: " + ui.fmtNum(r.failed) : ""));
+        await paint();
+      } catch (e) { ui.notifyError(e, "Не удалось перекачать файлы"); }
+      if (btn) btn.classList.remove("loading");
+      return false;
+    }
+
+    paint();
+  }
+
+  function changeVersionDialog() {
+    var st = {
+      mc: S.inst.mcVersion,
+      loader: S.inst.loader || "vanilla",
+      lv: S.inst.loaderVersion || "",
+      q: "",
+      versions: [],
+    };
+    var el = document.createElement("div");
+    el.className = "col";
+    el.innerHTML =
+      '<div class="field"><label>Поиск версии</label><input type="search" id="cv-q" placeholder="1.21.1 …" autocomplete="off" /></div>' +
+      '<div class="field"><label>Версия Minecraft</label>' +
+        '<div class="p-inst-vlist" id="cv-list"><div class="state" style="padding:24px"><span class="spinner"></span></div></div></div>' +
+      '<div class="row" style="gap:12px;align-items:flex-end;flex-wrap:wrap">' +
+        '<div class="field" style="flex:1;min-width:160px"><label>Загрузчик</label>' +
+          '<select id="cv-ld">' + LOADERS.map(function (l) { return option(l, loaderLabel(l), st.loader); }).join("") + "</select></div>" +
+        '<div class="field" style="flex:1;min-width:160px"><label>Версия загрузчика</label>' +
+          '<select id="cv-lv"><option value="">—</option></select></div>' +
+      "</div>" +
+      '<div class="hint" id="cv-hint">Текущая: Minecraft ' + esc(st.mc) + " · " + esc(loaderLabel(st.loader)) + "</div>";
+
+    var dlg = ui.openDialog({
+      title: "Изменить версию",
+      sub: "Версия применяется ко всей сборке.",
+      icon: "refresh",
+      width: "wide",
+      body: el,
+      buttons: [
+        { label: "Отмена", role: "cancel" },
+        { label: "Применить", role: "primary", keepOpen: true, onClick: apply },
+      ],
+    });
+
+    function paintV() {
+      var listEl = el.querySelector("#cv-list");
+      var q = st.q.trim().toLowerCase();
+      var arr = st.versions.filter(function (v) { return !q || String(v.id).toLowerCase().indexOf(q) >= 0; }).slice(0, 200);
+      if (!arr.length) {
+        listEl.innerHTML = '<div class="state" style="padding:22px"><p>Версии не найдены. Измените запрос.</p></div>';
+        return;
+      }
+      listEl.innerHTML = arr.map(function (v) {
+        return '<button type="button" data-v="' + esc(v.id) + '" class="' + (v.id === st.mc ? "sel" : "") + '">' +
+          "<span>" + esc(v.id) + '</span><span style="flex:1"></span>' +
+          '<span class="badge ' + esc(v.type || "release") + '">' + esc(v.type || "release") + "</span></button>";
+      }).join("");
+      Array.prototype.forEach.call(listEl.querySelectorAll("[data-v]"), function (b) {
+        b.onclick = function () { st.mc = b.dataset.v; paintV(); loadLV(); hint(); };
+      });
+    }
+
+    function hint() {
+      var h = el.querySelector("#cv-hint");
+      if (h) h.textContent = "Выбрано: Minecraft " + st.mc + " · " + loaderLabel(st.loader) + (st.loader !== "vanilla" && st.lv ? " " + st.lv : "");
+    }
+
+    async function loadLV() {
+      var sel = el.querySelector("#cv-lv");
+      if (!sel) return;
+      if (st.loader === "vanilla") { sel.innerHTML = '<option value="">—</option>'; st.lv = ""; return; }
+      sel.innerHTML = '<option value="">Загрузка…</option>';
+      try {
+        var all = (await api("versions.loaders", { mcVersion: st.mc })) || [];
+        var list = all.filter(function (x) { return String(x.loader || "").toLowerCase() === st.loader; });
+        if (!list.length) { sel.innerHTML = '<option value="">Нет версий</option>'; st.lv = ""; return; }
+        if (!list.some(function (x) { return x.version === st.lv; })) {
+          st.lv = (list.find(function (x) { return x.stable; }) || list[0]).version;
+        }
+        sel.innerHTML = list.map(function (x) {
+          return option(x.version, x.version + (x.stable ? "" : " (beta)"), st.lv);
+        }).join("");
+        hint();
+      } catch (e) {
+        sel.innerHTML = '<option value="">Ошибка загрузки</option>';
+        ui.notifyError(e, "Не удалось загрузить версии загрузчика");
+      }
+    }
+
+    async function loadV() {
+      var listEl = el.querySelector("#cv-list");
+      listEl.innerHTML = '<div class="state" style="padding:24px"><span class="spinner"></span></div>';
+      try {
+        st.versions = (await api("versions.list", { type: "release", limit: 300 })) || [];
+        paintV();
+      } catch (e) {
+        listEl.innerHTML = errState(e, "Не удалось загрузить версии");
+        var rb = listEl.querySelector('[data-act="reload"]');
+        if (rb) rb.onclick = loadV;
+      }
+    }
+
+    async function apply() {
+      if (!st.mc) { ui.notifyWarn("Выберите версию Minecraft"); return false; }
+      var ok = await ui.confirmDialog({
+        title: "Изменить версию?",
+        message: "Обновление версии может привести к несовместимости модов. Перед изменением будет создан бэкап.",
+        okLabel: "Продолжить",
+      });
+      if (!ok) return false;
+      try {
+        var params = { id: S.id, mcVersion: st.mc, loader: st.loader };
+        if (st.loader !== "vanilla" && st.lv) params.loaderVersion = st.lv;
+        await api("instances.changeVersion", params);
+        ui.notifySuccess("Версия обновлена", "Minecraft " + st.mc + " · " + loaderLabel(st.loader));
+        S.mcPick = st.mc;
+        S.ldPick = st.loader;
+        S.lvPick = st.lv || "";
+        dlg.close();
+        await reloadInstance();
+        if (!S.dead) renderTab();
+        return false;
+      } catch (e) { ui.notifyError(e, "Не удалось изменить версию"); return false; }
+    }
+
+    var qi = el.querySelector("#cv-q");
+    qi.oninput = ui.debounce(function () { st.q = qi.value; paintV(); }, 200);
+    el.querySelector("#cv-ld").onchange = function () {
+      st.loader = this.value;
+      st.lv = "";
+      loadLV();
+      hint();
+    };
+    el.querySelector("#cv-lv").onchange = function () { st.lv = this.value; hint(); };
+
+    loadV();
+    loadLV();
+  }
+
+  /* ================= вкладка «Миры» ================= */
+  function worldCard(w) {
+    return '<div class="p-inst-world" data-w="' + esc(w.name) + '">' +
+      '<div class="thumb">' + (w.iconDataUrl ? '<img src="' + esc(w.iconDataUrl) + '" alt="" />' : ic("globe")) + "</div>" +
+      '<div class="wbody"><div class="wname">' + esc(w.name) + "</div>" +
+        '<div class="wmeta">' +
+          '<span class="chip">' + esc(ui.fmtBytes(w.sizeBytes)) + "</span>" +
+          (w.version ? '<span class="chip">' + esc(w.version) + "</span>" : "") +
+          '<span class="chip">' + esc(ui.fmtRelative(w.lastModified)) + "</span>" +
+          (w.hasLevel === false ? '<span class="chip warn">нет level.dat</span>' : "") +
+        "</div>" +
+        '<div class="acts">' +
+          '<button class="btn btn-sm play" data-act="play">' + ic("play") + " Играть</button>" +
+          iconBtn("edit", "Переименовать", "rename") +
+          iconBtn("folder", "Открыть папку", "folder") +
+          iconBtn("save", "Резервная копия", "backup") +
+          iconBtn("upload", "Экспорт", "export") +
+          iconBtn("trash", "Удалить", "del") +
+        "</div></div></div>";
+  }
+
+  function worldMenu(w) {
+    return [
+      { label: w.name, header: true },
+      { label: "Играть", icon: "play", onClick: function () { worldAction(w, "play"); } },
+      { label: "Переименовать", icon: "edit", onClick: function () { worldAction(w, "rename"); } },
+      { label: "Открыть папку", icon: "folder", onClick: function () { worldAction(w, "folder"); } },
+      { label: "Резервная копия", icon: "save", onClick: function () { worldAction(w, "backup"); } },
+      { label: "Экспорт", icon: "upload", onClick: function () { worldAction(w, "export"); } },
+      "-",
+      { label: "Удалить", icon: "trash", danger: true, onClick: function () { worldAction(w, "del"); } },
+    ];
+  }
+
+  async function worldAction(w, act) {
+    try {
+      if (act === "play") {
+        await api("worlds.play", { instanceId: S.id, world: w.name });
+        ui.notifySuccess("Запуск с миром", w.name);
+        return;
+      }
+      if (act === "rename") {
+        var name = await ui.promptDialog({ title: "Переименовать мир", value: w.name, okLabel: "Сохранить" });
+        if (!name || name === w.name) return;
+        await api("worlds.rename", { instanceId: S.id, world: w.name, newName: name });
+        ui.notifySuccess("Мир переименован");
+        renderWorlds();
+        return;
+      }
+      if (act === "folder") {
+        await api("worlds.openFolder", { instanceId: S.id, world: w.name });
+        return;
+      }
+      if (act === "backup") {
+        var b = await api("worlds.backup", { instanceId: S.id, world: w.name });
+        ui.notifySuccess("Резервная копия создана", b && b.name ? b.name : w.name);
+        return;
+      }
+      if (act === "export") {
+        var dir = await api("system.pickDirectory", { title: "Куда сохранить мир" });
+        if (!dir || !dir.path) return;
+        var safe = String(w.name || "world").replace(/[\\/:*?"<>|]/g, "_");
+        var target = String(dir.path).replace(/[\\/]+$/, "") + "\\" + safe + ".zip";
+        var res = await api("worlds.exportZip", { instanceId: S.id, world: w.name, targetPath: target });
+        ui.notifySuccess("Мир экспортирован", res && res.path ? res.path : target);
+        return;
+      }
+      if (act === "del") {
+        var ok = await ui.confirmDialog({
+          title: "Удалить мир?", danger: true, okLabel: "Удалить",
+          message: "«" + w.name + "» будет удалён безвозвратно, если не создать бэкап.",
+        });
+        if (!ok) return;
+        await api("worlds.delete", { instanceId: S.id, world: w.name, backup: true });
+        ui.notifySuccess("Мир удалён");
+        renderWorlds();
+      }
+    } catch (e) { ui.notifyError(e, "Не удалось выполнить действие"); }
+  }
+
+  async function renderWorlds() {
+    S.els.body.innerHTML =
+      '<div class="p-inst-toolbar"><button class="btn btn-sm btn-primary" data-act="import">' + ic("upload") + " Импортировать мир</button></div>" +
+      '<div id="p-inst-wl"></div>';
+    S.els.body.querySelector('[data-act="import"]').onclick = importWorld;
+    var box = ui.$("#p-inst-wl", S.els.body);
+    box.innerHTML = '<div class="p-inst-skel"><div class="skeleton"></div><div class="skeleton"></div></div>';
+    try {
+      var list = (await api("worlds.list", { instanceId: S.id })) || [];
+      if (S.dead) return;
+      if (!list.length) {
+        box.innerHTML = emptyState("globe", "Миров пока нет",
+          "Миры появятся после первого запуска или импорта из .zip.",
+          '<button class="btn btn-primary" data-act="imp2">' + ic("upload") + " Импортировать мир</button>");
+        var i2 = box.querySelector('[data-act="imp2"]');
+        if (i2) i2.onclick = importWorld;
+        return;
+      }
+      box.innerHTML = '<div class="p-inst-grid">' + list.map(worldCard).join("") + "</div>";
+      Array.prototype.forEach.call(box.querySelectorAll(".p-inst-world"), function (cardEl) {
+        var w = list.find(function (x) { return x.name === cardEl.dataset.w; });
+        if (!w) return;
+        Array.prototype.forEach.call(cardEl.querySelectorAll("[data-act]"), function (btn) {
+          btn.onclick = function (e) { e.stopPropagation(); worldAction(w, btn.dataset.act); };
+        });
+        ui.bindContextMenu(cardEl, function () { return worldMenu(w); });
+      });
+    } catch (e) {
+      if (S.dead) return;
+      box.innerHTML = errState(e, "Не удалось загрузить миры");
+      bindRetry(box);
+    }
+  }
+
+  async function importWorld() {
+    try {
+      var files = await api("system.pickFiles", { title: "Импорт мира (.zip)", filter: "world" });
+      if (!files || !files.length) return;
+      await api("worlds.importZip", { instanceId: S.id, zipPath: files[0] });
+      ui.notifySuccess("Мир импортирован");
+      renderWorlds();
+    } catch (e) { ui.notifyError(e, "Не удалось импортировать мир"); }
+  }
+
+  /* ================= вкладка «Серверы» ================= */
+  async function renderServers() {
+    S.els.body.innerHTML =
+      '<div class="p-inst-toolbar"><button class="btn btn-sm btn-primary" data-act="add">' + ic("plus") + " Добавить сервер</button></div>" +
+      '<div class="list" id="p-inst-srvl"></div>';
+    S.els.body.querySelector('[data-act="add"]').onclick = addServer;
+    var box = ui.$("#p-inst-srvl", S.els.body);
+    box.innerHTML = '<div class="p-inst-skel" style="padding:14px"><div class="skeleton"></div><div class="skeleton"></div></div>';
+    try {
+      var list = (await api("servers.list", { instanceId: S.id })) || [];
+      if (S.dead) return;
+      if (!list.length) {
+        box.classList.remove("list");
+        box.innerHTML = emptyState("wifi", "Серверов пока нет",
+          "Добавьте адрес — он сохранится в servers.json этой сборки.",
+          '<button class="btn btn-primary" data-act="add2">' + ic("plus") + " Добавить сервер</button>");
+        var a = box.querySelector('[data-act="add2"]');
+        if (a) a.onclick = addServer;
+        return;
+      }
+      box.innerHTML = list.map(function (s) {
+        return '<div class="p-inst-srv" data-sid="' + esc(s.id) + '">' +
+          '<div class="item-icon sm">' + esc(ui.initials(s.name)) + "</div>" +
+          '<div class="grow"><div style="font-weight:600">' + esc(s.name) + "</div>" +
+            '<div class="dim small">' + esc(s.ip) + ":" + esc(String(s.port || 25565)) + "</div></div>" +
+          '<button class="btn btn-sm btn-primary" data-act="connect">Подключить</button>' +
+          '<button class="btn btn-sm" data-act="edit">Изменить</button>' +
+          '<button class="btn btn-sm btn-ghost" data-act="del">Удалить</button></div>';
+      }).join("");
+      Array.prototype.forEach.call(box.querySelectorAll(".p-inst-srv"), function (rowEl) {
+        var srv = list.find(function (x) { return String(x.id) === rowEl.dataset.sid; });
+        if (!srv) return;
+        Array.prototype.forEach.call(rowEl.querySelectorAll("[data-act]"), function (btn) {
+          btn.onclick = function () { serverAction(srv, btn.dataset.act); };
+        });
+      });
+    } catch (e) {
+      if (S.dead) return;
+      box.classList.add("list");
+      box.innerHTML = errState(e, "Не удалось загрузить серверы");
+      bindRetry(box);
+    }
+  }
+
+  async function serverAction(srv, act) {
+    try {
+      if (act === "connect") {
+        await api("servers.connect", { instanceId: S.id, serverId: srv.id });
+        ui.notifySuccess("Подключение", srv.name);
+        return;
+      }
+      if (act === "edit") {
+        var name = await ui.promptDialog({ title: "Название сервера", value: srv.name, okLabel: "Далее" });
+        if (!name) return;
+        var ip = await ui.promptDialog({
+          title: "Адрес сервера", value: srv.ip, placeholder: "play.example.com", okLabel: "Сохранить",
+          validate: function (v) { return v.length >= 3 ? "" : "Введите корректный адрес"; },
+        });
+        if (!ip) return;
+        await api("servers.update", { instanceId: S.id, serverId: srv.id, name: name, ip: ip, port: srv.port || 25565 });
+        ui.notifySuccess("Сервер обновлён");
+        renderServers();
+        return;
+      }
+      if (act === "del") {
+        var ok = await ui.confirmDialog({ title: "Удалить сервер?", message: srv.name, danger: true, okLabel: "Удалить" });
+        if (!ok) return;
+        await api("servers.remove", { instanceId: S.id, serverId: srv.id });
+        ui.notifySuccess("Сервер удалён");
+        renderServers();
+      }
+    } catch (e) { ui.notifyError(e, "Не удалось выполнить действие"); }
+  }
+
+  async function addServer() {
+    try {
+      var name = await ui.promptDialog({ title: "Новый сервер", placeholder: "Hypixel", okLabel: "Далее" });
+      if (!name) return;
+      var ip = await ui.promptDialog({
+        title: "Адрес сервера", placeholder: "play.example.com", okLabel: "Добавить",
+        validate: function (v) { return v.length >= 3 ? "" : "Введите корректный адрес"; },
+      });
+      if (!ip) return;
+      await api("servers.add", { instanceId: S.id, name: name, ip: ip });
+      ui.notifySuccess("Сервер добавлен", name);
+      renderServers();
+    } catch (e) { ui.notifyError(e, "Не удалось добавить сервер"); }
+  }
+
+  /* ================= вкладка «Журнал» ================= */
+  function fmtLogTime(ts) {
+    if (ts === undefined || ts === null || ts === "") return "";
+    var d = new Date(ts);
+    if (!isNaN(d) && typeof ts !== "string") {
+      return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+    if (typeof ts === "string" && ts.indexOf("T") > 0 && !isNaN(d)) {
+      return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+    return String(ts);
+  }
+
+  async function renderLogs() {
+    S.els.body.innerHTML =
+      '<div class="p-inst-toolbar">' +
+        '<select id="p-inst-lf" style="width:auto;min-width:210px"><option value="">Загрузка…</option></select>' +
+        '<div class="search-box" style="max-width:250px">' + ic("search") +
+          '<input type="search" id="p-inst-lq" placeholder="Поиск в логе…" autocomplete="off" value="' + esc(S.logQuery) + '" /></div>' +
+        '<select id="p-inst-lvl" style="width:auto" title="Уровень">' +
+          ["all", "ERROR", "WARN", "INFO", "DEBUG"].map(function (l) {
+            return option(l, l === "all" ? "Все уровни" : l, S.logLevel);
+          }).join("") +
+        "</select>" +
+        '<span class="spacer"></span>' +
+        '<button class="btn btn-sm" data-act="copy">' + ic("copy") + " Копировать</button>" +
+        '<button class="btn btn-sm" data-act="openfile">' + ic("file") + " Открыть файл</button>" +
+        '<button class="btn btn-sm" data-act="logdir">' + ic("folder") + " Открыть папку логов</button>" +
+      "</div>" +
+      '<div class="log-view p-inst-log" id="p-inst-lv"><span class="dim">Загрузка файлов лога…</span></div>' +
+      '<div class="p-inst-card"><h3>Отчёты о сбоях</h3><div id="p-inst-crashes"></div></div>';
+
+    S.els.body.querySelector('[data-act="copy"]').onclick = copyLog;
+    S.els.body.querySelector('[data-act="openfile"]').onclick = function () {
+      if (!S.logPath) { ui.notifyWarn("Файл не выбран"); return; }
+      api("system.openPath", { path: S.logPath }).catch(function (e) { ui.notifyError(e); });
+    };
+    S.els.body.querySelector('[data-act="logdir"]').onclick = function () {
+      api("instances.openFolder", { id: S.id, sub: "logs" }).catch(function (e) { ui.notifyError(e); });
+    };
+    var q = ui.$("#p-inst-lq", S.els.body);
+    q.oninput = ui.debounce(function () { S.logQuery = q.value; loadLog(); }, 320);
+    ui.$("#p-inst-lvl", S.els.body).onchange = function () { S.logLevel = this.value; loadLog(); };
+    ui.$("#p-inst-lf", S.els.body).onchange = function () {
+      S.logFile = this.value;
+      var opt = this.options[this.selectedIndex];
+      S.logPath = opt ? opt.dataset.path || "" : "";
+      loadLog();
+    };
+
+    loadCrashes();
+    await loadLogFiles();
+  }
+
+  async function loadLogFiles() {
+    var sel = ui.$("#p-inst-lf", S.els.body);
+    var view = ui.$("#p-inst-lv", S.els.body);
+    if (!sel || !view) return;
+    try {
+      var files = (await api("logs.instanceFiles", { instanceId: S.id })) || [];
+      if (S.dead) return;
+      if (!files.length) {
+        sel.innerHTML = '<option value="">Нет файлов</option>';
+        view.innerHTML = '<span class="dim">Файлы логов не найдены — запустите сборку.</span>';
+        return;
+      }
+      if (!S.logPath || !files.some(function (f) { return f.path === S.logPath; })) {
+        S.logFile = files[0].name;
+        S.logPath = files[0].path;
+      }
+      sel.innerHTML = files.map(function (f) {
+        return '<option value="' + esc(f.name) + '" data-path="' + esc(f.path) + '"' + (f.path === S.logPath ? " selected" : "") + ">" +
+          esc(f.name) + " · " + esc(ui.fmtBytes(f.sizeBytes)) + "</option>";
+      }).join("");
+      await loadLog();
+    } catch (e) {
+      if (S.dead) return;
+      view.innerHTML = errState(e, "Не удалось загрузить файлы логов");
+      bindRetry(view);
+      var rb = view.querySelector('[data-act="reload"]');
+      if (rb) rb.onclick = loadLogFiles;
+    }
+  }
+
+  async function loadLog() {
+    var view = ui.$("#p-inst-lv", S.els.body);
+    if (!view) return;
+    if (!S.logPath) { view.innerHTML = '<span class="dim">Файл лога не выбран.</span>'; return; }
+    view.innerHTML = '<span class="dim">Загрузка…</span>';
+    try {
+      var params = { instanceId: S.id, path: S.logPath };
+      if (S.logQuery.trim()) params.query = S.logQuery.trim();
+      if (S.logLevel && S.logLevel !== "all") params.level = S.logLevel;
+      var res = await api("logs.readInstance", params);
+      if (S.dead) return;
+      S.logLines = (res && res.lines) || [];
+      renderLogLines();
+    } catch (e) {
+      if (S.dead) return;
+      view.innerHTML = errState(e, "Не удалось прочитать лог");
+      bindRetry(view);
+      var rb = view.querySelector('[data-act="reload"]');
+      if (rb) rb.onclick = loadLog;
+    }
+  }
+
+  function renderLogLines() {
+    var view = ui.$("#p-inst-lv", S.els.body);
+    if (!view) return;
+    if (!S.logLines.length) {
+      view.innerHTML = '<span class="dim">Совпадений нет. Измените поиск или уровень.</span>';
+      return;
+    }
+    var shown = S.logLines.slice(0, 1000);
+    view.innerHTML = shown.map(function (l) {
+      var lvl = String(l.level || "INFO").toUpperCase();
+      return '<div class="log-line ' + esc(lvl) + '"><span class="ts">' + esc(fmtLogTime(l.ts)) + "</span>" +
+        '<span class="lvl">' + esc(lvl) + '</span><span class="msg">' + esc(l.message) + "</span></div>";
+    }).join("") +
+      (S.logLines.length > shown.length
+        ? '<div class="dim small" style="margin-top:8px">Показаны первые ' + shown.length + " строк из " + S.logLines.length + "</div>"
+        : "");
+  }
+
+  async function copyLog() {
+    if (!S.logLines.length) { ui.notifyWarn("Нечего копировать"); return; }
+    var text = S.logLines.map(function (l) {
+      return fmtLogTime(l.ts) + " [" + String(l.level || "INFO") + "] " + l.message;
+    }).join("\n");
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
+      else await api("system.clipboard", { text: text });
+      ui.notifySuccess("Скопировано", "Строк: " + S.logLines.length);
+    } catch (e) { ui.notifyError(e, "Не удалось скопировать"); }
+  }
+
+  async function loadCrashes() {
+    var box = ui.$("#p-inst-crashes", S.els.body);
+    if (!box) return;
+    box.innerHTML = '<div class="p-inst-skel"><div class="skeleton"></div></div>';
+    try {
+      var list = (await api("crashes.list", { instanceId: S.id })) || [];
+      if (S.dead) return;
+      if (!list.length) {
+        box.innerHTML = emptyState("shield", "Отчётов о сбоях нет", "Здесь появятся файлы из crash-reports после сбоев.");
+        return;
+      }
+      box.innerHTML = list.map(function (c) {
+        return '<div class="p-inst-crash"><div style="flex:1;min-width:0">' +
+          '<div style="font-weight:600;font-size:13px">' + esc(ui.fmtDate(c.createdAt)) + "</div>" +
+          '<div class="dim small">' + esc(ui.fmtBytes(c.sizeBytes)) + (c.analyzed ? " · проанализирован" : "") + "</div></div>" +
+          '<button class="btn btn-sm" data-open="' + esc(c.id) + '">Открыть</button>' +
+          '<button class="btn btn-sm btn-primary" data-an="' + esc(c.id) + '">Анализировать</button></div>';
+      }).join("");
+      Array.prototype.forEach.call(box.querySelectorAll("[data-open]"), function (b) {
+        b.onclick = function () { openCrash(b.dataset.open); };
+      });
+      Array.prototype.forEach.call(box.querySelectorAll("[data-an]"), function (b) {
+        b.onclick = function () { analyzeCrash(b.dataset.an, b); };
+      });
+    } catch (e) {
+      if (S.dead) return;
+      box.innerHTML = errState(e, "Не удалось загрузить отчёты");
+      bindRetry(box);
+    }
+  }
+
+  async function openCrash(id) {
+    var bodyEl = document.createElement("div");
+    bodyEl.innerHTML = '<div class="state" style="padding:24px"><span class="spinner"></span></div>';
+    ui.openDialog({ title: "Отчёт о сбое", icon: "alert", iconType: "warn", width: "wide", body: bodyEl, buttons: [{ label: "Закрыть", role: "cancel" }] });
+    try {
+      var r = await api("crashes.read", { id: id });
+      bodyEl.innerHTML = '<div class="p-inst-pre">' + esc((r && r.text) || "") + "</div>";
+    } catch (e) { bodyEl.innerHTML = errState(e, "Не удалось прочитать отчёт", false); }
+  }
+
+  async function analyzeCrash(id, btn) {
+    if (btn) btn.classList.add("loading");
+    var bodyEl = document.createElement("div");
+    try {
+      var r = await api("crashes.analyze", { id: id });
+      bodyEl.innerHTML =
+        '<div class="banner error">' + ic("alert") + '<span class="grow"><strong>Причина: </strong>' + esc(r.cause || "неизвестна") + "</span></div>" +
+        (r.summary ? '<p class="p-inst-note" style="color:var(--text-2)">' + esc(r.summary) + "</p>" : "") +
+        ((r.suggestions || []).length
+          ? '<div class="col" style="gap:7px">' + r.suggestions.map(function (s) {
+              return '<div class="banner info">' + ic("zap") + '<span class="grow">' + esc(s) + "</span></div>";
+            }).join("") + "</div>"
+          : '<p class="p-inst-note">Автоматические рекомендации отсутствуют.</p>');
+      ui.openDialog({
+        title: "Анализ отчёта о сбое",
+        icon: "zap", width: "wide", body: bodyEl,
+        buttons: [{ label: "Закрыть", role: "cancel" }],
+      });
+    } catch (e) {
+      ui.notifyError(e, "Не удалось проанализировать отчёт");
+    }
+    if (btn) btn.classList.remove("loading");
+  }
+
+  /* ================= вкладка «Настройки» ================= */
+  function recommendRam(inst) {
+    var mods = inst.modCount || 0;
+    var base = /^1\.2/.test(String(inst.mcVersion || "")) ? 4096 : 2048;
+    if (mods > 50) base = Math.max(base, 6144);
+    if (mods > 150) base = Math.max(base, 8192);
+    return base;
+  }
+  function ramOptions(sel, id) {
+    var opts = RAM_OPTS.slice();
+    if (sel && opts.indexOf(sel) < 0) opts.push(sel);
+    opts.sort(function (a, b) { return a - b; });
+    return '<select id="' + id + '">' + opts.map(function (v) {
+      return option(v, v + " МБ", sel);
+    }).join("") + "</select>";
+  }
+
+  function renderSettings() {
+    var i = S.inst;
+    var total = (App.info && App.info.ramTotalMb) || 0;
+    var expert = !!(App.settings && App.settings.expertMode);
+    var rec = recommendRam(i);
+    S.mcPick = S.mcPick || i.mcVersion;
+    S.ldPick = S.ldPick || i.loader || "vanilla";
+    S.lvPick = (S.lvPick === null || S.lvPick === undefined) ? (i.loaderVersion || "") : S.lvPick;
+
+    S.els.body.innerHTML =
+      '<div class="p-inst-card"><h3>Основные</h3><div class="p-inst-rows">' +
+        row("Название", "Отображается в библиотеке.", '<input type="text" id="p-inst-f-name" value="' + esc(i.name) + '" />') +
+        row("Описание", "Ваша заметка о сборке.", '<input type="text" id="p-inst-f-desc" placeholder="Необязательно" value="' + esc(i.description || "") + '" />') +
+        row("Цвет", "Акцент карточки и обложки.", '<input type="color" id="p-inst-f-color" class="p-inst-color" value="' + esc(i.color || "#3ecf8e") + '" />') +
+        row("Иконка", "Изображение вместо первой буквы.",
+          '<button class="btn btn-sm" data-act="icon">' + ic("image") + " Изменить иконку</button>" +
+          '<button class="btn btn-sm btn-ghost" data-act="icon-clear">Убрать</button>') +
+        row("Избранное", "Быстрый доступ к избранным сборкам.", switchHtml("p-inst-f-fav", !!i.favorite)) +
+      "</div></div>" +
+
+      '<div class="p-inst-card"><h3>Minecraft</h3><div class="p-inst-rows">' +
+        row("Версия", "Список из манифеста Mojang, поиск по названию.",
+          '<input type="search" id="p-inst-f-mcq" placeholder="Поиск…" autocomplete="off" style="width:130px" />' +
+          '<select id="p-inst-f-mc"><option>' + esc(i.mcVersion) + "</option></select>") +
+        row("Загрузчик", "Vanilla, Fabric, Forge, NeoForge, Quilt.",
+          selectOf("p-inst-f-ld", LOADERS.map(function (l) { return [l, loaderLabel(l)]; }), S.ldPick)) +
+        row("Версия загрузчика", "Загружается для выбранной версии и загрузчика.",
+          '<select id="p-inst-f-lv"><option value="">' + esc(S.lvPick || "—") + "</option></select>") +
+        row("Применение", "Изменение создаёт бэкап и проверяет совместимость модов.",
+          '<button class="btn btn-primary" data-act="ver">' + ic("refresh") + " Изменить версию</button>") +
+      "</div></div>" +
+
+      '<div class="p-inst-card"><h3>Java</h3><div class="p-inst-rows">' +
+        row("Режим", "Авто подбирает версию под версию Minecraft.",
+          '<select id="p-inst-f-jm">' +
+            option("auto", "Авто", i.javaMode) + option("major", "Версия Java", i.javaMode) + option("path", "Свой путь", i.javaMode) +
+          "</select>" +
+          '<select id="p-inst-f-jma">' + [8, 11, 17, 21, 25].map(function (m) { return option(m, "Java " + m, i.javaMajor || 21); }).join("") + "</select>" +
+          '<input type="text" id="p-inst-f-jp" placeholder="Путь к java.exe" value="' + esc(i.javaPath || "") + '" style="min-width:220px" />') +
+      "</div><div id=\"p-inst-jhint\"></div></div>" +
+
+      '<div class="p-inst-card"><h3>Память</h3><div class="p-inst-rows">' +
+        row("Минимум RAM", "Стартовый объём (МБ).", ramOptions(i.ramMinMb, "p-inst-f-rmin")) +
+        row("Максимум RAM", "Пиковый объём (МБ) или свой ввод.",
+          ramOptions(i.ramMaxMb, "p-inst-f-rmax") +
+          '<input type="number" id="p-inst-f-rcustom" min="512" step="512" value="' + esc(String(i.ramMaxMb || 4096)) + '" style="width:120px" title="Свой ввод" />') +
+        row("Рекомендация", "Оценка по версии Minecraft и числу модов.", '<span class="chip on">' + ui.fmtNum(rec) + " МБ</span>") +
+      "</div>" +
+      '<div class="p-inst-note">Всего RAM в системе: ' + ui.fmtNum(total) + " МБ · рекомендуется для этой сборки: " + ui.fmtNum(rec) + " МБ.</div>" +
+      '<div id="p-inst-ramwarn"></div></div>' +
+
+      '<div class="p-inst-card"><h3>Окно</h3><div class="p-inst-rows">' +
+        row("Режим окна", "Полноэкранный, развёрнутый или оконный.",
+          '<div class="segmented" id="p-inst-f-wm">' +
+            [["windowed", "Оконный"], ["maximized", "Развёрнутый"], ["fullscreen", "Полноэкранный"]].map(function (m) {
+              return '<button data-wm="' + m[0] + '" class="' + (String(i.windowMode || "windowed") === m[0] ? "active" : "") + '">' + m[1] + "</button>";
+            }).join("") +
+          "</div>") +
+        row("Размер", "Ширина и высота окна (px).",
+          '<input type="number" id="p-inst-f-width" min="640" max="7680" value="' + esc(String(i.width || 1920)) + '" style="width:96px" />' +
+          '<span class="dim">×</span>' +
+          '<input type="number" id="p-inst-f-height" min="480" max="4320" value="' + esc(String(i.height || 1080)) + '" style="width:96px" />') +
+        row("VSync", "Синхронизация с частотой монитора.", switchHtml("p-inst-f-vsync", i.vsync !== false)) +
+        row("Лимит FPS", "0 — без ограничения.", '<input type="number" id="p-inst-f-fps" min="0" max="1000" value="' + esc(String(i.fpsLimit || 0)) + '" style="width:110px" />') +
+      "</div></div>" +
+
+      (expert
+        ? '<div class="p-inst-card"><h3>Расширенные</h3><div class="p-inst-rows">' +
+            row("JVM аргументы", "Передаются виртуальной машине Java.",
+              '<textarea id="p-inst-f-jvm" rows="2" style="min-width:280px" placeholder="-XX:+UseG1GC">' + esc(i.jvmArgs || "") + "</textarea>") +
+            row("Аргументы игры", "Передаются самому Minecraft.",
+              '<textarea id="p-inst-f-game" rows="2" style="min-width:280px">' + esc(i.gameArgs || "") + "</textarea>") +
+            row("Переменные окружения", "Дополнительные env-переменные процесса.",
+              '<textarea id="p-inst-f-env" rows="2" style="min-width:280px" placeholder="KEY=value">' + esc(i.envVars || "") + "</textarea>") +
+          "</div></div>"
+        : '<div class="banner info">' + ic("sliders") +
+            '<span class="grow">Расширенные параметры (JVM- и игровые аргументы, переменные окружения) скрыты.</span>' +
+            '<div class="p-inst-expert" style="color:inherit"><span>Экспертный режим</span>' +
+            '<label class="switch"><input type="checkbox" id="p-inst-f-expert" /><i></i></label></div></div>') +
+
+      '<div class="p-inst-card"><h3>Аккаунт и запуск</h3><div class="p-inst-rows">' +
+        row("Аккаунт", "Аккаунт для запуска этой сборки.",
+          '<select id="p-inst-f-acc"><option value="">По умолчанию</option></select>') +
+        row("Безопасный режим", "Запускать без модов, пока не отключено.",
+          switchHtml("p-inst-f-safe", !!i.safeMode)) +
+        row("Быстрое подключение", "IP и порт сервера для автоподключения при запуске.",
+          '<input type="text" id="p-inst-f-sip" placeholder="play.example.com" value="' + esc(i.serverIp || "") + '" style="min-width:190px" />' +
+          '<input type="number" id="p-inst-f-sport" min="1" max="65535" value="' + esc(String(i.serverPort || 25565)) + '" style="width:100px" />') +
+      "</div></div>";
+
+    bindSettings();
+    updateRamWarn();
+    applyJavaVisibility(i.javaMode || "auto");
+    loadMcVersions();
+    loadLoaderVersions();
+    loadJavaHint();
+    fillAccounts();
+  }
+
+  function applyJavaVisibility(mode) {
+    var b = S.els.body;
+    var jm = ui.$("#p-inst-f-jma", b), jp = ui.$("#p-inst-f-jp", b);
+    if (jm) jm.style.display = mode === "major" ? "" : "none";
+    if (jp) jp.style.display = mode === "path" ? "" : "none";
+  }
+
+  function updateRamWarn() {
+    var box = ui.$("#p-inst-ramwarn", S.els.body);
+    if (!box) return;
+    var total = (App.info && App.info.ramTotalMb) || 0;
+    var maxEl = ui.$("#p-inst-f-rmax", S.els.body);
+    var cust = ui.$("#p-inst-f-rcustom", S.els.body);
+    var max = parseInt((cust && cust.value) || (maxEl && maxEl.value) || "0", 10) || 0;
+    box.innerHTML = (total && max > total)
+      ? '<div class="banner error">' + ic("alert") +
+        '<span class="grow">Максимум RAM (' + ui.fmtNum(max) + " МБ) больше доступной памяти (" + ui.fmtNum(total) + " МБ) — игра может не запуститься.</span></div>"
+      : "";
+  }
+
+  function queueSave(patch) {
+    Object.assign(S.saveQueue, patch);
+    if (S.saveTimer) clearTimeout(S.saveTimer);
+    S.saveTimer = setTimeout(flushSave, 400);
+  }
+  async function saveNow(patch) {
+    try {
+      var upd = await api("instances.update", Object.assign({ id: S.id }, patch));
+      if (S.dead) return null;
+      S.inst = upd && upd.id ? upd : Object.assign({}, S.inst, patch);
+      var now = Date.now();
+      if (now - S.lastToast > 2000) { S.lastToast = now; ui.notifySuccess("Сохранено"); }
+      return S.inst;
+    } catch (e) { ui.notifyError(e, "Не удалось сохранить"); return null; }
+  }
+  async function flushSave() {
+    S.saveTimer = null;
+    var patch = S.saveQueue;
+    S.saveQueue = {};
+    if (!Object.keys(patch).length) return;
+    await saveNow(patch);
+  }
+
+  async function loadMcVersions() {
+    try {
+      var list = (await api("versions.list", { type: "release", limit: 300 })) || [];
+      if (S.dead) return;
+      S.versions = list;
+      fillMcVersions("");
+    } catch (e) {
+      var sel = ui.$("#p-inst-f-mc", S.els.body);
+      if (sel) sel.innerHTML = option(S.inst.mcVersion, S.inst.mcVersion + " · список недоступен", S.inst.mcVersion);
+    }
+  }
+  function fillMcVersions(q) {
+    var sel = ui.$("#p-inst-f-mc", S.els.body);
+    if (!sel) return;
+    q = String(q || "").trim().toLowerCase();
+    var arr = S.versions.filter(function (v) { return !q || String(v.id).toLowerCase().indexOf(q) >= 0; }).slice(0, 200);
+    if (!arr.length) { sel.innerHTML = option(S.mcPick, S.mcPick, S.mcPick); return; }
+    sel.innerHTML = arr.map(function (v) {
+      return option(v.id, v.id + (v.installed ? " · установлено" : ""), S.mcPick);
+    }).join("");
+    if (!arr.some(function (v) { return v.id === S.mcPick; })) sel.value = S.mcPick;
+  }
+
+  async function loadLoaderVersions() {
+    var sel = ui.$("#p-inst-f-lv", S.els.body);
+    if (!sel) return;
+    if (S.ldPick === "vanilla") { sel.innerHTML = '<option value="">—</option>'; return; }
+    sel.innerHTML = '<option value="">Загрузка…</option>';
+    try {
+      var all = (await api("versions.loaders", { mcVersion: S.mcPick })) || [];
+      if (S.dead) return;
+      var list = all.filter(function (x) { return String(x.loader || "").toLowerCase() === S.ldPick; });
+      if (!list.length) { sel.innerHTML = '<option value="">Нет версий</option>'; S.lvPick = ""; return; }
+      if (!list.some(function (x) { return x.version === S.lvPick; })) {
+        S.lvPick = (list.find(function (x) { return x.stable; }) || list[0]).version;
+      }
+      sel.innerHTML = list.map(function (x) { return option(x.version, x.version + (x.stable ? "" : " (beta)"), S.lvPick); }).join("");
+    } catch (e) {
+      sel.innerHTML = '<option value="">Ошибка загрузки</option>';
+      ui.notifyError(e, "Не удалось загрузить версии загрузчика");
+    }
+  }
+
+  async function loadJavaHint() {
+    var box = ui.$("#p-inst-jhint", S.els.body);
+    if (!box) return;
+    box.innerHTML = '<div class="p-inst-note">Проверка Java…</div>';
+    try {
+      var r = await api("java.recommend", { instanceId: S.id });
+      if (S.dead || !box.isConnected) return;
+      var found = r ? (typeof r.found === "boolean" ? r.found : !!(r.path || r.major)) : false;
+      var need = (r && (r.required || r.major)) || 21;
+      if (found) {
+        box.innerHTML = '<div class="p-inst-note">' + ic("check") + " Рекомендуется Java " + ui.fmtNum(r.major) +
+          (r.reason ? " — " + esc(r.reason) : "") + (r.path ? " · " + esc(r.path) : "") + "</div>";
+      } else {
+        box.innerHTML = '<div class="banner warn">' + ic("alert") +
+          '<span class="grow">Подходящая Java не найдена' + (r && r.reason ? ": " + esc(r.reason) : "") + "</span>" +
+          '<button class="btn btn-sm btn-primary" data-act="jinst">Установить Java ' + ui.fmtNum(need) + "</button></div>";
+        var b = box.querySelector('[data-act="jinst"]');
+        if (b) b.onclick = function () { javaInstallDialog(need); };
+      }
+    } catch (e) {
+      if (!box.isConnected) return;
+      box.innerHTML = '<div class="p-inst-note">' + esc(ui.errText(e)) + "</div>";
+    }
+  }
+
+  function javaInstallDialog(preset) {
+    var majors = [8, 11, 17, 21, 25];
+    if (majors.indexOf(preset) < 0) preset = 21;
+    var bodyEl = document.createElement("div");
+    bodyEl.className = "col";
+    bodyEl.innerHTML = '<div class="field"><label>Версия Java</label>' +
+      '<div class="row wrap" style="gap:7px" id="ji-list">' +
+      majors.map(function (m) {
+        return '<button class="chip' + (m === preset ? " active" : "") + '" data-m="' + m + '">Java ' + m + "</button>";
+      }).join( "") + "</div></div>" +
+      '<div class="p-inst-note">Лаунчер скачает Temurin и настроит сборку автоматически.</div>';
+    var chosen = preset;
+    ui.openDialog({
+      title: "Установка Java",
+      icon: "coffee",
+      body: bodyEl,
+      buttons: [
+        { label: "Отмена", role: "cancel" },
+        {
+          label: "Установить", role: "primary", keepOpen: true,
+          onClick: async function (ctx) {
+            try {
+              await api("java.install", { major: chosen });
+              ui.notifySuccess("Java установлена", "Java " + chosen);
+              ctx.close();
+              loadJavaHint();
+              return false;
+            } catch (e) { ui.notifyError(e, "Не удалось установить Java"); return false; }
+          },
+        },
+      ],
+    });
+    Array.prototype.forEach.call(bodyEl.querySelectorAll("[data-m]"), function (b) {
+      b.onclick = function () {
+        chosen = parseInt(b.dataset.m, 10);
+        Array.prototype.forEach.call(bodyEl.querySelectorAll("[data-m]"), function (x) {
+          x.classList.toggle("active", x === b);
+        });
+      };
+    });
+  }
+
+  async function fillAccounts() {
+    var sel = ui.$("#p-inst-f-acc", S.els.body);
+    if (!sel) return;
+    try {
+      var list = (await api("accounts.list")) || [];
+      if (S.dead || !sel.isConnected) return;
+      sel.innerHTML = '<option value="">По умолчанию</option>' + list.map(function (a) {
+        return option(a.uuid, a.name + (a.default ? " · основной" : ""), S.inst.accountUuid || "");
+      }).join("");
+      sel.value = S.inst.accountUuid || "";
+    } catch (e) {
+      sel.innerHTML = '<option value="">Не удалось загрузить аккаунты</option>';
+    }
+  }
+
+  function bindSettings() {
+    var b = S.els.body;
+    function el(sel) { return ui.$(sel, b); }
+
+    var f;
+    if ((f = el("#p-inst-f-name"))) f.oninput = function () { queueSave({ name: this.value }); };
+    if ((f = el("#p-inst-f-desc"))) f.oninput = function () { queueSave({ description: this.value }); };
+    if ((f = el("#p-inst-f-color"))) f.oninput = function () { queueSave({ color: this.value }); };
+    if ((f = el("#p-inst-f-fav"))) f.onchange = function () { queueSave({ favorite: this.checked }); };
+
+    var iconBtnEl = b.querySelector('[data-act="icon"]');
+    if (iconBtnEl) iconBtnEl.onclick = async function () {
+      try {
+        var files = await api("system.pickFiles", { title: "Иконка сборки", filter: "image" });
+        if (!files || !files.length) return;
+        var inst = await saveNow({ iconPath: files[0] });
+        if (inst) renderHero();
+      } catch (e) { ui.notifyError(e, "Не удалось выбрать изображение"); }
+    };
+    var iconClr = b.querySelector('[data-act="icon-clear"]');
+    if (iconClr) iconClr.onclick = async function () {
+      var inst = await saveNow({ iconPath: "" });
+      if (inst) renderHero();
+    };
+
+    var verBtn = b.querySelector('[data-act="ver"]');
+    if (verBtn) verBtn.onclick = function () { changeVersionDialog(); };
+
+    var mcq = el("#p-inst-f-mcq");
+    if (mcq) mcq.oninput = ui.debounce(function () { fillMcVersions(mcq.value); }, 200);
+    var mc = el("#p-inst-f-mc");
+    if (mc) mc.onchange = function () { S.mcPick = this.value; loadLoaderVersions(); };
+    var ld = el("#p-inst-f-ld");
+    if (ld) ld.onchange = function () { S.ldPick = this.value; S.lvPick = ""; loadLoaderVersions(); };
+    var lv = el("#p-inst-f-lv");
+    if (lv) lv.onchange = function () { S.lvPick = this.value; };
+
+    var jm = el("#p-inst-f-jm");
+    if (jm) jm.onchange = async function () {
+      var mode = this.value;
+      applyJavaVisibility(mode);
+      try {
+        var params = { instanceId: S.id, mode: mode };
+        if (mode === "major") params.value = parseInt((el("#p-inst-f-jma") || {}).value, 10) || 21;
+        if (mode === "path") params.value = (el("#p-inst-f-jp") || {}).value;
+        await api("java.setInstance", params);
+        ui.notifySuccess("Сохранено");
+        loadJavaHint();
+      } catch (e) { ui.notifyError(e, "Не удалось изменить режим Java"); }
+    };
+    var jma = el("#p-inst-f-jma");
+    if (jma) jma.onchange = async function () {
+      if (!jm || jm.value !== "major") return;
+      try { await api("java.setInstance", { instanceId: S.id, mode: "major", value: parseInt(this.value, 10) }); ui.notifySuccess("Сохранено"); }
+      catch (e) { ui.notifyError(e); }
+    };
+    var jp = el("#p-inst-f-jp");
+    if (jp) jp.oninput = ui.debounce(async function () {
+      if (!jm || jm.value !== "path") return;
+      try { await api("java.setInstance", { instanceId: S.id, mode: "path", value: this.value }); ui.notifySuccess("Сохранено"); }
+      catch (e) { ui.notifyError(e); }
+    }, 600);
+
+    if ((f = el("#p-inst-f-rmin"))) f.onchange = function () { queueSave({ ramMinMb: parseInt(this.value, 10) || 512 }); };
+    if ((f = el("#p-inst-f-rmax"))) f.onchange = function () {
+      var v = parseInt(this.value, 10) || 4096;
+      var c = el("#p-inst-f-rcustom");
+      if (c) c.value = v;
+      queueSave({ ramMaxMb: v });
+      updateRamWarn();
+    };
+    if ((f = el("#p-inst-f-rcustom"))) f.oninput = ui.debounce(function () {
+      var v = parseInt(this.value, 10);
+      if (!v || v < 512) return;
+      queueSave({ ramMaxMb: v });
+      var s = el("#p-inst-f-rmax");
+      if (s && Array.prototype.some.call(s.options, function (o) { return parseInt(o.value, 10) === v; })) s.value = v;
+      updateRamWarn();
+    }, 500);
+
+    Array.prototype.forEach.call(b.querySelectorAll("#p-inst-f-wm [data-wm]"), function (btn) {
+      btn.onclick = function () {
+        Array.prototype.forEach.call(b.querySelectorAll("#p-inst-f-wm [data-wm]"), function (x) {
+          x.classList.toggle("active", x === btn);
+        });
+        queueSave({ windowMode: btn.dataset.wm });
+      };
+    });
+    if ((f = el("#p-inst-f-width"))) f.oninput = ui.debounce(function () { queueSave({ width: parseInt(this.value, 10) || 1920 }); }, 500);
+    if ((f = el("#p-inst-f-height"))) f.oninput = ui.debounce(function () { queueSave({ height: parseInt(this.value, 10) || 1080 }); }, 500);
+    if ((f = el("#p-inst-f-vsync"))) f.onchange = function () { queueSave({ vsync: this.checked }); };
+    if ((f = el("#p-inst-f-fps"))) f.oninput = ui.debounce(function () { queueSave({ fpsLimit: parseInt(this.value, 10) || 0 }); }, 500);
+
+    if ((f = el("#p-inst-f-jvm"))) f.oninput = ui.debounce(function () { queueSave({ jvmArgs: this.value }); }, 600);
+    if ((f = el("#p-inst-f-game"))) f.oninput = ui.debounce(function () { queueSave({ gameArgs: this.value }); }, 600);
+    if ((f = el("#p-inst-f-env"))) f.oninput = ui.debounce(function () { queueSave({ envVars: this.value }); }, 600);
+
+    var expert = el("#p-inst-f-expert");
+    if (expert) expert.onchange = async function () {
+      var on = this.checked;
+      try {
+        await api("settings.set", { expertMode: on });
+        App.settings.expertMode = on;
+        ui.notifySuccess(on ? "Экспертный режим включён" : "Экспертный режим выключен");
+        renderSettings();
+      } catch (e) { ui.notifyError(e, "Не удалось изменить настройку"); }
+    };
+
+    if ((f = el("#p-inst-f-acc"))) f.onchange = function () { queueSave({ accountUuid: this.value || "" }); };
+    if ((f = el("#p-inst-f-safe"))) f.onchange = function () { queueSave({ safeMode: this.checked }); };
+    if ((f = el("#p-inst-f-sip"))) f.oninput = ui.debounce(function () { queueSave({ serverIp: this.value.trim() }); }, 500);
+    if ((f = el("#p-inst-f-sport"))) f.onchange = function () { queueSave({ serverPort: parseInt(this.value, 10) || 25565 }); };
+  }
+
+  /* ================= вкладка «Доступ» ================= */
+  function renderAccess() {
+    S.els.body.innerHTML =
+      '<div class="p-inst-actions">' +
+        '<div class="p-inst-card"><h3>Экспортировать…</h3>' +
+          '<p class="p-inst-note">Соберёт выбранные компоненты в архив .zip для переноса.</p>' +
+          '<div><button class="btn btn-primary" data-act="exp">' + ic("upload") + " Экспорт…</button></div></div>" +
+        '<div class="p-inst-card"><h3>Импортировать…</h3>' +
+          '<p class="p-inst-note">Добавит архив сборки (.nlpkg / .zip) как новую сборку.</p>' +
+          '<div><button class="btn" data-act="imp">' + ic("download") + " Импорт…</button></div></div>" +
+        '<div class="p-inst-card"><h3>Поделиться файлом сборки</h3>' +
+          '<p class="p-inst-note">Создаст архив и откроет его в Проводнике, чтобы вы могли отправить его друзьям.</p>' +
+          '<div><button class="btn" data-act="share">' + ic("external") + " Создать архив…</button></div></div>" +
+      "</div>" +
+      '<div class="banner info">' + ic("globe") +
+        '<span class="grow">Онлайн-синхронизация сборок между устройствами появится позже — сейчас доступна только локальная работа с файлами.</span></div>';
+
+    S.els.body.querySelector('[data-act="exp"]').onclick = function () { exportDialog(false); };
+    S.els.body.querySelector('[data-act="share"]').onclick = function () { exportDialog(true); };
+    S.els.body.querySelector('[data-act="imp"]').onclick = importInstanceArchive;
+  }
+
+  function exportDialog(share) {
+    var parts = [
+      ["mods", "Моды"], ["resourcepacks", "Ресурс-паки"], ["shaders", "Шейдеры"],
+      ["configs", "Конфиги"], ["worlds", "Миры"], ["options", "Настройки игры"], ["screenshots", "Скриншоты"],
+    ];
+    var bodyEl = document.createElement("div");
+    bodyEl.className = "col";
+    bodyEl.innerHTML = parts.map(function (p) {
+      return '<label class="p-inst-check"><input type="checkbox" value="' + p[0] + '" checked /> ' + esc(p[1]) + "</label>";
+    }).join("") +
+      '<div class="p-inst-note">В архив попадут файлы из .minecraft выбранной сборки.</div>';
+
+    ui.openDialog({
+      title: share ? "Поделиться файлом сборки" : "Экспорт сборки",
+      sub: share ? "Создадим архив и откроем его в Проводнике." : "Выберите компоненты и папку назначения.",
+      icon: "upload",
+      body: bodyEl,
+      buttons: [
+        { label: "Отмена", role: "cancel" },
+        {
+          label: share ? "Создать архив…" : "Экспорт…",
+          role: "primary", keepOpen: true,
+          onClick: async function (ctx) {
+            var include = {};
+            Array.prototype.forEach.call(bodyEl.querySelectorAll("input[type=checkbox]"), function (c) {
+              include[c.value] = c.checked;
+            });
+            if (!Object.keys(include).some(function (k) { return include[k]; })) {
+              ui.notifyWarn("Ничего не выбрано", "Отметьте хотя бы один компонент.");
+              return false;
+            }
+            try {
+              var dir = await api("system.pickDirectory", { title: "Куда сохранить архив" });
+              if (!dir || !dir.path) return false;
+              var safe = String(S.inst.name || "instance").replace(/[\\/:*?"<>|]/g, "_");
+              var target = String(dir.path).replace(/[\\/]+$/, "") + "\\" + safe + ".zip";
+              var res = await api("instances.export", { id: S.id, targetPath: target, include: include });
+              if (S.dead) return false;
+              if (res && res.cancelled) return false;
+              if (share && res && res.path) {
+                await api("system.openPath", { path: res.path, select: true });
+                ui.notifySuccess("Архив готов", res.path);
+              } else {
+                ui.notifySuccess("Экспорт завершён", (res && res.path ? res.path + " · " : "") + ui.fmtBytes(res && res.bytes));
+              }
+              ctx.close();
+              return false;
+            } catch (e) { ui.notifyError(e, "Не удалось выполнить экспорт"); return false; }
+          },
+        },
+      ],
+    });
+  }
+
+  async function importInstanceArchive() {
+    try {
+      var files = await api("system.pickFiles", { title: "Импорт сборки", filter: "instance" });
+      if (!files || !files.length) return;
+      var created = await api("instances.import", { sourcePath: files[0] });
+      if (S.dead) return;
+      ui.notifySuccess("Сборка импортирована", created && created.name);
+      if (created && created.id) nav("instance", { id: created.id });
+      else renderTab();
+    } catch (e) { ui.notifyError(e, "Не удалось импортировать сборку"); }
+  }
+
+  Pages.register("instance", { title: "Сборка", init: init, dispose: dispose });
+})();
+</script>

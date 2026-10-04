@@ -1,0 +1,490 @@
+<style>
+/* ===== welcome — мастер первого запуска (префикс ws-) ===== */
+.ws-wrap { display: flex; justify-content: center; padding: 26px 8px 40px; }
+.ws-card { width: 100%; max-width: 640px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.ws-head { padding: 22px 26px 0; }
+.ws-head .wizard-steps { margin-top: 16px; }
+.ws-title { display: flex; align-items: center; gap: 12px; }
+.ws-title .ws-ic { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: 0 0 auto; }
+.ws-title .ws-ic svg { width: 21px; height: 21px; }
+.ws-title h2 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -0.2px; }
+.ws-title .step-num { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+.ws-body { padding: 20px 26px 8px; display: flex; flex-direction: column; gap: 14px; min-height: 268px; }
+.ws-body p.lead { margin: 0; color: var(--text-2); font-size: 13.5px; line-height: 1.65; }
+.ws-foot { display: flex; align-items: center; gap: 10px; padding: 16px 26px 22px; border-top: 1px solid var(--line); }
+.ws-foot .btn[hidden] { display: none; }
+.ws-foot .spacer { flex: 1; }
+.ws-opt { display: flex; align-items: center; gap: 13px; padding: 13px 15px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card-2); cursor: pointer; transition: border-color var(--t), background var(--t); text-align: left; width: 100%; }
+.ws-opt:hover { background: var(--card-3); }
+.ws-opt.sel { border-color: var(--accent); background: var(--accent-soft); }
+.ws-opt .ws-opt-ic { width: 34px; height: 34px; border-radius: var(--r-sm); background: var(--card-3); color: var(--text-2); display: grid; place-items: center; flex: 0 0 auto; }
+.ws-opt.sel .ws-opt-ic { background: var(--accent); color: var(--on-accent); }
+.ws-opt .grow { flex: 1; min-width: 0; }
+.ws-opt .nm { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.ws-opt .sub { font-size: 11.5px; color: var(--text-3); margin-top: 3px; line-height: 1.5; }
+.ws-opt .tick { color: var(--accent); opacity: 0; flex: 0 0 auto; }
+.ws-opt.sel .tick { opacity: 1; }
+.ws-path { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.ws-path .mono { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.ws-note { font-size: 11.5px; color: var(--text-3); line-height: 1.55; }
+.ws-ram { display: flex; flex-direction: column; gap: 12px; }
+.ws-ram .val { display: flex; align-items: baseline; gap: 8px; }
+.ws-ram .val b { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+.ws-ram .val span { color: var(--text-3); font-size: 12.5px; }
+.ws-ram input[type="range"] { width: 100%; }
+.ws-swatches { display: flex; gap: 9px; flex-wrap: wrap; }
+.ws-swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; position: relative; transition: transform var(--t); }
+.ws-swatch:hover { transform: scale(1.1); }
+.ws-swatch.active { box-shadow: 0 0 0 2px var(--bg-1), 0 0 0 4px var(--accent); }
+.ws-hero { text-align: center; padding: 12px 0 4px; }
+.ws-hero .logo { width: 74px; height: 74px; margin: 0 auto 16px; border-radius: 20px; background: var(--card-3); display: grid; place-items: center; border: 1px solid var(--line); }
+.ws-hero .logo svg { width: 40px; height: 40px; color: var(--accent); }
+.ws-hero h1 { margin: 0 0 8px; font-size: 23px; font-weight: 700; letter-spacing: -0.5px; }
+.ws-hero p { margin: 0 auto; max-width: 440px; color: var(--text-2); font-size: 13.5px; line-height: 1.65; }
+.ws-hero ul { margin: 16px auto 0; max-width: 400px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.ws-hero ul li { display: flex; gap: 9px; align-items: center; font-size: 12.5px; color: var(--text-2); }
+.ws-hero ul li svg { width: 15px; height: 15px; color: var(--accent); flex: 0 0 auto; }
+.ws-detected { display: flex; flex-direction: column; gap: 8px; }
+.ws-detected .row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-2); padding: 9px 12px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.ws-detected .row .mono { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; }
+.ws-code { text-align: center; display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+.ws-code .url { font-size: 12.5px; color: var(--text-2); word-break: break-all; }
+.ws-code .pin { font-size: 30px; font-weight: 700; letter-spacing: 4px; font-family: var(--mono); }
+</style>
+
+<section class="page">
+  <div class="ws-wrap">
+    <div class="ws-card">
+      <div class="ws-head">
+        <div class="ws-title" id="ws-title"></div>
+        <div class="wizard-steps" id="ws-steps"></div>
+      </div>
+      <div class="ws-body" id="ws-body"></div>
+      <div class="ws-foot">
+        <button class="btn" id="ws-back">Назад</button>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost" id="ws-skip">Пропустить настройку</button>
+        <button class="btn btn-primary" id="ws-next">Далее</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
+
+  var STEPS = [
+    { id: "intro",  ic: "zap",     title: "Добро пожаловать в NullLauncher" },
+    { id: "folder", ic: "folder",  title: "Папка данных" },
+    { id: "java",   ic: "coffee",  title: "Java" },
+    { id: "account", ic: "user",   title: "Аккаунт" },
+    { id: "ram",    ic: "memory",  title: "Память" },
+    { id: "theme",  ic: "sun",     title: "Оформление" },
+  ];
+  var ACCENTS = ["#3ecf8e", "#4da3ff", "#8b5cf6", "#ef5b64", "#eea23c", "#22d3ee"];
+
+  var S = {
+    step: 0, dead: false, info: null,
+    folder: "", folderPicked: false,
+    javaAuto: true, javaMajor: 21, javaList: [], javaLoading: false,
+    account: null,                  /* {name,uuid} добавленный на шаге */
+    msPoll: null,
+    ramMax: 4096, ramTotal: 8192,
+    theme: "dark", accent: "#3ecf8e",
+    finishing: false,
+  };
+
+  var els = {};
+
+  /* ---------- helpers ---------- */
+  function esc(s) { return ui.esc(s); }
+  function icon(n, c) { return ui.icon(n, c); }
+
+  function setStep(i) {
+    S.step = Math.max(0, Math.min(STEPS.length - 1, i));
+    paintHead();
+    paintBody();
+    chrome();
+  }
+
+  function paintHead() {
+    var st = STEPS[S.step];
+    els.title.innerHTML =
+      '<div class="ws-ic">' + icon(st.ic) + "</div>" +
+      "<div><h2>" + esc(st.title) + "</h2>" +
+      (S.step === 0 ? '<div class="step-num">Первый запуск</div>'
+                    : '<div class="step-num">Шаг ' + S.step + " из " + (STEPS.length - 1) + "</div>") +
+      "</div>";
+    els.steps.innerHTML = STEPS.map(function (_, n) {
+      return '<span class="st' + (n <= S.step ? " done" : "") + '"><i></i></span>';
+    }).join("");
+  }
+
+  function chrome() {
+    els.back.disabled = S.step === 0 || S.finishing;
+    els.skip.hidden = S.step === 0 || S.step === STEPS.length - 1;
+    els.next.textContent = S.finishing ? "Сохранение…" : (S.step === STEPS.length - 1 ? "Готово" : "Далее");
+    els.next.disabled = S.finishing;
+  }
+
+  /* ---------- шаги ---------- */
+  function paintBody() {
+    var id = STEPS[S.step].id;
+    if (id === "intro") return bodyIntro();
+    if (id === "folder") return bodyFolder();
+    if (id === "java") return bodyJava();
+    if (id === "account") return bodyAccount();
+    if (id === "ram") return bodyRam();
+    if (id === "theme") return bodyTheme();
+  }
+
+  function bodyIntro() {
+    els.body.innerHTML =
+      '<div class="ws-hero">' +
+        '<div class="logo">' + icon("cube") + "</div>" +
+        "<h1>NullLauncher</h1>" +
+        "<p>Полноценный лаунчер Minecraft для Windows: настоящие версии Mojang, моды с Modrinth, загрузчики, бэкапы и запуск игры.</p>" +
+        "<ul>" +
+          "<li>" + icon("check") + " Установка версий Fabric, Forge, NeoForge и Quilt</li>" +
+          "<li>" + icon("check") + " Поиск и установка модов прямо из Modrinth</li>" +
+          "<li>" + icon("check") + " Автоподбор Java, проверка файлов и бэкапы</li>" +
+        "</ul>" +
+      "</div>" +
+      '<p class="ws-note" style="text-align:center">Помощник займёт меньше минуты — всё можно изменить позже в настройках.</p>';
+  }
+
+  function bodyFolder() {
+    els.body.innerHTML =
+      '<p class="lead">Здесь будут храниться сборки, версии Minecraft, моды, миры и кэш. Настройки лаунчера всегда остаются в %APPDATA%\\NullLauncher.</p>' +
+      '<div class="ws-path">' + icon("folder") +
+        '<span class="mono" id="ws-folder-v">' + esc(S.folder) + "</span>" +
+        '<button class="btn btn-sm" id="ws-folder-pick">Изменить…</button>' +
+      "</div>" +
+      '<div class="ws-note">Смена папки применится при следующем запуске лаунчера. Убедитесь, что на диске достаточно свободного места — одна сборка занимает 1–5 ГБ.</div>';
+    document.getElementById("ws-folder-pick").onclick = async function () {
+      try {
+        var p = await api("system.pickDirectory", { title: "Папка данных NullLauncher", initial: S.folder });
+        if (!p) return;
+        S.folder = p; S.folderPicked = true;
+        var v = document.getElementById("ws-folder-v");
+        if (v) v.textContent = p;
+      } catch (e) { ui.notifyError(e, "Не удалось выбрать папку"); }
+    };
+  }
+
+  function bodyJava() {
+    els.body.innerHTML =
+      '<p class="lead">Разные версии Minecraft требуют разные версии Java. Лаунчер может находить установленные автоматически — рекомендуем оставить автоопределение.</p>' +
+      '<button class="ws-opt' + (S.javaAuto ? " sel" : "") + '" id="ws-java-auto">' +
+        '<span class="ws-opt-ic">' + icon("zap") + "</span>" +
+        '<span class="grow"><span class="nm">Автоматический выбор Java</span>' +
+        '<span class="sub">Подбирать Java по требованиям выбранной версии Minecraft (8, 17, 21…).</span></span>' +
+        '<span class="tick">' + icon("check") + "</span>" +
+      "</button>" +
+      '<button class="ws-opt' + (S.javaAuto ? "" : " sel") + '" id="ws-java-manual">' +
+        '<span class="ws-opt-ic">' + icon("sliders") + "</span>" +
+        '<span class="grow"><span class="nm">Выбрать версию вручную</span>' +
+        '<span class="sub">Java ' + esc(String(S.javaMajor)) + " по умолчанию — можно поменять позже.</span></span>" +
+        '<span class="tick">' + icon("check") + "</span>" +
+      "</button>" +
+      '<div class="ws-detected" id="ws-java-list"><div class="row"><span class="spinner"></span> Поиск установленной Java…</div></div>';
+
+    document.getElementById("ws-java-auto").onclick = function () { S.javaAuto = true; paintBody(); };
+    document.getElementById("ws-java-manual").onclick = function () { S.javaAuto = false; paintBody(); };
+    detectJava();
+  }
+
+  async function detectJava() {
+    if (S.javaLoading) return;
+    S.javaLoading = true;
+    var box = document.getElementById("ws-java-list");
+    try {
+      var list = (await api("java.detect")) || [];
+      S.javaList = list;
+      S.javaLoading = false;
+      if (S.dead || !document.getElementById("ws-java-list")) return;
+      box = document.getElementById("ws-java-list");
+      if (!list.length) {
+        box.innerHTML = '<div class="row" style="color:var(--text-3)">' + icon("alert") +
+          " Java не найдена — она будет скачана автоматически при первом запуске игры.</div>";
+        return;
+      }
+      /* если авто — подхватить лучшую найденную версию */
+      if (S.javaAuto) {
+        var majors = list.filter(function (j) { return j.valid && j.major; }).map(function (j) { return j.major; });
+        if (majors.length) S.javaMajor = Math.max.apply(null, majors);
+      }
+      box.innerHTML = list.slice(0, 4).map(function (j) {
+        return '<div class="row">' + icon("coffee") +
+          '<span class="mono">' + esc(j.path || "") + "</span>" +
+          "<span>Java " + esc(String(j.major || j.version || "?")) + (j.valid ? "" : " (проверьте путь)") + "</span></div>";
+      }).join("") + (list.length > 4 ? '<div class="ws-note">…и ещё ' + (list.length - 4) + "</div>" : "");
+    } catch (e) {
+      S.javaLoading = false;
+      if (S.dead || !document.getElementById("ws-java-list")) return;
+      document.getElementById("ws-java-list").innerHTML =
+        '<div class="row" style="color:var(--warn)">' + icon("alert") + " " + esc(ui.errText(e)) + "</div>";
+    }
+  }
+
+  function bodyAccount() {
+    var acc = S.account;
+    els.body.innerHTML =
+      '<p class="lead">Войдите в аккаунт Microsoft, чтобы играть на официальных серверах и с друзьями. Можно также добавить оффлайн-аккаунт или войти как гость — это работает без интернета.</p>' +
+      (acc
+        ? '<div class="ws-path">' + icon("user") +
+            '<span class="mono">' + esc(acc.name) + " — аккаунт готов</span>" +
+            '<button class="btn btn-sm btn-ghost" id="ws-acc-reset">Сменить</button></div>'
+        : '<button class="ws-opt" id="ws-acc-ms">' +
+            '<span class="ws-opt-ic">' + icon("shield") + "</span>" +
+            '<span class="grow"><span class="nm">Войти через Microsoft</span>' +
+            '<span class="sub">Код подтверждения на экране, вход по OAuth — пароль не вводится.</span></span></button>' +
+          '<button class="ws-opt" id="ws-acc-off">' +
+            '<span class="ws-opt-ic">' + icon("user") + "</span>" +
+            '<span class="grow"><span class="nm">Оффлайн-аккаунт</span>' +
+            '<span class="sub">Своё имя и UUID без проверки лицензии. Подходит для одиночной игры.</span></span></button>' +
+          '<button class="ws-opt" id="ws-acc-guest">' +
+            '<span class="ws-opt-ic">' + icon("eye") + "</span>" +
+            '<span class="grow"><span class="nm">Продолжить как гость</span>' +
+            '<span class="sub">Аккаунт можно добавить позже в настройках.</span></span></button>');
+
+    var ms = document.getElementById("ws-acc-ms");
+    if (ms) ms.onclick = msLogin;
+    var off = document.getElementById("ws-acc-off");
+    if (off) off.onclick = async function () {
+      var name = await ui.promptDialog({
+        title: "Оффлайн-аккаунт", message: "Игровое имя (3–16 символов, латиница и цифры):",
+        value: "Player", okLabel: "Добавить",
+        validate: function (v) { return /^[A-Za-z0-9_]{3,16}$/.test(v) ? null : "Имя: 3–16 символов, латиница, цифры и _"; },
+      });
+      if (!name) return;
+      try {
+        S.account = await api("accounts.addOffline", { name: name });
+        ui.updateAccountChip();
+        paintBody();
+      } catch (e) { ui.notifyError(e, "Не удалось добавить аккаунт"); }
+    };
+    var guest = document.getElementById("ws-acc-guest");
+    if (guest) guest.onclick = function () { S.account = null; next(); };
+    var reset = document.getElementById("ws-acc-reset");
+    if (reset) reset.onclick = function () { S.account = null; paintBody(); };
+  }
+
+  function msLogin() {
+    api("accounts.addMicrosoft").then(function (res) {
+      if (!res || !res.deviceCode) {
+        ui.notifyError("Сервис Microsoft не вернул код устройства", "Попробуйте позже");
+        return;
+      }
+      var body = document.createElement("div");
+      body.className = "ws-code";
+      body.innerHTML =
+        '<div class="ws-note">Откройте ссылку, введите код и подтвердите вход.</div>' +
+        '<div class="url">' + esc(res.verificationUrl || "https://microsoft.com/link") + "</div>" +
+        '<div class="pin">' + esc(res.userCode || "") + "</div>" +
+        '<div class="ws-note" id="ws-ms-status">Ожидание подтверждения…</div>' +
+        '<div class="progress indeterminate"><i style="width:35%"></i></div>';
+
+      var poll = null;
+      var dlg = ui.openDialog({
+        title: "Вход через Microsoft",
+        icon: "user",
+        body: body,
+        buttons: [{ label: "Отмена", role: "cancel" }],
+        onClose: function () { if (poll) { clearInterval(poll); poll = null; } },
+      });
+
+      poll = setInterval(async function () {
+        try {
+          var r = await api("accounts.pollMicrosoft", { uuid: res.deviceCode });
+          if (!poll) return;
+          if (r && r.status === "done") {
+            clearInterval(poll); poll = null;
+            dlg.close();
+            S.account = r.account || null;
+            ui.updateAccountChip();
+            if (!S.dead) paintBody();
+          } else if (r && r.status === "expired") {
+            clearInterval(poll); poll = null;
+            dlg.close();
+            ui.notifyError("Код истёк", "Запросите новый код входа");
+          }
+        } catch (e) { /* кратковременные сбои опроса не прерываем */ }
+      }, 3000);
+    }).catch(function (e) { ui.notifyError(e, "Не удалось начать вход через Microsoft"); });
+  }
+
+  function bodyRam() {
+    els.body.innerHTML =
+      '<p class="lead">Сколько памяти выделить игре. Значение применяется ко всем новым сборкам, для каждой сборки можно задать своё.</p>' +
+      '<div class="ws-ram">' +
+        '<div class="val"><b id="ws-ram-v">4096</b><span>МБ · доступно ' + esc(fmtGb(S.ramTotal)) + " физической памяти</span></div>" +
+        '<input type="range" id="ws-ram" min="1024" max="' + Math.max(2048, Math.min(S.ramTotal, 32768)) + '" step="512" value="' + S.ramMax + '" />' +
+        '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap" id="ws-ram-presets">' +
+          [2048, 4096, 6144, 8192].map(function (mb) {
+            return '<button class="chip" data-mb="' + mb + '">' + fmtGb(mb) + "</button>";
+          }).join("") +
+        "</div>" +
+        '<div class="ws-note">Для modern-версий (1.18+) рекомендуется от 4 ГБ. Слишком большое значение может вызвать нехватку памяти на слабых ПК.</div>' +
+      "</div>";
+
+    var r = document.getElementById("ws-ram");
+    var v = document.getElementById("ws-ram-v");
+    r.oninput = function () { S.ramMax = Number(r.value); v.textContent = String(S.ramMax); markPreset(); };
+    document.getElementById("ws-ram-presets").onclick = function (e) {
+      var b = e.target.closest("[data-mb]");
+      if (!b) return;
+      S.ramMax = Number(b.dataset.mb);
+      r.value = String(S.ramMax);
+      v.textContent = String(S.ramMax);
+      markPreset();
+    };
+    markPreset();
+
+    function markPreset() {
+      document.querySelectorAll("#ws-ram-presets [data-mb]").forEach(function (b) {
+        b.classList.toggle("active", Number(b.dataset.mb) === S.ramMax);
+      });
+    }
+  }
+
+  function fmtGb(mb) {
+    var gb = mb / 1024;
+    return (Math.round(gb * 10) / 10) + " ГБ";
+  }
+
+  function bodyTheme() {
+    els.body.innerHTML =
+      '<p class="lead">Выберите тему и акцентный цвет интерфейса. Изменения применяются сразу.</p>' +
+      '<div class="segmented" id="ws-theme">' +
+        [["dark", "Тёмная"], ["light", "Светлая"], ["system", "Системная"]].map(function (t) {
+          return '<button data-t="' + t[0] + '" class="' + (S.theme === t[0] ? "active" : "") + '">' + t[1] + "</button>";
+        }).join("") +
+      "</div>" +
+      '<div class="field"><label>Акцентный цвет</label><div class="ws-swatches" id="ws-accents">' +
+        ACCENTS.map(function (c) {
+          return '<button class="ws-swatch' + (c.toLowerCase() === S.accent.toLowerCase() ? " active" : "") +
+            '" data-c="' + c + '" style="background:' + c + '" title="' + c + '"></button>';
+        }).join("") +
+      "</div></div>";
+
+    document.getElementById("ws-theme").onclick = function (e) {
+      var b = e.target.closest("[data-t]");
+      if (!b) return;
+      S.theme = b.dataset.t;
+      document.querySelectorAll("#ws-theme button").forEach(function (x) { x.classList.toggle("active", x === b); });
+      preview();
+    };
+    document.getElementById("ws-accents").onclick = function (e) {
+      var b = e.target.closest("[data-c]");
+      if (!b) return;
+      S.accent = b.dataset.c;
+      document.querySelectorAll("#ws-accents .ws-swatch").forEach(function (x) { x.classList.toggle("active", x === b); });
+      preview();
+    };
+
+    function preview() { ui.applySettings(Object.assign({}, App.settings, { theme: S.theme, accent: S.accent })); }
+  }
+
+  /* ---------- навигация ---------- */
+  function validate() {
+    var id = STEPS[S.step].id;
+    if (id === "folder" && S.folderPicked && !S.folder) return "Выберите папку данных.";
+    if (id === "ram" && (S.ramMax < 1024 || S.ramMax > S.ramTotal)) {
+      return "Значение памяти должно быть от 1024 МБ и не больше физически доступной (" + S.ramTotal + " МБ).";
+    }
+    return null;
+  }
+
+  async function next() {
+    if (S.finishing) return;
+    var err = validate();
+    if (err) { ui.notifyWarn("Проверьте значения", err); return; }
+    if (S.step < STEPS.length - 1) { setStep(S.step + 1); return; }
+    await finish();
+  }
+
+  function back() { if (S.step > 0 && !S.finishing) setStep(S.step - 1); }
+  function skip() { if (!S.finishing) finish(); }
+
+  async function finish() {
+    if (S.finishing) return;
+    S.finishing = true;
+    chrome();
+    try {
+      var patch = { theme: S.theme, accent: S.accent };
+      if (S.folderPicked && S.folder) patch.folder = S.folder;
+      patch.ram = true; patch.ramMaxMb = S.ramMax;
+      patch.javaMajor = S.javaMajor;
+      await api("system.completeFirstRun", patch);
+      /* javaAuto живёт отдельной настройкой — completeFirstRun его не трогает */
+      await api("settings.set", { javaAuto: S.javaAuto });
+      /* если аккаунт добавили — сделать его основным */
+      if (S.account && S.account.uuid) {
+        try { await api("accounts.setDefault", { uuid: S.account.uuid }); } catch (e) { /* не критично */ }
+      }
+      if (App.info) App.info.isFirstRun = false;
+      ui.applySettings(await api("settings.get"));
+      await ui.updateAccountChip();
+      ui.notifySuccess("Настройка завершена", "Добро пожаловать! Создайте первую сборку и запустите игру.");
+      S.finishing = false;
+      navigate("home", {});
+    } catch (e) {
+      S.finishing = false;
+      chrome();
+      ui.notifyError(e, "Не удалось сохранить настройки");
+    }
+  }
+
+  /* ---------- init / dispose ---------- */
+  async function init(ctx) {
+    els = {
+      title: document.getElementById("ws-title"),
+      steps: document.getElementById("ws-steps"),
+      body: document.getElementById("ws-body"),
+      back: document.getElementById("ws-back"),
+      next: document.getElementById("ws-next"),
+      skip: document.getElementById("ws-skip"),
+    };
+    els.back.onclick = back;
+    els.next.onclick = next;
+    els.skip.onclick = skip;
+    S.dead = false;
+    S.step = 0;
+    S.finishing = false;
+
+    try {
+      S.info = await api("system.info");
+      S.folder = (S.info && S.info.dataDir) || "";
+      S.ramTotal = (S.info && S.info.ramTotalMb) || 8192;
+    } catch (e) { /* info необязателен */ }
+    S.ramMax = Math.max(1024, Math.min(4096, Math.round(S.ramTotal / 2 / 512) * 512));
+    try {
+      var s = await api("settings.get");
+      S.theme = s.theme || "dark";
+      S.accent = s.accent || "#3ecf8e";
+      S.javaAuto = s.javaAuto !== false;
+      S.javaMajor = Number(s.javaMajor) || 21;
+      if (typeof s.ramMaxMb === "number" && s.ramMaxMb >= 1024) S.ramMax = s.ramMaxMb;
+      if (typeof s.dataDir === "string" && s.dataDir) S.folder = s.dataDir;
+    } catch (e) { /* дефолты уже заданы */ }
+
+    try {
+      var list = (await api("accounts.list")) || [];
+      S.account = list.find(function (a) { return a.default; }) || list[0] || null;
+    } catch (e) { S.account = null; }
+
+    paintHead();
+    paintBody();
+    chrome();
+  }
+
+  function dispose() {
+    S.dead = true;
+    if (S.msPoll) { clearInterval(S.msPoll); S.msPoll = null; }
+  }
+
+  Pages.register("welcome", { title: "Первый запуск", init: init, dispose: dispose });
+})();
+</script>

@@ -1,0 +1,2195 @@
+<style>
+/* ===== settings — страница-специфичные стили (префикс sset-) ===== */
+.sset-tip {
+  width: 15px; height: 15px; border: 1px solid currentColor; border-radius: 50%;
+  font-size: 9.5px; font-weight: 700; font-style: normal; display: inline-flex;
+  align-items: center; justify-content: center; line-height: 1; flex: 0 0 auto;
+}
+.sset-val { font-size: 12.5px; color: var(--text-2); min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+.sset-accents { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.sset-swatch {
+  width: 22px; height: 22px; border-radius: 50%; background: var(--c); border: none;
+  box-shadow: 0 0 0 1px var(--line-strong); cursor: pointer; transition: transform var(--t), box-shadow var(--t);
+}
+.sset-swatch:hover { transform: scale(1.14); }
+.sset-swatch.active { box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--c); }
+.sset-color { width: 36px; height: 28px; padding: 2px; cursor: pointer; background: var(--bg-2); }
+.sset-hl { animation: ssetHl 2.6s ease; }
+@keyframes ssetHl {
+  0%, 65% { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+  100% { background: transparent; box-shadow: none; }
+}
+.sset-skel { display: flex; flex-direction: column; gap: 10px; }
+.sset-skel .skeleton { height: 46px; }
+.sset-res { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--line); text-align: left; transition: background var(--t); width: 100%; }
+.sset-res:last-child { border-bottom: none; }
+.sset-res:hover { background: var(--card-2); }
+.sset-res .t { font-size: 13.5px; font-weight: 600; display: block; }
+.sset-res .s { font-size: 11.5px; color: var(--text-3); display: block; margin-top: 2px; }
+.sset-res svg { width: 15px; height: 15px; color: var(--text-3); flex: 0 0 auto; }
+.sset-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.sset-fact { background: var(--card-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; min-width: 0; }
+.sset-fact .k { font-size: 10.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; }
+.sset-fact .v { font-size: 13.5px; font-weight: 600; margin-top: 4px; overflow-wrap: anywhere; }
+.sset-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.sset-code {
+  font-family: var(--mono); font-size: 12.5px; background: var(--bg-1); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 8px 10px; overflow-wrap: anywhere; user-select: text; margin-top: 8px;
+}
+.sset-check { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; padding: 7px 0; }
+.sset-check svg { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 2px; }
+.sset-check.ok svg { color: var(--accent); }
+.sset-check.warn svg { color: var(--warn); }
+.sset-check.err svg { color: var(--danger); }
+.sset-check .m { color: var(--text-2); font-size: 12px; margin-top: 2px; line-height: 1.5; }
+.sset-hint { font-size: 11.5px; color: var(--text-3); line-height: 1.5; }
+.sset-logbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.sset-logbar select, .sset-logbar input { width: auto; min-width: 150px; }
+.sset-logbar .grow { flex: 1; min-width: 120px; }
+.sset-hk { display: flex; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.sset-hk:last-child { border-bottom: none; }
+.sset-hk .info { flex: 1; min-width: 0; }
+.sset-hk .t { font-size: 13.5px; font-weight: 600; }
+.sset-hk .d { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+.sset-hk input { width: 180px; text-align: center; font-family: var(--mono); font-size: 12.5px; cursor: pointer; }
+.sset-hk input:focus { border-color: var(--accent); }
+.sset-table td { vertical-align: middle; }
+.sset-empty { padding: 40px 20px; }
+</style>
+
+<section class="page">
+  <div class="page-head">
+    <div class="grow">
+      <h1 class="page-title">Настройки</h1>
+      <div class="page-sub" id="sset-sub">Общие</div>
+    </div>
+    <div class="page-actions">
+      <div class="search-box">
+        <svg><use href="#i-search"/></svg>
+        <input type="search" id="sset-q" placeholder="Поиск настроек" autocomplete="off" />
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-layout">
+    <nav class="settings-nav" id="sset-nav"></nav>
+    <div class="settings-panes" id="sset-panes"></div>
+  </div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
+
+  var SECTIONS = [
+    { id: "general", t: "Общие", ic: "sliders" },
+    { id: "appearance", t: "Внешний вид", ic: "moon" },
+    { id: "accounts", t: "Аккаунты", ic: "user" },
+    { id: "instances", t: "Сборки", ic: "grid" },
+    { id: "java", t: "Java", ic: "coffee" },
+    { id: "ram", t: "RAM и память", ic: "memory" },
+    { id: "launch", t: "Параметры запуска", ic: "play" },
+    { id: "network", t: "Сеть и прокси", ic: "wifi" },
+    { id: "modrinth", t: "Modrinth", ic: "compass" },
+    { id: "downloads", t: "Загрузки", ic: "download" },
+    { id: "notifications", t: "Уведомления", ic: "bell" },
+    { id: "storage", t: "Хранилище", ic: "hdd" },
+    { id: "backup", t: "Резервные копии", ic: "save" },
+    { id: "performance", t: "Производительность", ic: "gauge" },
+    { id: "logs", t: "Логи и отчёты", ic: "file" },
+    { id: "hotkeys", t: "Горячие клавиши", ic: "key" },
+    { id: "privacy", t: "Конфиденциальность", ic: "shield" },
+    { id: "advanced", t: "Расширенные", ic: "zap" },
+    { id: "about", t: "О программе", ic: "book" },
+  ];
+
+  /* подсказки — Core/SettingsRegistry.cs (All) */
+  var HINTS = {
+    theme: "Тёмная, светлая или как в системе Windows.",
+    accent: "Цвет кнопок, активных элементов и выделения. Допускается произвольный HEX.",
+    density: "Compact — меньше отступы, Large — крупнее элементы.",
+    uiScale: "Общий масштаб UI в процентах.",
+    fontScale: "Множитель размера текста.",
+    animations: "Полностью отключает переходы и появление элементов.",
+    rounding: "Радиус карточек и панелей.",
+    opacity: "Непрозрачность окна приложения.",
+    highContrast: "Усиливает контраст текста и границ.",
+    startPage: "Какая страница открывается при запуске лаунчера.",
+    confirmDelete: "Спрашивать подтверждение перед удалением сборок, модов и миров.",
+    closeToTray: "Закрытие окна сворачивает лаунчер вместо выхода.",
+    checkUpdatesOnStart: "Запрашивать новую версию NullLauncher при старте.",
+    expertMode: "Открывает кастомный Java, JVM-аргументы, прокси, потоки загрузки и отладку.",
+    dataDir: "Корень с сборками, Java, кэшем и бэкапами. Настройки всегда остаются в %APPDATA%.",
+    instanceSort: "Поле сортировки библиотеки.",
+    instanceView: "Сетка карточек или компактный список.",
+    showSnapshots: "Включать снапшоты в списки выбора версий.",
+    showOldVersions: "Beta/Alpha и древние релизы в списке версий.",
+    autoBackup: "Создавать копию перед обновлением версии, модов и удалением.",
+    backupBeforeUpdate: "Всегда копировать сборку перед сменой версии Minecraft или модпака.",
+    backupRetention: "Старые автоматические копии удаляются сверх этого числа.",
+    javaAuto: "Подбирать версию Java по требованиям версии Minecraft.",
+    javaMajor: "Используется, если автоматический выбор выключен.",
+    javaPath: "Пусто — использовать найденные установки.",
+    ramMinMb: "Стартовый объём памяти Java (-Xms).",
+    ramMaxMb: "Предел памяти Java (-Xmx). Больше физически доступной — ошибка.",
+    ramRecommend: "Показывать рекомендации по объёму RAM для сборки.",
+    windowMode: "Полноэкранный, развёрнутый или оконный режим игры.",
+    windowWidth: "Ширина окна игры в оконном режиме.",
+    windowHeight: "Высота окна игры в оконном режиме.",
+    fullscreen: "Запускать игру на весь экран.",
+    vsync: "Синхронизация кадров с монитором.",
+    fpsLimit: "Ограничение частоты кадров, 0 — без ограничения.",
+    safeModeByDefault: "Запускать сборки без модов, пока не отключено вручную.",
+    downloadThreads: "Количество одновременных соединений на один файл.",
+    maxConcurrentDownloads: "Сколько файлов скачивается одновременно.",
+    verifyHashes: "Сверять sha1/sha512 после скачивания.",
+    reuseCache: "Не качать повторно файлы, уже имеющиеся в кэше (по хэшу).",
+    networkTimeoutSec: "Сколько секунд ждать ответа от сервера.",
+    retryCount: "Число автоматических повторов загрузки.",
+    speedLimitKbs: "КБ/с, 0 — без ограничения.",
+    resumeInterrupted: "Продолжать незавершённые загрузки после перезапуска.",
+    proxyType: "None, System, HTTP, HTTPS или SOCKS5.",
+    proxyHost: "Адрес прокси-сервера.",
+    proxyPort: "Порт прокси-сервера.",
+    modrinthPageSize: "Размер страницы поиска Modrinth.",
+    modrinthOfflineCache: "Показывать сохранённые данные, если API недоступен.",
+    modrinthAutoUpdateCheck: "Проверять обновления проектов при запуске.",
+    notifyToasts: "Собственные уведомления лаунчера внутри окна.",
+    notifyDownloadDone: "Сообщать об окончании скачивания.",
+    notifyLaunchDone: "Сообщать о завершении игры.",
+    notifyModUpdates: "Сообщать, когда у модов появилась новая версия.",
+    notifySound: "Звуковой сигнал при уведомлении.",
+    logLevel: "Debug, Info, Warn или Error.",
+    logRetentionDays: "Старые файлы логов удаляются автоматически.",
+    debugMode: "Подробные логи запуска и сети.",
+    crashAutoAnalyze: "Автоматически разбирать отчёты о сбоях игры.",
+    telemetry: "Анонимная статистика использования. По умолчанию выключена.",
+    saveTokenSecure: "Токены аккаунтов шифруются через DPAPI (Windows Credential store).",
+    lowResourceMode: "Уменьшает фоновую активность лаунчера.",
+    apiCacheMinutes: "Время жизни кэша ответов Modrinth и манифестов.",
+    lazyImages: "Подгружать изображения по мере появления в viewport.",
+  };
+
+  /* значения по умолчанию — Core/SettingsRegistry.cs (Defaults) */
+  var DEFAULTS = {
+    theme: "dark", accent: "#3ecf8e", density: "normal", uiScale: 100, fontScale: 1.0,
+    animations: true, rounding: "normal", opacity: 100, highContrast: false, cardSize: "normal",
+    startPage: "home", showSidebarLabels: true, language: "ru", confirmDelete: true,
+    closeToTray: false, checkUpdatesOnStart: true, onboardingDone: false, expertMode: false,
+    currentProfile: "default", dataDir: "", instanceSort: "lastPlayed", instanceView: "grid",
+    showFavoritesFirst: true, showSnapshots: false, showOldVersions: false, autoBackup: true,
+    backupBeforeUpdate: true, backupRetention: 5, javaAuto: true, javaMajor: 21, javaPath: "",
+    ramMinMb: 512, ramMaxMb: 4096, ramRecommend: true, jvmArgsDefault: "",
+    windowMode: "windowed", windowWidth: 1920, windowHeight: 1080, fullscreen: false,
+    vsync: true, fpsLimit: 120, closeLauncherOnLaunch: false, safeModeByDefault: false,
+    downloadThreads: 8, maxConcurrentDownloads: 6, verifyHashes: true, reuseCache: true,
+    networkTimeoutSec: 60, retryCount: 3, speedLimitKbs: 0, resumeInterrupted: true,
+    proxyType: "none", proxyHost: "", proxyPort: 8080, proxyUser: "", proxyPass: "", proxySystem: true,
+    modrinthPageSize: 20, modrinthOfflineCache: true, modrinthAutoUpdateCheck: true,
+    notifyToasts: true, notifyDownloadDone: true, notifyLaunchDone: true, notifyModUpdates: true,
+    notifySound: false, logLevel: "info", logRetentionDays: 14, debugMode: false,
+    crashAutoAnalyze: true, telemetry: false, saveTokenSecure: true, lazyImages: true,
+    apiCacheMinutes: 15, lowResourceMode: false, accountUuid: "", activeInstance: "",
+    expNewUi: false, expParallelDownloads: true, expAdvancedModScanner: true,
+    expAutoCrashAnalysis: true, expInstanceSync: false,
+  };
+
+  var ACCENTS = ["#3ecf8e", "#4da3ff", "#8b5cf6", "#ef5b64", "#eea23c", "#22d3ee"];
+  var LOOK = { theme: 1, accent: 1, density: 1, uiScale: 1, fontScale: 1, animations: 1, rounding: 1, opacity: 1, highContrast: 1 };
+  var DEFS = {
+    general: { title: "Общие", render: renderGeneral },
+    appearance: { title: "Внешний вид", render: renderAppearance },
+    accounts: { title: "Аккаунты", render: renderAccounts },
+    instances: { title: "Сборки", render: renderInstances },
+    java: { title: "Java", render: renderJava },
+    ram: { title: "RAM и память", render: renderRam },
+    launch: { title: "Параметры запуска", render: renderLaunch },
+    network: { title: "Сеть и прокси", render: renderNetwork },
+    modrinth: { title: "Modrinth", render: renderModrinth },
+    downloads: { title: "Загрузки", render: renderDownloads },
+    notifications: { title: "Уведомления", render: renderNotifications },
+    storage: { title: "Хранилище", render: renderStorage },
+    backup: { title: "Резервные копии", render: renderBackup },
+    performance: { title: "Производительность", render: renderPerformance },
+    logs: { title: "Логи и отчёты", render: renderLogs },
+    hotkeys: { title: "Горячие клавиши", render: renderHotkeys },
+    privacy: { title: "Конфиденциальность", render: renderPrivacy },
+    advanced: { title: "Расширенные", render: renderAdvanced },
+    about: { title: "О программе", render: renderAbout },
+  };
+
+  var S = {
+    dead: false, ctx: null, section: "general", q: "", values: null,
+    timers: {}, pending: {}, unsubs: [], suppress: 0, hook: null,
+    onQ: null, hlTimer: null, els: {}, dialogs: [],
+  };
+
+  /* Диалог, открытый со страницы: закрывается при dispose, чтобы не
+     оставались опросы (device-code) и подписки (java.install.progress). */
+  function openPageDialog(opts) {
+    var prevClose = opts.onClose;
+    var ctx = ui.openDialog(Object.assign({}, opts, {
+      onClose: function () {
+        var i = S.dialogs.indexOf(ctx);
+        if (i >= 0) S.dialogs.splice(i, 1);
+        if (prevClose) prevClose();
+      },
+    }));
+    S.dialogs.push(ctx);
+    return ctx;
+  }
+
+  /* ---------- значения ---------- */
+  function get(k) {
+    if (S.values && S.values[k] !== undefined && S.values[k] !== null) return S.values[k];
+    if (DEFAULTS[k] !== undefined) return DEFAULTS[k];
+    if (App.settings && App.settings[k] !== undefined && App.settings[k] !== null) return App.settings[k];
+    return "";
+  }
+
+  function normalizeVal(key, val) {
+    if (key === "accent") {
+      var v = String(val || "").trim();
+      if (v && v[0] !== "#") v = "#" + v;
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase();
+      return get("accent");
+    }
+    return val;
+  }
+
+  function setVal(key, value, immediate) {
+    if (!S.values) S.values = {};
+    S.values[key] = value;
+    if (!App.settings) App.settings = {};
+    App.settings[key] = value;
+    var valid = (key !== "accent") || /^#[0-9a-fA-F]{6}$/.test(String(value));
+    if (LOOK[key] && valid) { try { ui.applySettings(S.values); } catch (e) { /* noop */ } }
+
+    /* неполный HEX (набирается вручную) — держим локально, но не сохраняем */
+    if (!valid) {
+      if (S.timers[key]) { clearTimeout(S.timers[key]); delete S.timers[key]; }
+      delete S.pending[key];
+      if (S.hook) { try { S.hook(key, value); } catch (e) { console.error(e); } }
+      return;
+    }
+
+    if (S.timers[key]) { clearTimeout(S.timers[key]); delete S.timers[key]; }
+    if (immediate) {
+      delete S.pending[key];
+      persist(key, value);
+    } else {
+      S.pending[key] = value;
+      S.timers[key] = setTimeout(function () {
+        delete S.timers[key];
+        var v = S.pending[key];
+        delete S.pending[key];
+        persist(key, v);
+      }, 400);
+    }
+    if (S.hook) { try { S.hook(key, value); } catch (e) { console.error(e); } }
+  }
+
+  function persist(key, value) {
+    S.suppress = Date.now() + 1200;
+    var patch = {};
+    patch[key] = value;
+    return api("settings.set", patch).catch(function (e) {
+      if (S.dead) return;
+      ui.notifyError(e, "Не удалось сохранить настройку");
+    });
+  }
+
+  function onSettingsChanged(data) {
+    if (S.dead || !data) return;
+    if (!S.values) S.values = {};
+    Object.assign(S.values, data);
+    App.settings = S.values;
+    var looks = Object.keys(data).some(function (k) { return LOOK[k]; });
+    if (looks) { try { ui.applySettings(S.values); } catch (e) { /* noop */ } }
+    if (Date.now() < S.suppress) return;              /* эхо собственного settings.set */
+    if (S.q) return;                                   /* сейчас показаны результаты поиска */
+    var pane = S.els.panes;
+    if (pane && pane.contains(document.activeElement)) return;  /* не прерываем ввод */
+    renderSection();
+  }
+
+  /* ---------- каркас отрисовки ---------- */
+  function esc(s) { return ui.esc(s); }
+
+  function errBlock(e, retry) {
+    var d = ui.errDetail(e);
+    return '<div class="state error">' + ui.icon("alert") + "<h3>Не удалось загрузить</h3><p>" + esc(ui.errText(e)) + "</p>" +
+      (d ? '<details><summary style="cursor:pointer;font-size:12px;color:var(--text-3)">Подробнее</summary><pre class="mono dim" style="white-space:pre-wrap;text-align:left">' + esc(d) + "</pre></details>" : "") +
+      (retry ? '<div class="actions"><button class="btn" data-retry="1">' + ui.icon("refresh") + " Повторить</button></div>" : "") +
+      "</div>";
+  }
+
+  function bindRetry(root, fn) {
+    var b = root.querySelector("[data-retry]");
+    if (b) b.onclick = fn;
+  }
+
+  function skelRows(n) {
+    var h = "";
+    for (var i = 0; i < (n || 3); i++) h += '<div class="skeleton"></div>';
+    return '<div class="sset-skel">' + h + "</div>";
+  }
+
+  function emptyState(ic, title, text, actions) {
+    return '<div class="state">' + ui.icon(ic) + "<h3>" + esc(title) + "</h3><p>" + esc(text) + "</p>" +
+      (actions ? '<div class="actions">' + actions + "</div>" : "") + "</div>";
+  }
+
+  function card(title, ic, body) {
+    return '<div class="card"><div class="card-title">' + (ic ? ui.icon(ic) : "") + esc(title) + "</div>" + body + "</div>";
+  }
+
+  function tipFor(key) {
+    return HINTS[key] ? '<span class="tip sset-tip" data-tip="' + esc(HINTS[key]) + '">i</span>' : "";
+  }
+
+  function row(key, title, desc, ctrl, wide) {
+    return '<div class="set-row"' + (key ? ' data-key="' + key + '"' : "") + ">" +
+      '<div class="set-info"><div class="set-title">' + esc(title) + tipFor(key) + "</div>" +
+      (desc ? '<div class="set-desc">' + esc(desc) + "</div>" : "") + "</div>" +
+      '<div class="set-ctrl' + (wide ? " wide" : "") + '">' + (ctrl || "") + "</div></div>";
+  }
+
+  function sw(k) {
+    return '<label class="switch"><input type="checkbox" data-set="' + k + '" data-ctl="switch"' + (get(k) ? " checked" : "") + "><i></i></label>";
+  }
+
+  function sel(k, opts, num) {
+    var cur = String(get(k));
+    var h = '<select data-set="' + k + '" data-ctl="select"' + (num ? ' data-num="1"' : "") + ' style="width:auto;min-width:160px">';
+    opts.forEach(function (o) {
+      h += '<option value="' + esc(o[0]) + '"' + (String(o[0]) === cur ? " selected" : "") + ">" + esc(o[1]) + "</option>";
+    });
+    return h + "</select>";
+  }
+
+  function rng(k, min, max, step, unit, scale) {
+    scale = scale || 1;
+    var disp = Math.round(Number(get(k)) * scale);
+    return '<input type="range" data-set="' + k + '" data-ctl="range" min="' + min + '" max="' + max + '" step="' + (step || 1) +
+      '" value="' + disp + '" data-scale="' + scale + '" style="width:170px">' +
+      '<span class="sset-val" data-show="' + k + '" data-unit="' + esc(unit || "") + '">' + disp + esc(unit || "") + "</span>";
+  }
+
+  function numIn(k, opts) {
+    opts = opts || {};
+    return '<input type="number" data-set="' + k + '" data-ctl="number" data-num="1" value="' + esc(String(get(k))) + '"' +
+      (opts.min !== undefined && opts.min !== null ? ' min="' + opts.min + '"' : "") +
+      (opts.max !== undefined && opts.max !== null ? ' max="' + opts.max + '"' : "") +
+      ' step="' + (opts.step || 1) + '" style="width:' + (opts.w || 110) + 'px">' +
+      (opts.unit ? '<span class="dim small nowrap">' + esc(opts.unit) + "</span>" : "");
+  }
+
+  function txtIn(k, opts) {
+    opts = opts || {};
+    return '<input type="' + (opts.type || "text") + '" data-set="' + k + '" data-ctl="text" value="' + esc(String(get(k) || "")) +
+      '" placeholder="' + esc(opts.ph || "") + '" style="width:' + (opts.w || 240) + 'px">';
+  }
+
+  function seg(k, opts) {
+    var cur = String(get(k));
+    var h = '<div class="segmented" data-seg="' + k + '">';
+    opts.forEach(function (o) {
+      h += '<button type="button" data-val="' + esc(o[0]) + '"' + (String(o[0]) === cur ? ' class="active"' : "") + ">" + esc(o[1]) + "</button>";
+    });
+    return h + "</div>";
+  }
+
+  function btn(label, act, cls, ic) {
+    return '<button class="btn btn-sm ' + (cls || "") + '" data-act="' + act + '">' + (ic ? ui.icon(ic) : "") + esc(label) + "</button>";
+  }
+
+  function syncAccent(pane, value) {
+    if (!pane || !pane.querySelector) return;
+    var v = String(value || "").trim();
+    if (v && v[0] !== "#") v = "#" + v;
+    if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
+    var low = v.toLowerCase();
+    pane.querySelectorAll("[data-color]").forEach(function (b) {
+      b.classList.toggle("active", String(b.dataset.color).toLowerCase() === low);
+    });
+    var hex = pane.querySelector("[data-hex]");
+    if (hex && document.activeElement !== hex && String(hex.value).toLowerCase() !== low) hex.value = low;
+    var col = pane.querySelector('[data-ctl="color"]');
+    if (col && String(col.value).toLowerCase() !== low) col.value = low;
+  }
+
+  function bind(pane, acts) {
+    pane.querySelectorAll("[data-set]").forEach(function (el) {
+      var key = el.dataset.set, ctl = el.dataset.ctl;
+      if (ctl === "switch") {
+        el.onchange = function () { setVal(key, !!el.checked, true); };
+      } else if (ctl === "select") {
+        el.onchange = function () { setVal(key, el.dataset.num ? Number(el.value) : el.value, true); };
+      } else if (ctl === "number") {
+        el.oninput = function () { if (el.value !== "") setVal(key, Number(el.value), false); };
+        el.onchange = function () { if (el.value !== "") setVal(key, Number(el.value), true); };
+      } else if (ctl === "range") {
+        var scale = Number(el.dataset.scale || 1);
+        el.oninput = function () {
+          var disp = Number(el.value);
+          var show = el.parentNode ? el.parentNode.querySelector("[data-show]") : null;
+          if (show) show.textContent = disp + (show.dataset.unit || "");
+          setVal(key, scale !== 1 ? disp / scale : disp, false);
+        };
+      } else if (ctl === "color") {
+        el.oninput = function () { setVal(key, el.value, false); syncAccent(pane, el.value); };
+        el.onchange = function () { setVal(key, normalizeVal(key, el.value), true); syncAccent(pane, get(key)); };
+      } else {
+        el.oninput = function () { setVal(key, el.value, false); syncAccent(pane, el.value); };
+        el.onchange = function () {
+          var nv = normalizeVal(key, el.value);
+          el.value = nv;
+          setVal(key, nv, true);
+          syncAccent(pane, nv);
+        };
+      }
+    });
+    pane.querySelectorAll("[data-seg]").forEach(function (g) {
+      g.querySelectorAll("button").forEach(function (b) {
+        b.onclick = function () {
+          setVal(g.dataset.seg, b.dataset.val, true);
+          g.querySelectorAll("button").forEach(function (x) { x.classList.toggle("active", x === b); });
+        };
+      });
+    });
+    pane.querySelectorAll("[data-act]").forEach(function (b) {
+      var fn = acts && acts[b.dataset.act];
+      if (fn) b.onclick = function () { fn(b, pane); };
+    });
+  }
+
+  function renderNav() {
+    var nav = S.els.nav;
+    if (!nav) return;
+    var h = "";
+    SECTIONS.forEach(function (s) {
+      h += '<button type="button" data-sec="' + s.id + '"' + (s.id === S.section ? ' class="active"' : "") + ">" +
+        ui.icon(s.ic) + "<span>" + esc(s.t) + "</span></button>";
+    });
+    nav.innerHTML = h;
+    nav.querySelectorAll("[data-sec]").forEach(function (b) {
+      b.onclick = function () { S.ctx.navigate("settings", { section: b.dataset.sec }); };
+    });
+  }
+
+  function renderSection() {
+    var pane = S.els.panes;
+    if (!pane) return;
+    var def = DEFS[S.section] || DEFS.general;
+    if (S.els.sub) S.els.sub.textContent = def.title;
+    S.hook = null;
+    pane.innerHTML = "";
+    try {
+      def.render(pane);
+    } catch (e) {
+      console.error(e);
+      pane.innerHTML = errBlock(e, false);
+    }
+  }
+
+  function sectionIdOf(r) {
+    if (r.sectionId && DEFS[r.sectionId]) return r.sectionId;
+    var m = SECTIONS.filter(function (s) { return s.t === r.section; })[0];
+    return m ? m.id : "general";
+  }
+
+  function renderResults(list) {
+    var pane = S.els.panes;
+    if (!list.length) {
+      pane.innerHTML = emptyState("search", "Ничего не найдено", "По запросу «" + S.q + "» настроек нет.",
+        '<button class="btn" data-act="clear-q">Сбросить поиск</button>');
+      var cb = pane.querySelector('[data-act="clear-q"]');
+      if (cb) cb.onclick = function () {
+        S.q = "";
+        if (S.els.q) S.els.q.value = "";
+        renderSection();
+      };
+      return;
+    }
+    var h = '<div class="card"><div class="card-title">' + ui.icon("search") + "Найдено настроек: " + list.length + '</div><div class="sset-results">';
+    list.forEach(function (r, i) {
+      h += '<button type="button" class="sset-res" data-i="' + i + '"><span class="grow">' +
+        '<span class="t">' + esc(r.title || r.key) + "</span>" +
+        '<span class="s">' + esc(r.section || "") + (r.hint ? " · " + esc(r.hint) : "") + "</span></span>" +
+        ui.icon("chevron") + "</button>";
+    });
+    h += "</div></div>";
+    pane.innerHTML = h;
+    pane.querySelectorAll("[data-i]").forEach(function (b) {
+      b.onclick = function () {
+        var r = list[Number(b.dataset.i)];
+        if (r) S.ctx.navigate("settings", { section: sectionIdOf(r), q: r.key });
+      };
+    });
+  }
+
+  async function doSearch(q) {
+    var pane = S.els.panes;
+    if (!pane) return;
+    pane.innerHTML = skelRows(3);
+    try {
+      var res = await api("settings.search", { query: q });
+      if (S.dead || q !== S.q) return;
+      renderResults(res || []);
+    } catch (e) {
+      if (S.dead) return;
+      pane.innerHTML = errBlock(e, true);
+      bindRetry(pane, function () { doSearch(q); });
+    }
+  }
+
+  function highlightKey(key) {
+    var pane = S.els.panes;
+    if (!pane || !key) return;
+    var el = pane.querySelector('.set-row[data-key="' + key + '"]');
+    if (!el) return;
+    el.classList.add("sset-hl");
+    try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { /* noop */ }
+    if (S.hlTimer) clearTimeout(S.hlTimer);
+    S.hlTimer = setTimeout(function () { el.classList.remove("sset-hl"); S.hlTimer = null; }, 2800);
+  }
+
+  /* ---------- register ---------- */
+  Pages.register("settings", {
+    title: "Настройки",
+    async init(ctx) {
+      S.dead = false;
+      S.ctx = ctx;
+      S.values = null;
+      S.q = "";
+      S.hook = null;
+      S.suppress = 0;
+      S.els = {
+        nav: ctx.root.querySelector("#sset-nav"),
+        panes: ctx.root.querySelector("#sset-panes"),
+        sub: ctx.root.querySelector("#sset-sub"),
+        q: ctx.root.querySelector("#sset-q"),
+      };
+      S.section = (ctx.params.section && DEFS[ctx.params.section]) ? String(ctx.params.section) : "general";
+      renderNav();
+      S.els.panes.innerHTML = skelRows(4);
+
+      var qEl = S.els.q;
+      S.onQ = ui.debounce(function () {
+        S.q = String(qEl.value || "").trim();
+        if (S.q) doSearch(S.q); else renderSection();
+      }, 300);
+      qEl.addEventListener("input", S.onQ);
+
+      S.unsubs.push(on("settings.changed", onSettingsChanged));
+
+      try {
+        var vals = await api("settings.get");
+        if (S.dead) return;
+        S.values = vals || {};
+        App.settings = S.values;
+        ui.applySettings(S.values);
+      } catch (e) {
+        if (S.dead) return;
+        S.els.panes.innerHTML = errBlock(e, true);
+        bindRetry(S.els.panes, function () { ctx.reload(); });
+        return;
+      }
+
+      var hl = ctx.params.q ? String(ctx.params.q) : "";
+      if (hl && ctx.params.section) {
+        renderSection();
+        highlightKey(hl);
+        return;
+      }
+      if (hl) {
+        S.q = hl;
+        qEl.value = hl;
+        await doSearch(hl);
+        return;
+      }
+      renderSection();
+    },
+
+    dispose() {
+      S.dead = true;
+      if (S.onQ && S.els.q) S.els.q.removeEventListener("input", S.onQ);
+      S.onQ = null;
+      Object.keys(S.timers).forEach(function (k) { clearTimeout(S.timers[k]); delete S.timers[k]; });
+      Object.keys(S.pending).forEach(function (k) {           /* дописываем несохранённое */
+        var v = S.pending[k];
+        delete S.pending[k];
+        persist(k, v);
+      });
+      if (S.hlTimer) { clearTimeout(S.hlTimer); S.hlTimer = null; }
+      S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
+      S.unsubs = [];
+      S.dialogs.slice().forEach(function (d) { try { d.close(); } catch (e) { /* noop */ } });
+      S.dialogs = [];
+      S.hook = null;
+      S.els = {};
+    },
+  });
+
+  /* ---------- Общие ---------- */
+  function renderGeneral(pane) {
+    pane.innerHTML =
+      card("Основное", "sliders",
+        row("startPage", "Стартовая страница", "Какая страница открывается при запуске лаунчера.",
+          sel("startPage", [["home", "Главная"], ["instances", "Мои сборки"], ["discover", "Modrinth"]])) +
+        row("language", "Язык интерфейса", "Текущая сборка поддерживает русский язык.",
+          sel("language", [["ru", "Русский"]])) +
+        row("confirmDelete", "Подтверждать удаление", "Спрашивать подтверждение перед удалением сборок, модов и миров.", sw("confirmDelete")) +
+        row("closeToTray", "Сворачивать в трей", "Закрытие окна сворачивает лаунчер вместо выхода.", sw("closeToTray")) +
+        row("checkUpdatesOnStart", "Проверять обновления лаунчера", "Запрашивать новую версию NullLauncher при старте.", sw("checkUpdatesOnStart"))) +
+      card("Экспертный режим", "zap",
+        row("expertMode", "Экспертный режим", "Открывает кастомный Java, JVM-аргументы, прокси, потоки загрузки и отладку. Раздел «Расширенные» станет доступен.",
+          sw("expertMode"))) +
+      card("Экспорт и сброс", "save",
+        row("", "Экспорт настроек", "Сохранить настройки лаунчера в ZIP-архив (на стол или в выбранную папку).",
+          btn("Экспорт настроек…", "export", "", "save")) +
+        row("", "Сброс настроек", "Вернуть настройки лаунчера к значениям по умолчанию. Сборки и миры не затрагиваются.",
+          btn("Сбросить настройки", "reset", "btn-danger", "refresh")));
+
+    bind(pane, {
+      export: exportSettings,
+      reset: resetSettings,
+      expertMode: null,
+    });
+  }
+
+  async function exportSettings(btn, pane) {
+    var body = document.createElement("div");
+    body.className = "col";
+    body.innerHTML =
+      '<label class="sset-check"><input type="checkbox" id="sset-exp-inst"> Включить конфигурации сборок</label>' +
+      '<div class="sset-hint">В архив попадут настройки лаунчера, профили и группы. Конфигурации сборок — по желанию.</div>' +
+      '<div id="sset-exp-out"></div>';
+
+    openPageDialog({
+      title: "Экспорт настроек",
+      icon: "save",
+      body: body,
+      buttons: [
+        { label: "Отмена", role: "cancel" },
+        {
+          label: "Экспортировать", role: "primary", keepOpen: true,
+          onClick: async function (dctx) {
+            try {
+              var res = await api("settings.export", {
+                includeInstances: body.querySelector("#sset-exp-inst").checked,
+                pickFolder: true,
+              });
+              if (res && res.cancelled) return false;
+              var out = body.querySelector("#sset-exp-out");
+              out.innerHTML = '<div class="banner ok">' + ui.icon("check") +
+                '<span class="grow" style="user-select:text">' + esc((res && res.path) || "Архив создан") + "</span></div>";
+              if (res && res.path) {
+                var ob = document.createElement("button");
+                ob.className = "btn btn-sm";
+                ob.textContent = "Открыть папку";
+                ob.onclick = function () {
+                  api("system.openPath", { path: res.path, select: true }).catch(function (e) { ui.notifyError(e); });
+                };
+                out.appendChild(ob);
+              }
+              ui.notifySuccess("Настройки экспортированы", res && res.path ? String(res.path) : "");
+            } catch (e) {
+              ui.notifyError(e, "Не удалось экспортировать настройки");
+            }
+            if (dctx) dctx.close();
+            return false;
+          },
+        },
+      ],
+    });
+  }
+
+  async function resetSettings() {
+    var ok = await ui.confirmDialog({
+      title: "Сбросить настройки?",
+      message: "Все настройки лаунчера вернутся к значениям по умолчанию. Сборки, миры и аккаунты затронуты не будут.",
+      okLabel: "Сбросить",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api("settings.reset");
+      var fresh = await api("settings.get");
+      if (S.dead) return;
+      S.values = fresh || {};
+      App.settings = S.values;
+      ui.applySettings(S.values);
+      renderSection();
+      ui.notifySuccess("Настройки сброшены", "Сборки и миры не затронуты");
+    } catch (e) {
+      if (!S.dead) ui.notifyError(e, "Не удалось сбросить настройки");
+    }
+  }
+
+  /* ---------- Внешний вид ---------- */
+  function accentPicker() {
+    var cur = String(get("accent") || "").toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(cur)) cur = DEFAULTS.accent;
+    var h = '<div class="sset-accents">';
+    ACCENTS.forEach(function (c) {
+      h += '<button type="button" class="sset-swatch' + (c === cur ? " active" : "") + '" data-act="accent" data-color="' + c +
+        '" style="--c:' + c + '" title="' + c + '"></button>';
+    });
+    h += "</div>";
+    h += '<input type="color" class="sset-color" data-set="accent" data-ctl="color" value="' + esc(cur) + '" title="Свой цвет">';
+    h += '<input type="text" data-set="accent" data-ctl="text" data-hex="1" value="' + esc(cur) + '" maxlength="7" style="width:96px" spellcheck="false">';
+    return h;
+  }
+
+  function renderAppearance(pane) {
+    pane.innerHTML =
+      card("Оформление", "moon",
+        row("theme", "Тема оформления", "Тёмная, светлая или системная тема Windows.",
+          seg("theme", [["dark", "Тёмная"], ["light", "Светлая"], ["system", "Системная"]])) +
+        row("accent", "Акцентный цвет", "Цвет кнопок, активных элементов и выделения.", accentPicker()) +
+        row("density", "Плотность интерфейса", "Compact — меньше отступы, Large — крупнее элементы.",
+          seg("density", [["compact", "Компактно"], ["normal", "Обычно"], ["large", "Крупно"]])) +
+        row("uiScale", "Масштаб интерфейса", "Общий масштаб UI в процентах.",
+          rng("uiScale", 90, 125, 1, "%")) +
+        row("fontScale", "Размер шрифта", "Множитель размера текста (85–130%).",
+          rng("fontScale", 85, 130, 1, "%", 100)) +
+        row("rounding", "Скругление углов", "Радиус карточек и панелей.",
+          sel("rounding", [["none", "Без скругления"], ["normal", "Обычное"], ["round", "Сильное"]])) +
+        row("opacity", "Прозрачность окна", "Непрозрачность окна приложения.",
+          rng("opacity", 70, 100, 1, "%")) +
+        row("animations", "Анимации", "Полностью отключает переходы и появление элементов.", sw("animations")) +
+        row("highContrast", "Высокий контраст", "Усиливает контраст текста и границ.", sw("highContrast"))) +
+      card("Сброс", "refresh",
+        row("", "Сбросить оформление", "Вернуть тему, акцент, плотность, масштаб и скругление к значениям по умолчанию.",
+          btn("Сбросить оформление", "reset-look", "", "refresh")));
+
+    bind(pane, {
+      accent: function (b, p) {
+        var c = b.dataset.color;
+        setVal("accent", c, true);
+        syncAccent(p, c);
+      },
+      "reset-look": resetLook,
+    });
+  }
+
+  async function resetLook() {
+    var keys = ["theme", "accent", "density", "uiScale", "fontScale", "rounding", "opacity", "animations", "highContrast"];
+    try {
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        var patch = {};
+        patch[k] = DEFAULTS[k];
+        await api("settings.set", patch);
+        S.values[k] = DEFAULTS[k];
+      }
+      App.settings = S.values;
+      ui.applySettings(S.values);
+      if (!S.dead) renderSection();
+      ui.notifySuccess("Оформление сброшено", "Тема и цвета возвращены к значениям по умолчанию");
+    } catch (e) {
+      if (!S.dead) ui.notifyError(e, "Не удалось сбросить оформление");
+    }
+  }
+
+  /* ---------- Сборки ---------- */
+  function renderInstances(pane) {
+    pane.innerHTML =
+      card("Библиотека", "grid",
+        row("instanceSort", "Сортировка сборок", "Поле сортировки библиотеки.",
+          sel("instanceSort", [["lastPlayed", "По последнему запуску"], ["created", "По дате создания"],
+            ["name", "По названию"], ["mcVersion", "По версии Minecraft"], ["modCount", "По числу модов"]])) +
+        row("instanceView", "Вид библиотеки", "Сетка карточек или компактный список.",
+          seg("instanceView", [["grid", "Сетка"], ["list", "Список"]])) +
+        row("showFavoritesFirst", "Избранное сверху", "Закреплённые сборки показывать первыми.", sw("showFavoritesFirst")) +
+        row("showOldVersions", "Показывать старые версии", "Beta/Alpha и древние релизы в списке версий.", sw("showOldVersions"))) +
+      card("Безопасность", "shield",
+        row("autoBackup", "Автоматические резервные копии", "Создавать копию перед обновлением версии, модов и удалением.", sw("autoBackup")) +
+        row("backupBeforeUpdate", "Бэкап перед обновлением", "Всегда копировать сборку перед сменой версии Minecraft или модпака.", sw("backupBeforeUpdate")) +
+        row("backupRetention", "Хранить бэкапов", "Старые автоматические копии удаляются сверх этого числа.",
+          numIn("backupRetention", { min: 1, max: 100, w: 90, unit: "шт." })));
+    bind(pane, {});
+  }
+
+  /* ---------- Параметры запуска ---------- */
+  function renderLaunch(pane) {
+    pane.innerHTML =
+      card("Окно игры", "play",
+        row("windowMode", "Режим окна", "Полноэкранный, развёрнутый или оконный режим игры.",
+          seg("windowMode", [["windowed", "Окно"], ["maximized", "Развёрнуто"], ["fullscreen", "Полный экран"]])) +
+        row("windowWidth", "Ширина окна", "Ширина окна игры в оконном режиме.",
+          numIn("windowWidth", { min: 640, max: 7680, w: 110, unit: "px" })) +
+        row("windowHeight", "Высота окна", "Высота окна игры в оконном режиме.",
+          numIn("windowHeight", { min: 480, max: 4320, w: 110, unit: "px" })) +
+        row("fullscreen", "Полноэкранный режим", "Запускать игру на весь экран.", sw("fullscreen")) +
+        row("vsync", "VSync", "Синхронизация кадров с монитором.", sw("vsync")) +
+        row("fpsLimit", "Лимит FPS", "Ограничение частоты кадров, 0 — без ограничения.",
+          numIn("fpsLimit", { min: 0, max: 1000, w: 90, unit: "FPS" }))) +
+      card("Поведение", "settings",
+        row("closeLauncherOnLaunch", "Закрывать лаунчер после запуска", "Лаунчер завершается, когда игра стартовала.", sw("closeLauncherOnLaunch")) +
+        row("safeModeByDefault", "Безопасный режим по умолчанию", "Запускать сборки без модов, пока не отключено вручную.", sw("safeModeByDefault")));
+    bind(pane, {});
+  }
+
+  /* ---------- Сеть и прокси ---------- */
+  function renderNetwork(pane) {
+    pane.innerHTML =
+      card("Прокси", "wifi",
+        row("proxyType", "Тип прокси", "None — напрямую, System — настройки Windows, далее — указанный сервер.",
+          sel("proxyType", [["none", "Нет"], ["system", "Системный"], ["http", "HTTP"], ["https", "HTTPS"], ["socks5", "SOCKS5"]])) +
+        row("proxyHost", "Прокси — хост", "Адрес прокси-сервера.", txtIn("proxyHost", { ph: "proxy.example.com", w: 220 })) +
+        row("proxyPort", "Прокси — порт", "Порт прокси-сервера.", numIn("proxyPort", { min: 1, max: 65535, w: 100 })) +
+        row("proxyUser", "Прокси — логин", "Если сервер требует авторизацию.", txtIn("proxyUser", { ph: "логин", w: 200 })) +
+        row("proxyPass", "Прокси — пароль", "Хранится в настройках лаунчера.", txtIn("proxyPass", { type: "password", ph: "пароль", w: 200 }))) +
+      card("Соединение", "download",
+        row("networkTimeoutSec", "Тайм-аут сети", "Сколько секунд ждать ответа от сервера.",
+          numIn("networkTimeoutSec", { min: 5, max: 600, w: 100, unit: "сек." })) +
+        row("retryCount", "Повторов при ошибке", "Число автоматических повторов загрузки.",
+          numIn("retryCount", { min: 0, max: 10, w: 90, unit: "раз" })));
+    bind(pane, {});
+  }
+
+  /* ---------- Уведомления ---------- */
+  function renderNotifications(pane) {
+    pane.innerHTML =
+      card("Уведомления", "bell",
+        row("notifyToasts", "Всплывающие уведомления", "Собственные уведомления лаунчера внутри окна.", sw("notifyToasts")) +
+        row("notifyDownloadDone", "Уведомлять о загрузках", "Сообщать об окончании скачивания.", sw("notifyDownloadDone")) +
+        row("notifyLaunchDone", "Уведомлять о запуске", "Сообщать о завершении игры.", sw("notifyLaunchDone")) +
+        row("notifyModUpdates", "Уведомлять о новых версиях модов", "Сообщать, когда у модов появилась новая версия.", sw("notifyModUpdates")) +
+        row("notifySound", "Звуковой сигнал", "Короткий сигнал при уведомлении.", sw("notifySound")) +
+        row("", "Проверка", "Отправить тестовое уведомление прямо сейчас.",
+          btn("Проверить уведомление", "test", "", "bell")));
+    bind(pane, {
+      test: function () { ui.notifyInfo("Тест", "Уведомления работают"); },
+    });
+  }
+
+  /* ---------- Конфиденциальность ---------- */
+  function renderPrivacy(pane) {
+    pane.innerHTML =
+      card("Данные", "shield",
+        row("telemetry", "Телеметрия", "Анонимная статистика использования. По умолчанию выключена: лаунчер работает полностью офлайн-консистентно.", sw("telemetry")) +
+        row("saveTokenSecure", "Хранить токены безопасно", "Токены Microsoft шифруются через DPAPI Windows; пароли не хранятся.", sw("saveTokenSecure"))) +
+      card("Что покидает ваш компьютер", "lock",
+        '<div class="sset-hint">При включённой телеметрии отправляются только обезличенные счётчики (версия лаунчера, число запусков, тип ошибок). ' +
+        "Никогда не отправляются: токены доступа, пароли, идентификаторы аккаунтов, IP-адреса, содержимое сборок и миров. " +
+        "Отчёты о сбоях игры отправляются только после вашего явного подтверждения.</div>");
+    bind(pane, {});
+  }
+
+  /* ---------- Аккаунты ---------- */
+  function renderAccounts(pane) {
+    pane.innerHTML =
+      card("Профили игроков", "user",
+        '<div class="sset-actions" style="margin-top:0;margin-bottom:12px">' +
+          btn("Войти через Microsoft", "ms-login", "btn-primary", "user") +
+          btn("Офлайн-аккаунт", "off-login", "", "user") +
+          btn("Гость", "guest-login", "", "user") +
+        "</div>" +
+        '<div class="sset-hint" style="margin-bottom:12px">Microsoft — официальный вход в ваш профиль. ' +
+        "Офлайн-аккаунт работает без интернета и подходит для одиночной игры и локальных серверов. " +
+        "Гость — быстрый временный профиль для разовой игры.</div>" +
+        '<div id="sset-accounts">' + skelRows(2) + "</div>");
+    bind(pane, { "ms-login": msLogin, "off-login": offlineLogin, "guest-login": guestLogin });
+    loadAccounts();
+  }
+
+  async function offlineLogin() {
+    var name = await ui.promptDialog({
+      title: "Офлайн-аккаунт",
+      message: "Введите никнейм (3–16 символов: латиница, цифры, «_»).",
+      placeholder: "Steve",
+      okLabel: "Добавить",
+      validate: function (v) {
+        v = (v || "").trim();
+        if (!/^[A-Za-z0-9_]{3,16}$/.test(v)) return "От 3 до 16 символов: латиница, цифры и «_»";
+        return null;
+      },
+    });
+    if (!name) return;
+    try {
+      await api("accounts.addOffline", { name: name.trim() });
+      ui.notifySuccess("Офлайн-аккаунт добавлен", name.trim());
+      await ui.updateAccountChip();
+      await loadAccounts();
+    } catch (e) {
+      ui.notifyError(e, "Не удалось добавить аккаунт");
+    }
+  }
+
+  async function guestLogin() {
+    try {
+      await api("accounts.addGuest", { name: "Player" });
+      ui.notifySuccess("Гостевой профиль добавлен", "Можно запускать игру");
+      await ui.updateAccountChip();
+      await loadAccounts();
+    } catch (e) {
+      ui.notifyError(e, "Не удалось создать гостевой профиль");
+    }
+  }
+
+  async function loadAccounts() {
+    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
+    var box = S.els.panes.querySelector("#sset-accounts");
+    if (!box) return;
+    box.innerHTML = skelRows(2);
+    try {
+      var list = await api("accounts.list");
+      if (S.dead || !box.isConnected) return;
+      list = list || [];
+      if (!list.length) {
+        box.innerHTML = emptyState("user", "Аккаунтов нет",
+          "Войдите через Microsoft, добавьте офлайн-аккаунт или гостевой профиль — иначе запуск игры будет недоступен. Данные входа хранятся только на этом компьютере.");
+        return;
+      }
+      var h = '<div class="list">';
+      list.forEach(function (a) {
+        var av = a.skinUrl
+          ? '<span class="item-icon" style="background-image:url(&quot;' + esc(a.skinUrl) + '&quot;)"></span>'
+          : '<span class="item-icon">' + esc(ui.initials(a.name)) + "</span>";
+        h += '<div class="list-row">' + av +
+          '<div class="grow"><div class="title">' + esc(a.name) +
+          (a.default ? ' <span class="chip on">основной</span>' : "") + "</div>" +
+          '<div class="sub"><span class="mono">' + esc(a.uuid || "—") + "</span>" +
+          (a.type ? "<span>" + esc(a.type) + "</span>" : "") +
+          (a.expiresAt ? "<span>истекает " + esc(ui.fmtDate(a.expiresAt)) + "</span>" : "") +
+          "</div></div>" +
+          '<div class="row" style="gap:6px">' +
+            (a.default ? "" : '<button class="btn btn-sm" data-act="set-default" data-uuid="' + esc(a.uuid) + '">Сделать основным</button>') +
+            '<button class="btn btn-sm btn-danger" data-act="remove" data-uuid="' + esc(a.uuid) + '">Удалить</button>' +
+          "</div></div>";
+      });
+      h += "</div>";
+      box.innerHTML = h;
+      box.querySelectorAll("[data-act]").forEach(function (b) {
+        b.onclick = function () {
+          if (b.dataset.act === "set-default") setDefaultAccount(b.dataset.uuid, b);
+          else removeAccount(b.dataset.uuid, b);
+        };
+      });
+    } catch (e) {
+      if (S.dead || !box.isConnected) return;
+      box.innerHTML = errBlock(e, true);
+      bindRetry(box, loadAccounts);
+    }
+  }
+
+  async function setDefaultAccount(uuid, btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      await api("accounts.setDefault", { uuid: uuid });
+      ui.notifySuccess("Основной аккаунт изменён", "");
+      await ui.updateAccountChip();
+      await loadAccounts();
+    } catch (e) {
+      ui.notifyError(e, "Не удалось сменить основной аккаунт");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  async function removeAccount(uuid, btnEl) {
+    var ok = await ui.confirmDialog({
+      title: "Удалить аккаунт?",
+      message: "Профиль будет удалён из лаунчера. Сами сборки и миры не пострадают.",
+      okLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      await api("accounts.remove", { uuid: uuid });
+      ui.notifySuccess("Аккаунт удалён", "");
+      await ui.updateAccountChip();
+      await loadAccounts();
+    } catch (e) {
+      ui.notifyError(e, "Не удалось удалить аккаунт");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  function msLogin(btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    api("accounts.addMicrosoft").then(function (res) {
+      if (btnEl) btnEl.classList.remove("loading");
+      if (!res || !res.deviceCode) {
+        ui.notifyWarn("Сервис Microsoft недоступен", "Не удалось получить код устройства. Попробуйте позже.");
+        return;
+      }
+      var body = document.createElement("div");
+      body.className = "col";
+      body.innerHTML =
+        '<div class="sset-hint">Откройте страницу ниже, введите код и подтвердите вход в аккаунт Microsoft.</div>' +
+        '<div class="sset-code">' + esc(res.verificationUrl || "https://microsoft.com/link") + "</div>" +
+        '<div style="text-align:center;font-size:26px;font-weight:700;letter-spacing:3px" class="mono">' + esc(res.userCode || "") + "</div>" +
+        '<div class="sset-hint" id="sset-ms-status">Ожидание подтверждения…</div>' +
+        '<div class="progress indeterminate"><i style="width:35%"></i></div>';
+
+      var poll = null;
+      var dlg = openPageDialog({
+        title: "Вход через Microsoft",
+        icon: "user",
+        body: body,
+        buttons: [{ label: "Отмена", role: "cancel" }],
+        onClose: function () {
+          if (poll) { clearInterval(poll); poll = null; }
+        },
+      });
+
+      poll = setInterval(async function () {
+        try {
+          var r = await api("accounts.pollMicrosoft", { uuid: res.deviceCode });
+          if (!poll) return;
+          if (r && r.status === "done") {
+            clearInterval(poll); poll = null;
+            dlg.close();
+            ui.notifySuccess("Аккаунт добавлен", r.account ? r.account.name : "");
+            ui.updateAccountChip();
+            loadAccounts();
+          } else if (r && r.status === "expired") {
+            clearInterval(poll); poll = null;
+            dlg.close();
+            ui.notifyWarn("Код истёк", r.message || "Запросите новый код входа");
+          } else if (r && r.status === "error") {
+            clearInterval(poll); poll = null;
+            dlg.close();
+            ui.notifyError(r.message || "Не удалось завершить вход", "Ошибка входа");
+          }
+        } catch (e) {
+          /* сбоя опроса не прерываем — возможно, кратковременная недоступность */
+        }
+      }, 3000);
+    }).catch(function (e) {
+      if (btnEl) btnEl.classList.remove("loading");
+      ui.notifyError(e, "Не удалось начать вход через Microsoft");
+    });
+  }
+
+  /* ---------- Java ---------- */
+  function renderJava(pane) {
+    pane.innerHTML =
+      card("Выбор Java", "coffee",
+        row("javaAuto", "Автоматический выбор Java", "Подбирать версию Java по требованиям версии Minecraft.", sw("javaAuto")) +
+        row("javaMajor", "Версия Java по умолчанию", "Используется, если автоматический выбор выключен.",
+          sel("javaMajor", [[8, "Java 8"], [17, "Java 17"], [21, "Java 21"], [25, "Java 25"]], true)) +
+        row("javaPath", "Путь к java.exe", "Пусто — использовать найденные установки.",
+          txtIn("javaPath", { ph: "C:\\Program Files\\Eclipse Adoptium\\…", w: 300 })) +
+        row("", "Поиск установленных Java", "Проверяет реестр Windows, PATH и стандартные каталоги установки.",
+          '<span class="row" style="gap:7px">' + btn("Найти заново", "detect", "", "refresh") + btn("Установить Java…", "install", "btn-primary", "download") + "</span>")) +
+      card("Найденные установки", "list", '<div id="sset-javas">' + skelRows(3) + "</div>");
+
+    bind(pane, { detect: detectJava, install: installJavaDialog });
+    loadJava();
+  }
+
+  function javaSource(s) {
+    s = String(s || "");
+    if (s === "launcher") return "лаунчер";
+    if (s === "system" || s === "registry") return "система";
+    if (s === "path") return "переменная PATH";
+    return s || "—";
+  }
+
+  async function loadJava() {
+    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
+    var box = S.els.panes.querySelector("#sset-javas");
+    if (!box) return;
+    box.innerHTML = skelRows(3);
+    try {
+      var list = await api("java.list");
+      if (S.dead || !box.isConnected) return;
+      list = list || [];
+      if (!list.length) {
+        box.innerHTML = emptyState("coffee", "Java не найдена",
+          "Нажмите «Найти заново», чтобы просканировать систему, либо установите Java прямо в лаунчере.",
+          '<button class="btn btn-primary" data-retry="1">' + ui.icon("refresh") + " Найти заново</button>");
+        bindRetry(box, detectJava);
+        return;
+      }
+      var h = '<div class="table-wrap"><table class="table sset-table"><thead><tr>' +
+        "<th>Путь</th><th>Версия</th><th>Major</th><th>Арх.</th><th>Источник</th><th>Статус</th><th></th>" +
+        "</tr></thead><tbody>";
+      list.forEach(function (j) {
+        h += "<tr>" +
+          '<td><span class="mono truncate" style="display:block;max-width:320px" title="' + esc(j.path || "") + '">' + esc(j.path || "—") + "</span></td>" +
+          "<td>" + esc(j.version || "—") + "</td>" +
+          '<td class="num">Java ' + esc(String(j.major || "—")) + "</td>" +
+          "<td>" + esc(j.arch || "—") + "</td>" +
+          "<td>" + esc(javaSource(j.source)) + "</td>" +
+          "<td>" + (j.valid ? '<span class="chip on">рабочая</span>' : '<span class="chip danger">нерабочая</span>') + "</td>" +
+          '<td><div class="row" style="gap:6px;justify-content:flex-end">' +
+            '<button class="btn btn-sm" data-check="' + esc(j.path || "") + '">Проверить</button>' +
+            (j.source === "launcher" ? '<button class="btn btn-sm btn-danger" data-remove="' + esc(j.id || "") + '">Удалить</button>' : "") +
+          "</div></td></tr>";
+      });
+      h += "</tbody></table></div>";
+      box.innerHTML = h;
+      box.querySelectorAll("[data-check]").forEach(function (b) {
+        b.onclick = function () { validateJava(b.dataset.check, b); };
+      });
+      box.querySelectorAll("[data-remove]").forEach(function (b) {
+        b.onclick = function () { removeJava(b.dataset.remove, b); };
+      });
+    } catch (e) {
+      if (S.dead || !box.isConnected) return;
+      box.innerHTML = errBlock(e, true);
+      bindRetry(box, loadJava);
+    }
+  }
+
+  async function detectJava(btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var res = await api("java.detect");
+      if (!S.dead) await loadJava();
+      ui.notifySuccess("Сканирование завершено",
+        res ? "Найдено установок: " + (Array.isArray(res) ? res.length : 1) : "");
+    } catch (e) {
+      ui.notifyError(e, "Не удалось просканировать систему");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  async function validateJava(path, btnEl) {
+    if (!path) return;
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var r = await api("java.validate", { path: path });
+      if (r && r.valid) {
+        ui.notifySuccess("Java рабочая", [r.version, r.major ? "Java " + r.major : "", r.arch].filter(Boolean).join(" · "));
+      } else {
+        ui.notifyWarn("Проверка не пройдена", "java.exe не запускается или не является Java");
+      }
+      await loadJava();
+    } catch (e) {
+      ui.notifyError(e, "Не удалось проверить Java");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  async function removeJava(id, btnEl) {
+    var ok = await ui.confirmDialog({
+      title: "Удалить Java?",
+      message: "Запись будет убрана из списка лаунчера. Сам файл java.exe останется на диске.",
+      okLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      await api("java.remove", { id: id });
+      ui.notifySuccess("Java удалена из списка", "");
+      await loadJava();
+    } catch (e) {
+      ui.notifyError(e, "Не удалось удалить Java");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  function installJavaDialog() {
+    var body = document.createElement("div");
+    body.className = "col";
+    body.innerHTML =
+      '<div class="field"><label>Версия Java</label>' +
+      '<select id="sset-jver"><option value="21">Java 21 — рекомендуется (1.20.5+)</option>' +
+      '<option value="17">Java 17 — Minecraft 1.18–1.20.4</option>' +
+      '<option value="8">Java 8 — старые версии</option>' +
+      '<option value="25">Java 25 — экспериментальная</option></select>' +
+      '<div class="hint">Скачивается Eclipse Temurin в папку java/ лаунчера.</div></div>' +
+      '<div id="sset-jprog" hidden><div class="progress"><i style="width:0%"></i></div>' +
+      '<div class="sset-hint" id="sset-jprog-t" style="margin-top:6px"></div></div>';
+
+    var unsub = null;
+    var dlg = openPageDialog({
+      title: "Установить Java",
+      icon: "coffee",
+      body: body,
+      buttons: [
+        { label: "Отмена", role: "cancel" },
+        {
+          label: "Установить", role: "primary", keepOpen: true,
+          onClick: async function (dctx) {
+            var major = Number(body.querySelector("#sset-jver").value);
+            var prog = body.querySelector("#sset-jprog");
+            var bar = prog.querySelector(".progress > i");
+            var txt = body.querySelector("#sset-jprog-t");
+            prog.hidden = false;
+            txt.textContent = "Подготовка…";
+            if (!unsub) {
+              unsub = on("java.install.progress", function (d) {
+                if (!d) return;
+                var p = typeof d.progress === "number" ? (d.progress <= 1 ? d.progress * 100 : d.progress) : 0;
+                bar.style.width = Math.max(0, Math.min(100, p)).toFixed(1) + "%";
+                txt.textContent = d.done ? "Готово" : "Скачивание Java " + (d.major || major) + "… " + Math.round(p) + "%";
+              });
+            }
+            try {
+              var r = await api("java.install", { major: major });
+              bar.style.width = "100%";
+              txt.textContent = "Готово";
+              ui.notifySuccess("Java установлена", (r && r.path) ? String(r.path) : "Java " + major);
+              if (!S.dead) loadJava();
+              if (unsub) { try { unsub(); } catch (e) { /* noop */ } unsub = null; }
+              dctx.close();
+            } catch (e) {
+              prog.hidden = true;
+              ui.notifyError(e, "Не удалось установить Java");
+              if (unsub) { try { unsub(); } catch (e2) { /* noop */ } unsub = null; }
+            }
+            return false;
+          },
+        },
+      ],
+      onClose: function () {
+        if (unsub) { try { unsub(); } catch (e) { /* noop */ } unsub = null; }
+      },
+    });
+  }
+
+  /* ---------- RAM и память ---------- */
+  var RAM_PRESETS = [1024, 2048, 3072, 4096, 6144, 8192, 12288, 16384];
+
+  function ramCtrl(k) {
+    var v = Number(get(k));
+    var has = RAM_PRESETS.indexOf(v) >= 0;
+    var h = '<select data-set="' + k + '" data-ctl="select" data-num="1" style="width:auto;min-width:130px">';
+    if (!has) h += '<option value="' + v + '" selected>Свой: ' + v + " МБ</option>";
+    RAM_PRESETS.forEach(function (p) {
+      h += '<option value="' + p + '"' + (p === v ? " selected" : "") + ">" + (p >= 1024 ? (p / 1024) + " ГБ" : p + " МБ") + "</option>";
+    });
+    h += "</select>";
+    return h + numIn(k, { min: 256, max: 65536, w: 110, unit: "МБ" });
+  }
+
+  function renderRam(pane) {
+    pane.innerHTML =
+      card("Память Java", "memory",
+        row("ramMinMb", "Минимальная RAM", "Стартовый объём памяти Java (-Xms).", ramCtrl("ramMinMb")) +
+        row("ramMaxMb", "Максимальная RAM", "Предел памяти Java (-Xmx). Больше физически доступной — ошибка запуска.", ramCtrl("ramMaxMb")) +
+        row("ramRecommend", "Подсказывать объём памяти", "Показывать рекомендации по объёму RAM для сборки.", sw("ramRecommend")) +
+        '<div id="sset-raminfo" style="margin-top:12px"></div>');
+
+    bind(pane, {});
+    S.hook = function (key) {
+      if (key === "ramMinMb" || key === "ramMaxMb" || key === "ramRecommend") updateRamInfo();
+    };
+    updateRamInfo();
+  }
+
+  function updateRamInfo() {
+    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
+    var box = S.els.panes.querySelector("#sset-raminfo");
+    if (!box) return;
+    var total = (App.info && App.info.ramTotalMb) ? Number(App.info.ramTotalMb) : 0;
+    var min = Number(get("ramMinMb")), max = Number(get("ramMaxMb"));
+    var h = '<div class="sset-hint">Всего RAM в системе: <b class="tnum">' + (total ? ui.fmtNum(total) + " МБ" : "неизвестно") + "</b>" +
+      " · Рекомендуемый максимум для игр: 4096 МБ</div>";
+    if (total && max > total) {
+      h = '<div class="banner error" style="margin-bottom:8px">' + ui.icon("alert") +
+        '<span class="grow">Максимальная память (' + ui.fmtNum(max) + " МБ) больше доступной RAM (" + ui.fmtNum(total) +
+        " МБ) — Minecraft может не запуститься.</span></div>" + h;
+    }
+    if (max < min) {
+      h = '<div class="banner warn" style="margin-bottom:8px">' + ui.icon("alert") +
+        '<span class="grow">Максимум меньше минимума — исправьте значения.</span></div>' + h;
+    }
+    box.innerHTML = h;
+  }
+
+  /* ---------- Modrinth ---------- */
+  function renderModrinth(pane) {
+    pane.innerHTML =
+      card("Каталог Modrinth", "compass",
+        row("modrinthPageSize", "Результатов на странице", "Размер страницы поиска Modrinth.",
+          sel("modrinthPageSize", [[10, "10"], [20, "20"], [40, "40"], [60, "60"]], true)) +
+        row("modrinthOfflineCache", "Кэш Modrinth при офлайне", "Показывать сохранённые данные, если API недоступен.", sw("modrinthOfflineCache")) +
+        row("modrinthAutoUpdateCheck", "Проверять обновления проектов", "Запрашивать обновления модов при открытии сборки.", sw("modrinthAutoUpdateCheck"))) +
+      card("Кэш", "hdd",
+        row("", "Очистить кэш Modrinth", "Удаляет сохранённые ответы каталога. Списки проектов загрузятся заново.",
+          btn("Очистить кэш Modrinth", "clear", "", "trash")));
+    bind(pane, { clear: clearModrinthCache });
+  }
+
+  async function clearModrinthCache(btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var r = await api("cache.clear", { keys: ["modrinth"] });
+      ui.notifySuccess("Кэш Modrinth очищен", r && r.freed ? "Освобождено: " + ui.fmtBytes(r.freed) : "");
+    } catch (e) {
+      ui.notifyError(e, "Не удалось очистить кэш");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  /* ---------- Загрузки ---------- */
+  function renderDownloads(pane) {
+    pane.innerHTML =
+      card("Загрузка файлов", "download",
+        row("downloadThreads", "Потоки загрузки", "Количество одновременных соединений на один файл.",
+          rng("downloadThreads", 1, 16, 1, " шт.")) +
+        row("maxConcurrentDownloads", "Параллельных загрузок", "Сколько файлов скачивается одновременно.",
+          rng("maxConcurrentDownloads", 1, 16, 1, " шт.")) +
+        row("speedLimitKbs", "Ограничение скорости", "КБ/с, 0 — без ограничения.",
+          numIn("speedLimitKbs", { min: 0, max: 1000000, w: 120, unit: "КБ/с" })) +
+        row("verifyHashes", "Проверять хэши", "Сверять sha1/sha512 после скачивания.", sw("verifyHashes")) +
+        row("reuseCache", "Использовать общий кэш", "Не качать повторно файлы, уже имеющиеся в кэше (по хэшу).", sw("reuseCache")) +
+        row("resumeInterrupted", "Продолжать прерванные загрузки", "Возобновлять незавершённые файлы после перезапуска лаунчера.", sw("resumeInterrupted"))) +
+      card("Папки и кэш", "folder",
+        row("", "Папка загрузок", "Открыть каталог, куда лаунчер скачивает файлы.",
+          btn("Открыть папку загрузок", "open-dl", "", "folder")) +
+        row("", "Кэш изображений и метаданных", "Очистить иконки проектов, обложки и кэш описаний.",
+          btn("Очистить кэш", "clear-cache", "", "trash")));
+    bind(pane, {
+      "open-dl": openDownloadsFolder,
+      "clear-cache": clearImageCache,
+    });
+  }
+
+  function openDownloadsFolder() {
+    var dir = (App.info && App.info.dataDir) ? App.info.dataDir + "\\downloads" : "";
+    if (!dir) { ui.notifyWarn("Папка неизвестна", "Данные о папке загрузок недоступны"); return; }
+    api("system.openPath", { path: dir }).catch(function (e) { ui.notifyError(e, "Не удалось открыть папку"); });
+  }
+
+  async function clearImageCache(btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var r = await api("cache.clear", { keys: ["images", "metadata"] });
+      ui.notifySuccess("Кэш очищен", r && r.freed ? "Освобождено: " + ui.fmtBytes(r.freed) : "");
+    } catch (e) {
+      ui.notifyError(e, "Не удалось очистить кэш");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  /* ---------- Хранилище ---------- */
+  function renderStorage(pane) {
+    pane.innerHTML =
+      card("Занятое место", "hdd", '<div id="sset-storage">' + skelRows(4) + "</div>") +
+      card("Папка данных", "folder",
+        row("dataDir", "Корень данных", "Корень с сборками, Java, кэшем и бэкапами. Настройки всегда остаются в %APPDATA%.",
+          '<span class="row" style="gap:7px"><span class="mono truncate" style="max-width:300px" id="sset-datadir">' +
+          esc(get("dataDir") || (App.info && App.info.dataDir) || "—") + "</span></span>", true) +
+        row("", "Действия", "",
+          '<span class="row" style="gap:7px">' +
+          btn("Открыть папку данных", "open-dir", "", "folder") +
+          btn("Сменить папку данных…", "pick-dir", "", "edit") + "</span>"));
+    bind(pane, {
+      "open-dir": openDataDir,
+      "pick-dir": pickDataDir,
+    });
+    loadStorage();
+  }
+
+  async function loadStorage() {
+    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
+    var box = S.els.panes.querySelector("#sset-storage");
+    if (!box) return;
+    box.innerHTML = skelRows(4);
+    try {
+      var ov = await api("storage.overview");
+      if (S.dead || !box.isConnected) return;
+      var items = Array.isArray(ov) ? ov : ((ov && Array.isArray(ov.items)) ? ov.items : []);
+      var freeBytes = (ov && typeof ov === "object" && !Array.isArray(ov)) ? ov.freeBytes : null;
+      if (!items.length) {
+        box.innerHTML = emptyState("hdd", "Данных пока нет", "Кэш, загрузки и логи появятся после первого запуска.");
+        return;
+      }
+      var total = items.reduce(function (s, it) { return s + (Number(it.bytes) || 0); }, 0);
+      var h = "";
+      if (freeBytes !== null && freeBytes !== undefined) {
+        h += '<div class="sset-hint" style="margin-bottom:8px">Свободно на диске: <b class="tnum">' + ui.fmtBytes(freeBytes) + "</b>" +
+          " · занято лаунчером: <b class=\"tnum\">" + ui.fmtBytes(total) + "</b></div>";
+      } else {
+        h += '<div class="sset-hint" style="margin-bottom:8px">Занято лаунчером: <b class="tnum">' + ui.fmtBytes(total) + "</b></div>";
+      }
+      h += '<div>';
+      items.forEach(function (it) {
+        var bytes = Number(it.bytes) || 0;
+        var pct = total > 0 ? (bytes / total * 100) : 0;
+        var clearable = ["cache", "downloads", "logs", "backups"].indexOf(String(it.key)) >= 0;
+        h += '<div class="bar-row"><div class="bar-top">' +
+          ui.icon(it.key === "logs" ? "file" : it.key === "backups" ? "save" : it.key === "downloads" ? "download" : "hdd") +
+          "<span>" + esc(it.label || it.key) + "</span>" +
+          '<span class="val">' + ui.fmtBytes(bytes) + (it.items ? " · " + ui.fmtNum(it.items) + " файлов" : "") + "</span>" +
+          (clearable ? '<button class="btn btn-sm btn-ghost" data-clear="' + esc(it.key) + '">' + ui.icon("trash") + " Очистить</button>" : "") +
+          "</div>" +
+          '<div class="progress' + (pct > 85 ? " danger" : pct > 60 ? " warn" : "") + '"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
+          (it.path ? '<div class="sset-hint mono" style="overflow-wrap:anywhere">' + esc(it.path) + "</div>" : "") +
+          "</div>";
+      });
+      h += "</div>";
+      box.innerHTML = h;
+      box.querySelectorAll("[data-clear]").forEach(function (b) {
+        b.onclick = function () { clearStorageKey(b.dataset.clear, b); };
+      });
+    } catch (e) {
+      if (S.dead || !box.isConnected) return;
+      box.innerHTML = errBlock(e, true);
+      bindRetry(box, loadStorage);
+    }
+  }
+
+  async function clearStorageKey(key, btnEl) {
+    var labels = { cache: "кэш", downloads: "папку загрузок", logs: "логи", backups: "резервные копии" };
+    var ok = await ui.confirmDialog({
+      title: "Очистить «" + (labels[key] || key) + "»?",
+      message: "Файлы будут удалены безвозвратно. Загруженные моды и сборки не пострадают — очищается только кэш и служебные данные.",
+      okLabel: "Очистить",
+      danger: true,
+    });
+    if (!ok) return;
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var r = await api("system.clearStorage", { key: key });
+      ui.notifySuccess("Очищено", r && r.freedBytes ? ui.fmtBytes(r.freedBytes) : (labels[key] || key));
+      await loadStorage();
+    } catch (e) {
+      ui.notifyError(e, "Не удалось очистить хранилище");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  function openDataDir() {
+    var dir = (App.info && App.info.dataDir) ? App.info.dataDir : "";
+    if (!dir) { ui.notifyWarn("Папка неизвестна", "Данные о папке данных недоступны"); return; }
+    api("system.openPath", { path: dir }).catch(function (e) { ui.notifyError(e, "Не удалось открыть папку"); });
+  }
+
+  async function pickDataDir(btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var r = await api("system.pickDirectory", { title: "Папка данных NullLauncher" });
+      if (btnEl) btnEl.classList.remove("loading");
+      if (!r || !r.path) return;
+      await api("settings.set", { dataDir: r.path });
+      S.values.dataDir = r.path;
+      App.settings = S.values;
+      if (S.els.panes && S.els.panes.querySelector) {
+        var el = S.els.panes.querySelector("#sset-datadir");
+        if (el) el.textContent = r.path;
+      }
+      openPageDialog({
+        title: "Папка данных изменена",
+        icon: "alert",
+        iconType: "warn",
+        body: '<div class="col"><div>Новая папка: <span class="sset-code">' + esc(r.path) + "</span></div>" +
+          '<div class="sset-hint">Файлы <b>не переносятся автоматически</b>: старые сборки, кэш и бэкапы остались в прежнем каталоге. ' +
+          "Перезапустите лаунчер, чтобы данные читались из новой папки. Настройки хранятся в %APPDATA% и не зависят от этого пути.</div></div>",
+        buttons: [{ label: "Понятно", role: "primary" }],
+      });
+    } catch (e) {
+      if (btnEl) btnEl.classList.remove("loading");
+      ui.notifyError(e, "Не удалось сменить папку данных");
+    }
+  }
+
+  /* ---------- Резервные копии ---------- */
+  function renderBackup(pane) {
+    pane.innerHTML =
+      card("Правила бэкапов", "save",
+        row("autoBackup", "Автоматические резервные копии", "Создавать копию перед обновлением версии, модов и удалением.", sw("autoBackup")) +
+        row("backupBeforeUpdate", "Бэкап перед обновлением", "Всегда копировать сборку перед сменой версии Minecraft или модпака.", sw("backupBeforeUpdate")) +
+        row("backupRetention", "Хранить бэкапов", "Старые автоматические копии удаляются сверх этого числа.",
+          numIn("backupRetention", { min: 1, max: 100, w: 90, unit: "шт." }))) +
+      card("Копии", "layers",
+        '<div class="sset-actions" style="margin-top:0">' +
+          btn("Создать бэкап…", "create", "btn-primary", "save") +
+          btn("Открыть папку бэкапов", "open-folder", "", "folder") +
+        "</div>" +
+        '<div id="sset-backups">' + skelRows(3) + "</div>");
+    bind(pane, { create: createBackupDialog, "open-folder": openBackupFolder });
+    loadBackups();
+  }
+
+  function openBackupFolder() {
+    api("backups.openFolder", {}).catch(function (e) { ui.notifyError(e, "Не удалось открыть папку"); });
+  }
+
+  async function listInstancesSafe() {
+    try {
+      var list = await api("instances.list");
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function instanceOptions(list, selected) {
+    return list.map(function (i) {
+      return '<option value="' + esc(i.id) + '"' + (selected === i.id ? " selected" : "") + ">" +
+        esc(i.name) + " · " + esc(i.mcVersion || "") + "</option>";
+    }).join("");
+  }
+
+  async function createBackupDialog(btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    var instances = await listInstancesSafe();
+    if (btnEl) btnEl.classList.remove("loading");
+    if (!instances.length) {
+      ui.notifyWarn("Нет сборок", "Сначала создайте сборку — бэкап делать не от чего");
+      return;
+    }
+    var body = document.createElement("div");
+    body.className = "col";
+    body.innerHTML =
+      '<div class="field"><label>Сборка</label><select id="sset-binst">' + instanceOptions(instances) + "</select></div>" +
+      '<div class="field"><label>Что копировать</label><select id="sset-bkind">' +
+      '<option value="full">Вся сборка</option><option value="worlds">Только миры</option>' +
+      '<option value="mods">Только моды</option><option value="settings">Только настройки</option></select></div>' +
+      '<div class="field"><label>Название (необязательно)</label><input type="text" id="sset-bname" placeholder="Мой мир 1.21"></div>';
+    openPageDialog({
+      title: "Создать резервную копию",
+      icon: "save",
+      body: body,
+      buttons: [
+        { label: "Отмена", role: "cancel" },
+        {
+          label: "Создать", role: "primary",
+          onClick: async function () {
+            try {
+              var nameEl = body.querySelector("#sset-bname");
+              var params = {
+                instanceId: body.querySelector("#sset-binst").value,
+                kind: body.querySelector("#sset-bkind").value,
+              };
+              var nm = nameEl ? String(nameEl.value || "").trim() : "";
+              if (nm) params.name = nm;
+              await api("backups.create", params);
+              ui.notifySuccess("Бэкап создан", nm || "");
+              if (!S.dead && S.section === "backup") loadBackups();
+            } catch (e) {
+              ui.notifyError(e, "Не удалось создать бэкап");
+              return false;
+            }
+          },
+        },
+      ],
+    });
+  }
+
+  async function loadBackups() {
+    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
+    var box = S.els.panes.querySelector("#sset-backups");
+    if (!box) return;
+    box.innerHTML = skelRows(3);
+    try {
+      var list = await api("backups.list", {});
+      var instances = await listInstancesSafe();
+      if (S.dead || !box.isConnected) return;
+      var instName = {};
+      instances.forEach(function (i) { instName[i.id] = i.name; });
+      list = list || [];
+      if (!list.length) {
+        box.innerHTML = emptyState("save", "Бэкапов пока нет",
+          "Нажмите «Создать бэкап», чтобы зафиксировать состояние сборки перед крупными изменениями.");
+        return;
+      }
+      var h = '<div class="table-wrap"><table class="table sset-table"><thead><tr>' +
+        "<th>Название</th><th>Сборка</th><th>Дата</th><th>Тип</th><th>Размер</th><th></th></tr></thead><tbody>";
+      list.forEach(function (b) {
+        var kind = { full: "вся сборка", worlds: "миры", mods: "моды", settings: "настройки" }[b.kind] || b.kind || "—";
+        h += "<tr>" +
+          "<td><b>" + esc(b.name || "Бэкап") + "</b>" +
+            (b.automatic ? ' <span class="chip">авто</span>' : "") + "</td>" +
+          "<td>" + esc(instName[b.instanceId] || b.instanceId || "—") + "</td>" +
+          "<td>" + esc(ui.fmtDate(b.createdAt)) + "</td>" +
+          '<td><span class="chip">' + esc(kind) + "</span></td>" +
+          '<td class="num tnum">' + ui.fmtBytes(b.sizeBytes) + "</td>" +
+          '<td><div class="row" style="gap:6px;justify-content:flex-end">' +
+            '<button class="btn btn-sm" data-restore="' + esc(b.id) + '" data-inst="' + esc(b.instanceId || "") + '">Восстановить</button>' +
+            '<button class="btn btn-sm btn-danger" data-del="' + esc(b.id) + '">Удалить</button>' +
+          "</div></td></tr>";
+      });
+      h += "</tbody></table></div>";
+      box.innerHTML = h;
+      box.querySelectorAll("[data-restore]").forEach(function (b) {
+        b.onclick = function () { restoreBackupDialog(b.dataset.restore, b.dataset.inst, b); };
+      });
+      box.querySelectorAll("[data-del]").forEach(function (b) {
+        b.onclick = function () { deleteBackup(b.dataset.del, b); };
+      });
+    } catch (e) {
+      if (S.dead || !box.isConnected) return;
+      box.innerHTML = errBlock(e, true);
+      bindRetry(box, loadBackups);
+    }
+  }
+
+  async function restoreBackupDialog(backupId, sourceInstance, btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    var instances = await listInstancesSafe();
+    if (btnEl) btnEl.classList.remove("loading");
+    if (!instances.length) {
+      ui.notifyWarn("Нет сборок", "Восстанавливать пока не в что");
+      return;
+    }
+    var ok = await ui.confirmDialog({
+      title: "Восстановить бэкап?",
+      message: "Выберите сборку-получатель: её содержимое будет заменено содержимым копии. Копия, сделанная для другой сборки, может не подойти.",
+      okLabel: "Далее",
+    });
+    if (!ok) return;
+    var body = document.createElement("div");
+    body.className = "col";
+    body.innerHTML = '<div class="field"><label>Сборка-получатель</label><select id="sset-rinst">' +
+      instanceOptions(instances, sourceInstance || "") + "</select>" +
+      '<div class="hint">Файлы сборки будут заменены содержимым копии.</div></div>';
+    openPageDialog({
+      title: "Восстановление бэкапа",
+      icon: "save",
+      body: body,
+      buttons: [
+        { label: "Отмена", role: "cancel" },
+        {
+          label: "Восстановить", role: "primary",
+          onClick: async function () {
+            try {
+              await api("backups.restore", {
+                instanceId: body.querySelector("#sset-rinst").value,
+                backupId: backupId,
+              });
+              ui.notifySuccess("Бэкап восстановлен", "Перезапустите сборку, чтобы увидеть изменения");
+            } catch (e) {
+              ui.notifyError(e, "Не удалось восстановить бэкап");
+              return false;
+            }
+          },
+        },
+      ],
+    });
+  }
+
+  async function deleteBackup(backupId, btnEl) {
+    var ok = await ui.confirmDialog({
+      title: "Удалить бэкап?",
+      message: "Копия будет удалена безвозвратно.",
+      okLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      await api("backups.delete", { backupId: backupId });
+      ui.notifySuccess("Бэкап удалён", "");
+      await loadBackups();
+    } catch (e) {
+      ui.notifyError(e, "Не удалось удалить бэкап");
+    }
+    if (btnEl) btnEl.classList.remove("loading");
+  }
+
+  /* ---------- Производительность ---------- */
+  function renderPerformance(pane) {
+    var info = App.info || {};
+    var screenTxt = (info.screen && info.screen.width)
+      ? info.screen.width + "×" + info.screen.height
+      : (typeof info.screen === "string" ? info.screen : "—");
+    var facts = [
+      ["ОЗУ всего", info.ramTotalMb ? ui.fmtNum(info.ramTotalMb) + " МБ" : "—"],
+      ["ОЗУ свободно", info.ramFreeMb ? ui.fmtNum(info.ramFreeMb) + " МБ" : "—"],
+      ["Процессор", (info.cpu || "—") + (info.cpuCores ? " · " + info.cpuCores + " потоков" : "")],
+      ["Видеокарта", info.gpu || "—"],
+      ["Операционная система", (info.os || "—") + (info.osVersion ? " (" + info.osVersion + ")" : "")],
+      ["Разрешение экрана", screenTxt],
+      ["Свободно на диске", info.freeDiskGb ? (info.freeDiskGb / 1024 / 1024 / 1024).toFixed(1) + " ГБ" : "—"],
+      ["Папка данных", info.dataDir || "—"],
+      ["Папка конфигурации", info.configDir || "—"],
+    ];
+    var f = '<div class="sset-facts">';
+    facts.forEach(function (p) {
+      f += '<div class="sset-fact"><div class="k">' + esc(p[0]) + '</div><div class="v">' + esc(p[1]) + "</div></div>";
+    });
+    f += "</div>";
+
+    pane.innerHTML =
+      card("Система", "cpu", f +
+        '<div class="sset-actions">' + btn("Диагностика лаунчера…", "diagnose", "btn-primary", "zap") + "</div>" +
+        '<div id="sset-diag"></div>') +
+      card("Расход ресурсов", "gauge",
+        row("lowResourceMode", "Режим экономии", "Уменьшает фоновую активность лаунчера: реже опросы, мягче анимации фоновых задач.", sw("lowResourceMode")) +
+        row("lazyImages", "Ленивые изображения", "Подгружать картинки проектов по мере появления на экране.", sw("lazyImages")) +
+        row("apiCacheMinutes", "Кэш API (минут)", "Время жизни кэша ответов Modrinth и манифестов.",
+          rng("apiCacheMinutes", 1, 120, 1, " мин.")));
+
+    bind(pane, { diagnose: runDiagnostics });
+  }
+
+  async function runDiagnostics(btnEl, pane) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var res = await api("system.diagnose");
+      if (btnEl) btnEl.classList.remove("loading");
+      var checks = (res && Array.isArray(res.checks)) ? res.checks : [];
+      if (!checks.length) {
+        ui.notifyInfo("Диагностика", "Проверок не найдено");
+        return;
+      }
+      var h = "";
+      checks.forEach(function (c) {
+        var cls = c.status === "ok" ? "ok" : c.status === "warn" ? "warn" : "err";
+        var ic = c.status === "ok" ? "check" : "alert";
+        h += '<div class="sset-check ' + cls + '">' + ui.icon(ic) +
+          "<div><div><b>" + esc(c.title || c.id || "Проверка") + "</b></div>" +
+          (c.message ? '<div class="m">' + esc(c.message) + "</div>" : "") + "</div></div>";
+      });
+      openPageDialog({
+        title: "Диагностика лаунчера",
+        icon: "zap",
+        body: '<div style="max-height:52vh;overflow:auto">' + h + "</div>",
+        buttons: [{ label: "Закрыть", role: "cancel" }],
+      });
+    } catch (e) {
+      if (btnEl) btnEl.classList.remove("loading");
+      ui.notifyError(e, "Не удалось выполнить диагностику");
+    }
+  }
+
+  /* ---------- Логи и отчёты ---------- */
+  var LOG_LEVELS = [["", "Все уровни"], ["debug", "Debug"], ["info", "Info"], ["warn", "Warn"], ["error", "Error"]];
+
+  function renderLogs(pane) {
+    pane.innerHTML =
+      card("Параметры логов", "file",
+        row("logLevel", "Уровень логов", "Debug, Info, Warn или Error.",
+          sel("logLevel", [["debug", "Debug"], ["info", "Info"], ["warn", "Warn"], ["error", "Error"]])) +
+        row("logRetentionDays", "Хранить логи (дней)", "Старые файлы логов удаляются автоматически.",
+          numIn("logRetentionDays", { min: 1, max: 365, w: 100, unit: "дн." })) +
+        row("debugMode", "Отладочный режим", "Подробные логи запуска и сети.", sw("debugMode")) +
+        row("crashAutoAnalyze", "АвтоАнализ сбоев", "Автоматически разбирать отчёты о падениях игры.", sw("crashAutoAnalyze"))) +
+      card("Логи лаунчера", "list",
+        '<div class="sset-logbar">' +
+          '<select id="sset-logf"></select>' +
+          '<select id="sset-logl">' + LOG_LEVELS.map(function (o) {
+            return '<option value="' + o[0] + '">' + o[1] + "</option>";
+          }).join("") + "</select>" +
+          '<input type="search" id="sset-logq" placeholder="Поиск по строкам" style="min-width:180px">' +
+          '<span class="grow"></span>' +
+          btn("Копировать", "copy-log", "", "copy") +
+          btn("Открыть файл", "open-log", "", "external") +
+          btn("Открыть папку", "open-logs", "", "folder") +
+          btn("Обновить", "reload-log", "", "refresh") +
+        "</div>" +
+        '<div id="sset-logview"><div class="log-view">' + esc("Загрузка…") + "</div></div>") +
+      card("Отчёты о сбоях", "alert",
+        '<div id="sset-crashes">' + skelRows(2) + "</div>");
+
+    bind(pane, {
+      "copy-log": copyLog,
+      "open-log": openLogFile,
+      "open-logs": openLogsFolder,
+      "reload-log": function () { loadLogFiles(true); },
+    });
+
+    var qEl = pane.querySelector("#sset-logq");
+    var lEl = pane.querySelector("#sset-logl");
+    var fEl = pane.querySelector("#sset-logf");
+    S.logQ = ui.debounce(function () { readLog(); }, 350);
+    qEl.addEventListener("input", S.logQ);
+    lEl.onchange = function () { readLog(); };
+    fEl.onchange = function () { readLog(); };
+
+    loadLogFiles();
+    loadCrashes();
+  }
+
+  function logsDir() { return (App.info && App.info.dataDir) ? App.info.dataDir + "\\logs" : ""; }
+
+  function currentLogFile() {
+    var f = S.els.panes.querySelector("#sset-logf");
+    return f && f.value ? f.value : "";
+  }
+
+  async function loadLogFiles(silent) {
+    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
+    var pane = S.els.panes;
+    var fEl = pane.querySelector("#sset-logf");
+    if (!fEl) return;
+    if (!silent) fEl.innerHTML = '<option value="">Загрузка…</option>';
+    try {
+      var list = await api("logs.listLauncher");
+      if (S.dead || !fEl.isConnected) return;
+      list = list || [];
+      if (!list.length) {
+        fEl.innerHTML = '<option value="">Логов нет</option>';
+        pane.querySelector("#sset-logview").innerHTML = '<div class="log-view">' + esc("Файлы логов ещё не созданы.") + "</div>";
+        S.logText = "";
+        return;
+      }
+      var prev = fEl.value || list[0].name;
+      fEl.innerHTML = list.map(function (f) {
+        return '<option value="' + esc(f.name) + '"' + (f.name === prev ? " selected" : "") + ">" +
+          esc(f.name) + (f.sizeBytes ? " · " + ui.fmtBytes(f.sizeBytes) : "") + "</option>";
+      }).join("");
+      await readLog();
+    } catch (e) {
+      if (S.dead || !fEl.isConnected) return;
+      pane.querySelector("#sset-logview").innerHTML = errBlock(e, true);
+      bindRetry(pane.querySelector("#sset-logview"), function () { loadLogFiles(); });
+    }
+  }
+
+  async function readLog() {
+    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
+    var pane = S.els.panes;
+    var view = pane.querySelector("#sset-logview");
+    if (!view) return;
+    var name = currentLogFile();
+    if (!name) return;
+    var qEl = pane.querySelector("#sset-logq");
+    var lEl = pane.querySelector("#sset-logl");
+    var query = qEl ? String(qEl.value || "").trim() : "";
+    var level = lEl ? lEl.value : "";
+    try {
+      var res = await api("logs.readLauncher", { name: name, query: query, level: level || undefined });
+      if (S.dead || !view.isConnected) return;
+      var lines = (res && Array.isArray(res.lines)) ? res.lines : [];
+      if (!lines.length) {
+        view.innerHTML = '<div class="log-view">' + esc(query ? "Совпадений не найдено" : "Файл пуст") + "</div>";
+        S.logText = "";
+        return;
+      }
+      S.logText = lines.map(function (l) {
+        return (l.ts ? "[" + l.ts + "] " : "") + (l.level ? l.level.toUpperCase() + " " : "") + (l.message || "");
+      }).join("\n");
+      var h = '<div class="log-view" style="max-height:46vh">';
+      lines.forEach(function (l) {
+        var lvl = String(l.level || "info").toUpperCase();
+        h += '<div class="log-line ' + esc(lvl) + '">' +
+          '<span class="ts">' + esc(shortTs(l.ts)) + "</span>" +
+          '<span class="lvl">' + esc(lvl) + "</span>" +
+          '<span class="msg">' + esc(l.message || "") + "</span></div>";
+      });
+      h += "</div>";
+      view.innerHTML = h;
+    } catch (e) {
+      if (S.dead || !view.isConnected) return;
+      view.innerHTML = errBlock(e, true);
+      bindRetry(view, readLog);
+    }
+  }
+
+  function shortTs(ts) {
+    if (!ts) return "--:--:--";
+    var d = new Date(ts);
+    if (isNaN(d)) return String(ts).slice(11, 19) || String(ts);
+    return d.toLocaleTimeString("ru-RU", { hour12: false });
+  }
+
+  async function copyLog(b, pane) {
+    if (!S.logText) { ui.notifyWarn("Нечего копировать", "Сначала откройте лог"); return; }
+    try {
+      await api("system.clipboard", { text: S.logText });
+      ui.notifySuccess("Скопировано", "Содержимое лога в буфере обмена");
+    } catch (e) {
+      ui.notifyError(e, "Не удалось скопировать");
+    }
+  }
+
+  function openLogFile(b, pane) {
+    var name = currentLogFile();
+    if (!name) { ui.notifyWarn("Файл не выбран", "Выберите лог в списке"); return; }
+    var dir = logsDir();
+    if (!dir) { ui.notifyWarn("Папка неизвестна", "Данные о папке логов недоступны"); return; }
+    api("system.openPath", { path: dir + "\\" + name }).catch(function (e) { ui.notifyError(e, "Не удалось открыть файл"); });
+  }
+
+  function openLogsFolder() {
+    var dir = logsDir();
+    if (!dir) { ui.notifyWarn("Папка неизвестна", "Данные о папке логов недоступны"); return; }
+    api("system.openPath", { path: dir }).catch(function (e) { ui.notifyError(e, "Не удалось открыть папку"); });
+  }
+
+  async function loadCrashes() {
+    if (S.dead || !S.els.panes || !S.els.panes.querySelector) return;
+    var box = S.els.panes.querySelector("#sset-crashes");
+    if (!box) return;
+    box.innerHTML = skelRows(2);
+    try {
+      var list = await api("crashes.list", {});
+      if (S.dead || !box.isConnected) return;
+      list = list || [];
+      if (!list.length) {
+        box.innerHTML = emptyState("check", "Сбоев не найдено", "Отчёты о падениях Minecraft появятся здесь после аварийного завершения игры.");
+        return;
+      }
+      var h = '<div class="list">';
+      list.forEach(function (c) {
+        h += '<div class="list-row">' + '<span class="item-icon sm">' + ui.icon("alert") + "</span>" +
+          '<div class="grow"><div class="title">Отчёт ' + esc(ui.fmtDate(c.createdAt)) +
+          (c.analyzed ? ' <span class="chip on">разобран</span>' : "") + "</div>" +
+          '<div class="sub"><span class="mono">' + esc(c.path || c.id) + "</span>" +
+          (c.sizeBytes ? "<span>" + ui.fmtBytes(c.sizeBytes) + "</span>" : "") + "</div></div>" +
+          '<div class="row" style="gap:6px">' +
+            '<button class="btn btn-sm" data-open="' + esc(c.id) + '">Открыть</button>' +
+            '<button class="btn btn-sm" data-analyze="' + esc(c.id) + '">Анализировать</button>' +
+          "</div></div>";
+      });
+      h += "</div>";
+      box.innerHTML = h;
+      box.querySelectorAll("[data-open]").forEach(function (b) {
+        b.onclick = function () { openCrash(b.dataset.open, b); };
+      });
+      box.querySelectorAll("[data-analyze]").forEach(function (b) {
+        b.onclick = function () { analyzeCrash(b.dataset.analyze, b); };
+      });
+    } catch (e) {
+      if (S.dead || !box.isConnected) return;
+      box.innerHTML = errBlock(e, true);
+      bindRetry(box, loadCrashes);
+    }
+  }
+
+  async function openCrash(id, btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var res = await api("crashes.read", { id: id });
+      if (btnEl) btnEl.classList.remove("loading");
+      openPageDialog({
+        title: "Отчёт о сбое",
+        icon: "alert",
+        iconType: "error",
+        width: "wide",
+        body: '<pre class="log-view" style="max-height:56vh">' + esc((res && res.text) || "Пустой отчёт") + "</pre>",
+        buttons: [
+          { label: "Копировать", keepOpen: true, onClick: async function () {
+              var txt = (res && res.text) || "";
+              if (!txt) { ui.notifyWarn("Нечего копировать", "Отчёт пуст"); return false; }
+              try { await api("system.clipboard", { text: txt }); ui.notifySuccess("Скопировано", "Отчёт в буфере обмена"); }
+              catch (e) { ui.notifyError(e, "Не удалось скопировать"); }
+              return false;
+            } },
+          { label: "Закрыть", role: "cancel" },
+        ],
+      });
+    } catch (e) {
+      if (btnEl) btnEl.classList.remove("loading");
+      ui.notifyError(e, "Не удалось прочитать отчёт");
+    }
+  }
+
+  async function analyzeCrash(id, btnEl) {
+    if (btnEl) btnEl.classList.add("loading");
+    try {
+      var res = await api("crashes.analyze", { id: id });
+      if (btnEl) btnEl.classList.remove("loading");
+      var sugg = (res && Array.isArray(res.suggestions)) ? res.suggestions : [];
+      var h = '<div class="col">';
+      if (res && res.cause) h += "<div><b>Причина:</b> " + esc(res.cause) + "</div>";
+      if (res && res.summary) h += '<div class="sset-hint">' + esc(res.summary) + "</div>";
+      if (sugg.length) {
+        h += "<div><b>Рекомендации:</b></div>";
+        sugg.forEach(function (s) { h += '<div class="sset-check ok">' + ui.icon("check") + "<div>" + esc(s) + "</div></div>"; });
+      }
+      if (!res || (!res.cause && !sugg.length)) h += '<div class="sset-hint">Анализ не смог определить причину. Откройте отчёт вручную.</div>';
+      h += "</div>";
+      openPageDialog({ title: "Анализ сбоя", icon: "zap", body: h, buttons: [{ label: "Закрыть", role: "primary" }] });
+    } catch (e) {
+      if (btnEl) btnEl.classList.remove("loading");
+      ui.notifyError(e, "Не удалось проанализировать отчёт");
+    }
+  }
+
+  /* ---------- Горячие клавиши ---------- */
+  var HK_ACTIONS = [
+    { id: "search", t: "Глобальный поиск", d: "Открыть палитру команд и поиск" },
+    { id: "refresh", t: "Обновить страницу", d: "Перезагрузить текущий раздел" },
+    { id: "newInstance", t: "Новая сборка", d: "Открыть мастер создания сборки" },
+    { id: "settings", t: "Настройки", d: "Перейти в настройки лаунчера" },
+    { id: "logs", t: "Логи", d: "Открыть раздел логов" },
+    { id: "play", t: "Быстрый запуск", d: "Запустить выбранную сборку" },
+  ];
+
+  function comboOf(e) {
+    var parts = [];
+    if (e.ctrlKey) parts.push("Ctrl");
+    if (e.altKey) parts.push("Alt");
+    if (e.shiftKey) parts.push("Shift");
+    if (e.metaKey) parts.push("Win");
+    var k = e.key;
+    if (["Control", "Shift", "Alt", "Meta"].indexOf(k) >= 0) return null;
+    if (k === " ") k = "Space";
+    else if (k.length === 1) k = k.toUpperCase();
+    else k = k.replace("Arrow", "");
+    parts.push(k);
+    return parts.join("+");
+  }
+
+  function hotkeysMap() {
+    var base = {};
+    Object.keys(ui.DefaultHotkeys).forEach(function (k) { base[k] = ui.DefaultHotkeys[k]; });
+    var saved = get("hotkeys");
+    if (saved && typeof saved === "object") Object.keys(saved).forEach(function (k) { base[k] = saved[k]; });
+    return base;
+  }
+
+  function renderHotkeys(pane) {
+    var map = hotkeysMap();
+    var h = card("Сочетания клавиш", "key",
+      '<div class="sset-hint" style="margin-bottom:6px">Нажмите на поле и соберите комбинацию: Ctrl, Alt, Shift, Win + клавиша. Escape — очистить поле.</div>');
+    HK_ACTIONS.forEach(function (a) {
+      h += '<div class="sset-hk"><div class="info"><div class="t">' + esc(a.t) + "</div>" +
+        '<div class="d">' + esc(a.d) + "</div></div>" +
+        '<input type="text" readonly data-hk="' + a.id + '" value="' + esc(map[a.id] || "") + '" placeholder="не назначено"></div>';
+    });
+    h += '<div class="sset-actions">' +
+      btn("Сбросить всё", "hk-reset", "", "refresh") +
+      btn("Сохранить", "hk-save", "btn-primary", "save") + "</div>";
+    pane.innerHTML = h;
+
+    var draft = Object.assign({}, map);
+    pane.querySelectorAll("[data-hk]").forEach(function (inp) {
+      inp.addEventListener("keydown", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.key === "Escape" || e.key === "Backspace" || e.key === "Delete") {
+          draft[inp.dataset.hk] = "";
+          inp.value = "";
+          return;
+        }
+        var c = comboOf(e);
+        if (!c) return;
+        draft[inp.dataset.hk] = c;
+        inp.value = c;
+      });
+    });
+
+    bind(pane, {
+      "hk-save": function (b) {
+        S.values.hotkeys = draft;
+        persist("hotkeys", draft);
+        ui.notifySuccess("Горячие клавиши сохранены", "");
+      },
+      "hk-reset": function () {
+        draft = Object.assign({}, ui.DefaultHotkeys);
+        pane.querySelectorAll("[data-hk]").forEach(function (inp) {
+          inp.value = draft[inp.dataset.hk] || "";
+        });
+        ui.notifyInfo("Сочетания сброшены", "Нажмите «Сохранить», чтобы применить");
+      },
+    });
+  }
+
+  /* ---------- Расширенные ---------- */
+  function renderAdvanced(pane) {
+    if (!get("expertMode")) {
+      pane.innerHTML = card("Экспертный режим выключен", "zap",
+        row("expertMode", "Экспертный режим", "Открывает кастомный Java, JVM-аргументы, прокси, потоки загрузки и отладку.", sw("expertMode")) +
+        '<div class="banner info" style="margin-top:10px">' + ui.icon("alert") +
+        '<span class="grow">Без экспертного режима эти настройки скрыты, чтобы случайные изменения не сломали запуск игры.</span></div>');
+      bind(pane, {});
+      return;
+    }
+
+    pane.innerHTML =
+      card("Запуск и JVM", "zap",
+        row("jvmArgsDefault", "JVM-аргументы по умолчанию", "Добавляются к каждой сборке, кроме собственных аргументов сборки.",
+          txtIn("jvmArgsDefault", { ph: "-XX:+UseG1GC -XX:MaxGCPauseMillis=50", w: 340 }), true) +
+        row("javaPath", "Путь к java.exe", "Пусто — использовать найденные установки.",
+          txtIn("javaPath", { ph: "C:\\Program Files\\…", w: 300 })) +
+        row("downloadThreads", "Потоки загрузки", "Количество одновременных соединений на один файл.",
+          rng("downloadThreads", 1, 16, 1, " шт.")) +
+        row("proxyType", "Прокси", "Быстрый выбор типа прокси.",
+          sel("proxyType", [["none", "Нет"], ["system", "Системный"], ["http", "HTTP"], ["https", "HTTPS"], ["socks5", "SOCKS5"]])) +
+        row("debugMode", "Отладочный режим", "Подробные логи запуска и сети.", sw("debugMode"))) +
+      card("Экспериментальные функции", "bug",
+        '<div class="banner warn" style="margin-bottom:10px">' + ui.icon("alert") +
+        '<span class="grow">Экспериментальные функции могут работать нестабильно и меняться без предупреждения.</span></div>' +
+        row("expNewUi", "Новый интерфейс", "Альтернативная разметка библиотеки. Может отображаться некорректно.", sw("expNewUi")) +
+        row("expParallelDownloads", "Параллельные закачки", "Ускоряет массовые загрузки, но нагружает сеть сильнее.", sw("expParallelDownloads")) +
+        row("expAdvancedModScanner", "Продвинутый сканер модов", "Глубокая проверка совместимости — дольше анализирует сборки.", sw("expAdvancedModScanner")) +
+        row("expAutoCrashAnalysis", "Автоанализ сбоев", "Автоматически разбирать отчёты после падения игры.", sw("expAutoCrashAnalysis")) +
+        row("expInstanceSync", "Синхронизация сборок", "Экспериментальная синхронизация между устройствами. Может привести к расхождению файлов.", sw("expInstanceSync")));
+    bind(pane, {});
+  }
+
+  /* ---------- О программе ---------- */
+  function renderAbout(pane) {
+    var info = App.info || {};
+    pane.innerHTML =
+      card("NullLauncher", "book",
+        '<div class="sset-facts">' +
+          '<div class="sset-fact"><div class="k">Версия</div><div class="v">' + esc(info.appVersion || "—") + "</div></div>" +
+          '<div class="sset-fact"><div class="k">Операционная система</div><div class="v">' + esc(info.os || "—") + "</div></div>" +
+          '<div class="sset-fact"><div class="k">Язык</div><div class="v">' + esc(info.locale || "ru") + "</div></div>" +
+          '<div class="sset-fact"><div class="k">Папка данных</div><div class="v" style="font-size:12px">' + esc(info.dataDir || "—") + "</div></div>" +
+        "</div>" +
+        '<div class="sset-actions">' +
+          btn("Проверить обновление", "check-upd", "btn-primary", "refresh") +
+          btn("Открыть папку данных", "open-dir", "", "folder") +
+        "</div>" +
+        '<div id="sset-upd" style="margin-top:10px"></div>') +
+      card("Ссылки", "external",
+        row("", "Каталог Modrinth", "Официальный сайт каталога, из которого берутся моды и модпаки.",
+          btn("Открыть Modrinth", "open-modrinth", "", "external")) +
+        row("", "Отчёты о сбоях", "Раздел с логами и отчётами лаунчера.",
+          btn("Открыть логи", "open-logs", "", "file"))) +
+      card("Дисклеймер", "shield",
+        '<div class="sset-hint">NullLauncher — независимый неофициальный лаунчер. Проект не связан с Mojang Studios, Microsoft и Modrinth Hash. ' +
+        "Minecraft — товарный знак Mojang Studios. Загрузка игры и модов осуществляется через публичные API соответствующих сервисов. " +
+        "Права на тексты, изображения и содержимое проектов принадлежат их авторам.</div>");
+
+    bind(pane, {
+      "check-upd": checkUpdate,
+      "open-dir": openDataDir,
+      "open-modrinth": function () {
+        api("system.openUrl", { url: "https://modrinth.com" }).catch(function (e) { ui.notifyError(e); });
+      },
+      "open-logs": function () {
+        var dir = logsDir();
+        if (!dir) { ui.notifyWarn("Папка неизвестна", "Данные о папке логов недоступны"); return; }
+        api("system.openPath", { path: dir }).catch(function (e) { ui.notifyError(e); });
+      },
+    });
+  }
+
+  async function checkUpdate(btnEl, pane) {
+    if (btnEl) btnEl.classList.add("loading");
+    var box = pane.querySelector("#sset-upd");
+    try {
+      var r = await api("system.checkUpdate");
+      if (btnEl) btnEl.classList.remove("loading");
+      if (!box) return;
+      if (r && r.sourceConfigured === false) {
+        box.innerHTML = '<div class="banner info">' + ui.icon("alert") +
+          '<span class="grow">Источник обновлений не настроен — проверка версий недоступна в этой сборке.</span></div>';
+        return;
+      }
+      if (r && r.updateAvailable) {
+        box.innerHTML = '<div class="banner warn">' + ui.icon("upload") +
+          '<span class="grow">Доступна новая версия: <b>' + esc(r.current) + "</b> → <b>" + esc(r.latest) + "</b>" +
+          (r.notes ? '<div class="sset-hint" style="margin-top:4px">' + esc(r.notes) + "</div>" : "") + "</span></div>";
+        var acts = document.createElement("div");
+        acts.className = "sset-actions";
+        var upd = document.createElement("button");
+        upd.className = "btn btn-sm btn-primary";
+        upd.textContent = "Обновить";
+        upd.onclick = function () {
+          if (r.url) api("system.openUrl", { url: r.url }).catch(function (e) { ui.notifyError(e); });
+          else ui.notifyInfo("Обновление", "Дождитесь завершения загрузки установщика");
+        };
+        var later = document.createElement("button");
+        later.className = "btn btn-sm";
+        later.textContent = "Позже";
+        later.onclick = function () { box.innerHTML = ""; };
+        acts.appendChild(upd);
+        acts.appendChild(later);
+        box.appendChild(acts);
+        return;
+      }
+      box.innerHTML = '<div class="banner ok">' + ui.icon("check") +
+        '<span class="grow">У вас последняя версия: <b>' + esc((r && r.current) || (App.info && App.info.appVersion) || "—") + "</b></span></div>";
+    } catch (e) {
+      if (btnEl) btnEl.classList.remove("loading");
+      if (box) {
+        box.innerHTML = errBlock(e, true);
+        bindRetry(box, function () { checkUpdate(btnEl, pane); });
+      } else {
+        ui.notifyError(e, "Не удалось проверить обновление");
+      }
+    }
+  }
+})();
+</script>

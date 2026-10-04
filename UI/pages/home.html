@@ -1,0 +1,601 @@
+<style>
+/* ===== home — страница-специфичные стили (префикс home-) ===== */
+.home-hero { display: flex; gap: 20px; align-items: center; padding: 22px; position: relative; overflow: hidden; }
+.home-hero .grow { flex: 1; min-width: 0; }
+.home-cover { width: 96px; height: 96px; border-radius: var(--r-md); background: var(--card-3); display: grid; place-items: center; flex: 0 0 auto; }
+.home-cover .item-icon { width: 100%; height: 100%; border-radius: var(--r-md); font-size: 34px; }
+.home-title { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.3px; display: flex; align-items: center; gap: 9px; min-width: 0; }
+.home-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-title .fav { color: var(--warn); fill: var(--warn); width: 17px; height: 17px; }
+.home-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 11px; }
+.home-status { margin-top: 13px; display: flex; flex-direction: column; gap: 7px; max-width: 540px; }
+.home-status[hidden] { display: none; }
+.home-status .st-text { font-size: 12.5px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
+.home-actions { margin-left: auto; display: flex; flex-direction: column; gap: 9px; align-items: stretch; }
+.home-actions .btn-lg { min-width: 168px; }
+.home-grid { grid-auto-flow: column; grid-auto-columns: minmax(248px, 1fr); overflow-x: auto; padding-bottom: 6px; }
+.home-sec { display: flex; flex-direction: column; gap: var(--gap); }
+.home-sec-head { display: flex; align-items: center; gap: 10px; }
+.home-sec-head h3 { margin: 0; font-size: 15px; font-weight: 650; }
+.home-sec-head .spacer { flex: 1; }
+.home-empty { padding: 18px 4px 6px; color: var(--text-3); font-size: 13px; display: flex; align-items: center; gap: 9px; }
+.home-empty svg { width: 16px; height: 16px; }
+.home-upd { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+.home-upd:last-child { border-bottom: none; }
+.home-upd .grow { flex: 1; min-width: 0; }
+.home-upd .arrow { color: var(--text-3); }
+.home-upd .to { color: var(--accent); font-weight: 600; }
+.home-details summary { cursor: pointer; font-size: 12px; color: var(--text-3); margin-top: 6px; }
+.home-details pre { white-space: pre-wrap; word-break: break-word; font-size: 11px; color: var(--text-3); margin: 6px 0 0; font-family: var(--mono); }
+.home-err { padding: 26px 12px; }
+.home-err h3 { font-size: 14px; }
+.home-skel { display: flex; flex-direction: column; gap: 9px; }
+.home-skel .skeleton { height: 40px; }
+.home-rows { display: flex; flex-direction: column; }
+.home-lu { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.home-lu:last-child { border-bottom: none; }
+.home-lu .grow { flex: 1; min-width: 0; }
+.home-lu .name { font-weight: 600; font-size: 13.5px; }
+.home-lu .sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+.home-welcome { text-align: center; padding: 34px 24px; }
+.home-welcome h2 { margin: 14px 0 6px; font-size: 20px; font-weight: 650; }
+.home-welcome p { margin: 0 auto; max-width: 460px; color: var(--text-2); font-size: 13.5px; line-height: 1.6; }
+.home-welcome .actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+.home-welcome .state-ic { width: 54px; height: 54px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; margin: 0 auto; }
+.home-welcome .state-ic svg { width: 26px; height: 26px; }
+</style>
+
+<section class="page">
+  <div id="home-hero"></div>
+  <div id="home-insts"></div>
+  <div id="home-recent"></div>
+  <div id="home-updates"></div>
+  <div id="home-launcher"></div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
+
+  var S = {
+    unsubs: [], activeId: null, playBtn: null, dead: false,
+    running: [], runningLimit: 1, busyStatus: false, runTimer: null,
+  };
+
+  /* ---------- маленькие помощники ---------- */
+  function errBlock(e, onRetry) {
+    var d = ui.errDetail(e);
+    return '<div class="state error home-err">' + ui.icon("alert") +
+      '<h3>Не удалось загрузить</h3><p>' + ui.esc(ui.errText(e)) + '</p>' +
+      (d ? '<details class="home-details"><summary>Подробнее</summary><pre>' + ui.esc(d) + "</pre></details>" : "") +
+      (onRetry ? '<div class="actions"><button class="btn" data-retry="1">' + ui.icon("refresh") + " Повторить</button></div>" : "") +
+      "</div>";
+  }
+  function skel(n) {
+    var h = "";
+    for (var i = 0; i < (n || 3); i++) h += '<div class="skeleton"></div>';
+    return '<div class="home-skel">' + h + "</div>";
+  }
+  function emptyBlock(icon, text) {
+    return '<div class="home-empty">' + ui.icon(icon) + "<span>" + ui.esc(text) + "</span></div>";
+  }
+  function bindRetry(box, fn) {
+    var b = box.querySelector("[data-retry]");
+    if (b) b.onclick = fn;
+  }
+
+  /* ---------- hero: последняя сборка ---------- */
+  function pickActive(list) {
+    if (!list.length) return null;
+    var bySetting = App.settings.activeInstance && list.find(function (i) { return i.id === App.settings.activeInstance; });
+    if (bySetting) return bySetting;
+    var played = list.filter(function (i) { return i.lastPlayedAt; })
+      .sort(function (a, b) { return new Date(b.lastPlayedAt) - new Date(a.lastPlayedAt); });
+    return played[0] || list[0];
+  }
+
+  function renderWelcome(box) {
+    box.innerHTML =
+      '<div class="card home-welcome">' +
+        '<div class="state-ic">' + ui.icon("cube") + "</div>" +
+        "<h2>Добро пожаловать</h2>" +
+        "<p>Создайте свою сборку Minecraft или импортируйте готовый архив — и играйте в один клик.</p>" +
+        '<div class="actions">' +
+          '<button class="btn btn-primary" data-act="create">' + ui.icon("plus") + " Создать сборку</button>" +
+          '<button class="btn" data-act="import">' + ui.icon("upload") + " Импортировать</button>" +
+        "</div>" +
+      "</div>";
+    box.querySelector('[data-act="create"]').onclick = function () { navigate("instances", { create: 1 }); };
+    box.querySelector('[data-act="import"]').onclick = importInstance;
+  }
+
+  async function importInstance() {
+    try {
+      var files = await api("system.pickFiles", { title: "Импорт сборки", filter: "zip" });
+      if (!files || !files.length) return;
+      for (var i = 0; i < files.length; i++) await api("instances.import", { sourcePath: files[i] });
+      ui.notifySuccess("Сборка импортирована", files.length > 1 ? "Импортировано файлов: " + files.length : "");
+      App.reload();
+    } catch (e) { ui.notifyError(e, "Не удалось импортировать сборку"); }
+  }
+
+  function renderHero(box, inst) {
+    if (!inst) { renderWelcome(box); return; }
+    S.activeId = inst.id;
+    var color = inst.color || "#3ecf8e";
+    var letter = ui.esc((inst.name || "?").trim().charAt(0).toUpperCase() || "?");
+    box.innerHTML =
+      '<div class="card home-hero">' +
+        '<div class="home-cover"><div class="item-icon" style="background:' + ui.esc(color) + ';color:#08130d">' + letter + "</div></div>" +
+        '<div class="grow">' +
+          '<h2 class="home-title"><span>' + ui.esc(inst.name) + "</span>" + (inst.favorite ? ui.icon("star", "fav") : "") + "</h2>" +
+          '<div class="home-meta">' +
+            '<span class="chip">Minecraft ' + ui.esc(inst.mcVersion) + "</span>" +
+            '<span class="chip">' + ui.esc((inst.loader || "vanilla")) + (inst.loaderVersion ? " " + ui.esc(inst.loaderVersion) : "") + "</span>" +
+            '<span class="chip">' + ui.icon("clock") + " Последний запуск: " + ui.esc(ui.fmtRelative(inst.lastPlayedAt)) + "</span>" +
+          "</div>" +
+          '<div class="home-status" id="home-status" hidden>' +
+            '<div class="progress indeterminate"><i style="width:35%"></i></div>' +
+            '<div class="st-text"><span class="spinner" style="width:13px;height:13px"></span><span id="home-status-text">Запуск…</span>' +
+              '<span class="dim tnum" id="home-status-meta" style="margin-left:auto"></span></div>' +
+          "</div>" +
+        "</div>" +
+        '<div class="home-actions" id="home-hero-actions">' +
+          '<button class="btn play btn-lg" data-play-quick data-act="play">' + ui.icon("play") + " Играть</button>" +
+          '<button class="btn btn-danger" data-act="stop" hidden>' + ui.icon("power") + " Остановить</button>" +
+          '<button class="btn btn-ghost btn-sm" data-act="open">Открыть сборку</button>' +
+        "</div>" +
+      "</div>" +
+      '<div class="home-note" id="home-note" hidden></div>';
+    S.playBtn = box.querySelector('[data-act="play"]');
+    S.playBtn.onclick = function () { startLaunch(inst.id); };
+    var stopBtn = box.querySelector('[data-act="stop"]');
+    if (stopBtn) stopBtn.onclick = stopLaunch;
+    box.querySelector('[data-act="open"]').onclick = function () { navigate("instance", { id: inst.id }); };
+    applyRunningUI();
+  }
+
+  function setStatus(text, percent, meta) {
+    var box = document.getElementById("home-status");
+    if (!box) return;
+    box.hidden = false;
+    var t = document.getElementById("home-status-text");
+    if (t) t.textContent = text || "Запуск…";
+    var bar = box.querySelector(".progress");
+    if (bar) {
+      if (typeof percent === "number" && percent >= 0) {
+        bar.classList.remove("indeterminate");
+        bar.firstElementChild.style.width = Math.max(3, Math.min(100, percent)) + "%";
+      } else bar.classList.add("indeterminate");
+    }
+    var extra = document.getElementById("home-status-meta");
+    if (extra) {
+      var parts = [];
+      if (typeof percent === "number" && percent >= 0) parts.push(percent + "%");
+      if (meta) parts = parts.concat(meta);
+      extra.textContent = parts.join(" · ");
+    }
+  }
+  /** Строка «скорость · осталось · байты» из события прогресса запуска. */
+  function progressMeta(d) {
+    var parts = [];
+    if (d && d.speedBps > 0) parts.push(ui.fmtSpeed(d.speedBps));
+    if (d && d.etaS > 0) parts.push("осталось ~" + ui.fmtEta(d.etaS));
+    if (d && d.totalBytes > 0) parts.push(ui.fmtBytes(d.receivedBytes || 0) + " / " + ui.fmtBytes(d.totalBytes));
+    return parts;
+  }
+  function hideStatus() {
+    var box = document.getElementById("home-status");
+    if (box) box.hidden = true;
+    var bar = box && box.querySelector(".progress");
+    if (bar) { bar.classList.add("indeterminate"); bar.firstElementChild.style.width = "35%"; }
+  }
+  function setPlayLoading(on) {
+    if (S.playBtn) S.playBtn.classList.toggle("loading", !!on);
+  }
+
+  async function startLaunch(id) {
+    setPlayLoading(true);
+    setStatus("Проверка файлов…");
+    try {
+      await api("launch.start", { instanceId: id });
+      setStatus("Запуск Minecraft…");
+    } catch (e) {
+      setPlayLoading(false);
+      hideStatus();
+      ui.notifyError(e, "Не удалось запустить сборку");
+    } finally {
+      refreshRunning();
+    }
+  }
+
+  async function stopLaunch() {
+    var hero = runningOf(S.activeId);
+    if (!hero) return;
+    try {
+      var res = await api("launch.stop", { instanceId: S.activeId });
+      if (res && res.wasPreparing) ui.notifyInfo("Запуск отменён", "Подготовка остановлена");
+      else ui.notifyInfo("Остановка", "Завершение процесса Minecraft…");
+    } catch (e) { ui.notifyError(e, "Не удалось остановить игру"); }
+    refreshRunning();
+  }
+
+  /* ---------- состояние запуска: показываем везде, а не только на открытой сборке ---------- */
+
+  function runningOf(id) { return S.running.filter(function (x) { return x.instanceId === id; })[0] || null; }
+  function otherRunning(id) { return S.running.filter(function (x) { return x.instanceId !== id; })[0] || null; }
+
+  async function refreshRunning() {
+    try {
+      var r = await api("launch.running");
+      if (S.dead) return;
+      S.running = (r && r.items) || [];
+      S.runningLimit = (r && r.limit) || 1;
+      applyRunningUI();
+    } catch (e) { /* noop */ }
+  }
+
+  function applyRunningUI() {
+    var mine = runningOf(S.activeId);
+    var other = otherRunning(S.activeId);
+
+    // карточки сборок: помечаем запущенную и гасим кнопку запуска у остальных
+    Array.prototype.forEach.call(document.querySelectorAll(".inst-card"), function (card) {
+      var id = card.dataset.id;
+      var run = runningOf(id);
+      var chip = card.querySelector(".run-chip");
+      if (run) {
+        if (!chip) {
+          chip = document.createElement("span");
+          chip.className = "chip ok run-chip";
+          var meta = card.querySelector(".meta");
+          if (meta) meta.appendChild(chip);
+        }
+        chip.textContent = run.preparing ? "запускается…" : "запущено";
+      } else if (chip) chip.remove();
+      var btn = card.querySelector('[data-act="play"]');
+      if (btn) {
+        var blocked = !!other;
+        btn.disabled = blocked;
+        btn.title = blocked ? ("Уже запущена «" + other.name + "»") : (run ? "Уже запущено" : "Играть");
+      }
+    });
+
+    var note = document.getElementById("home-note");
+    if (note) {
+      if (other) {
+        note.hidden = false;
+        note.innerHTML = ui.icon("play") + "<span class=\"grow\">Уже запущена «" + ui.esc(other.name) + "»" +
+          (other.preparing ? " (идёт подготовка)" : "") + " — одновременно можно держать " + S.runningLimit + " сборку.</span>" +
+          '<button class="btn btn-sm btn-danger" data-act="stop-other">Остановить</button>';
+        var b = note.querySelector('[data-act="stop-other"]');
+        if (b) b.onclick = function () {
+          var id = other.instanceId;
+          api("launch.stop", { instanceId: id }).catch(function (e) { ui.notifyError(e, "Не удалось остановить игру"); })
+            .then(function () { refreshRunning(); });
+        };
+      } else {
+        note.hidden = true;
+        note.innerHTML = "";
+      }
+    }
+
+    var stopBtn = document.querySelector('#home-hero-actions [data-act="stop"]');
+    if (stopBtn) stopBtn.hidden = !mine;
+    if (S.playBtn) {
+      S.playBtn.disabled = !!other || !!mine;
+      S.playBtn.title = other ? ("Уже запущена «" + other.name + "»") : (mine ? "Сборка уже запущена" : "");
+    }
+    if (mine && mine.preparing) {
+      setStatus("Идёт подготовка запуска…", undefined);
+      setPlayLoading(true);
+    }
+  }
+
+  /* ---------- секция «Мои сборки» ---------- */
+  function instCard(inst) {
+    var color = inst.color || "#3ecf8e";
+    var letter = ui.esc((inst.name || "?").trim().charAt(0).toUpperCase() || "?");
+    var el = document.createElement("div");
+    el.className = "inst-card";
+    el.innerHTML =
+      '<div class="cover"><div class="item-icon" style="background:' + ui.esc(color) + ';color:#08130d">' + letter + "</div></div>" +
+      "<h4>" + ui.esc(inst.name) + (inst.favorite ? ui.icon("star", "fav") : "") + "</h4>" +
+      '<div class="meta">' +
+        '<span class="chip">' + ui.esc(inst.mcVersion) + "</span>" +
+        '<span class="chip">' + ui.esc(inst.loader || "vanilla") + "</span>" +
+        (inst.modCount ? '<span class="chip">' + ui.fmtNum(inst.modCount) + " модов</span>" : "") +
+      "</div>" +
+      '<div class="foot"><span class="last">Играть ' + ui.esc(ui.fmtRelative(inst.lastPlayedAt)) + "</span>" +
+        '<button class="btn btn-sm play" data-act="play">' + ui.icon("play") + "</button></div>";
+    el.onclick = function () { navigate("instance", { id: inst.id }); };
+    el.dataset.id = inst.id;
+    el.querySelector('[data-act="play"]').onclick = function (ev) {
+      ev.stopPropagation();
+      var other = otherRunning(inst.id);
+      if (other) {
+        ui.notifyWarn("Уже запущена другая сборка", "«" + other.name + "» — сначала остановите её.");
+        return;
+      }
+      var me = runningOf(inst.id);
+      if (me) { ui.notifyInfo("Сборка уже запущена", inst.name); return; }
+      api("launch.start", { instanceId: inst.id }).then(function () {
+        ui.notifyInfo("Запуск", inst.name);
+      }, function (e) { ui.notifyError(e, "Не удалось запустить сборку"); })
+        .then(function () { refreshRunning(); });
+    };
+    return el;
+  }
+
+  function renderInstances(box, list, onRetry) {
+    if (!list.length) {
+      box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Мои сборки</h3></div>' +
+        emptyBlock("grid", "Сборок пока нет — создайте первую") + "</div>";
+      return;
+    }
+    box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Мои сборки</h3><span class="spacer"></span>' +
+      '<button class="btn btn-ghost btn-sm" data-act="all">Все сборки' + ui.icon("chevron") + "</button></div>" +
+      '<div class="grid grid-cards home-grid"></div></div>';
+    box.querySelector('[data-act="all"]').onclick = function () { navigate("instances"); };
+    var grid = box.querySelector(".home-grid");
+    list.slice(0, 10).forEach(function (i) { grid.appendChild(instCard(i)); });
+  }
+
+  /* ---------- секция «Недавно запущенные» ---------- */
+  function renderRecent(box) {
+    box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Недавно запущенные</h3></div>' + skel(2) + "</div>";
+    api("instances.recentLaunches", { limit: 5 }).then(function (rows) {
+      if (S.dead) return;
+      rows = rows || [];
+      if (!rows.length) {
+        box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Недавно запущенные</h3></div>' +
+          emptyBlock("clock", "История запусков пуста") + "</div>";
+        return;
+      }
+      var html = '<div class="home-sec"><div class="home-sec-head"><h3>Недавно запущенные</h3></div><div class="list home-rows">';
+      rows.forEach(function (r) {
+        var ok = r.exitCode === 0;
+        html += '<div class="home-lu">' +
+          '<div class="item-icon sm">' + ui.esc(ui.initials(r.name)) + "</div>" +
+          '<div class="grow"><div class="name">' + ui.esc(r.name) + "</div>" +
+          '<div class="sub">' + ui.esc(ui.fmtDate(r.startedAt)) + " · " + ui.esc(ui.fmtDuration(r.durationMs)) +
+          (r.error ? " · " + ui.esc(r.error) : "") + "</div></div>" +
+          (ok ? '<span class="chip on">' + ui.icon("check") + " OK</span>" : '<span class="chip danger">' + ui.icon("alert") + " Ошибка " + ui.esc(String(r.exitCode)) + "</span>") +
+          "</div>";
+      });
+      html += "</div></div>";
+      box.innerHTML = html;
+      box.querySelectorAll(".home-lu").forEach(function (row, idx) {
+        row.style.cursor = "pointer";
+        row.onclick = function () { if (rows[idx] && rows[idx].instanceId) navigate("instance", { id: rows[idx].instanceId, tab: "logs" }); };
+      });
+    }).catch(function (e) {
+      if (S.dead) return;
+      box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Недавно запущенные</h3></div>' +
+        '<div class="card tight">' + errBlock(e) + "</div></div>";
+      bindRetry(box, function () { renderRecent(box); });
+    });
+  }
+
+  /* ---------- секция «Доступные обновления» ---------- */
+  function kindFromFilename(f) {
+    f = String(f || "");
+    if (/\.jar(\.disabled)?$/i.test(f)) return "mods";
+    if (/shader/i.test(f)) return "shaderpacks";
+    if (/datapack/i.test(f)) return "datapacks";
+    return "resourcepacks";
+  }
+
+  function renderUpdates(box, list, onRetry) {
+    var targets = list.filter(function (i) { return i.lastPlayedAt; })
+      .sort(function (a, b) { return new Date(b.lastPlayedAt) - new Date(a.lastPlayedAt); });
+    if (!targets.length) targets = list.slice();
+    targets = targets.slice(0, 3);
+
+    if (!targets.length) {
+      box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Доступные обновления</h3></div>' +
+        emptyBlock("check", "Всё актуально") + "</div>";
+      return;
+    }
+    box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Доступные обновления</h3></div>' + skel(2) + "</div>";
+
+    Promise.all(targets.map(function (inst) {
+      return api("modrinth.checkUpdates", { instanceId: inst.id })
+        .then(function (items) { return { inst: inst, items: items || [], err: null }; })
+        .catch(function (e) { return { inst: inst, items: [], err: e }; });
+    })).then(function (results) {
+      if (S.dead) return;
+      var rows = [];
+      results.forEach(function (r) {
+        r.items.forEach(function (u) { rows.push({ inst: r.inst, u: u, kind: kindFromFilename(u.filename) }); });
+      });
+      if (!rows.length) {
+        var failed = results.some(function (r) { return r.err; });
+        box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Доступные обновления</h3></div>' +
+          (failed
+            ? '<div class="card tight">' + errBlock(results.filter(function (r) { return r.err; })[0].err) + "</div>"
+            : emptyBlock("check", "Всё актуально")) + "</div>";
+        if (failed) bindRetry(box, function () { renderUpdates(box, list); });
+        return;
+      }
+      var html = '<div class="home-sec"><div class="home-sec-head"><h3>Доступные обновления</h3><span class="spacer"></span>' +
+        '<button class="btn btn-sm" data-act="all">' + ui.icon("refresh") + " Обновить всё</button></div>" +
+        '<div class="list">';
+      rows.forEach(function (r, idx) {
+        html += '<div class="home-upd">' +
+          '<div class="item-icon sm">' + ui.esc(ui.initials(r.u.projectName || r.u.filename)) + "</div>" +
+          '<div class="grow"><div class="name" style="font-weight:600;font-size:13.5px">' + ui.esc(r.u.projectName || r.u.filename) + "</div>" +
+          '<div class="sub" style="font-size:11.5px;color:var(--text-3);margin-top:2px">' + ui.esc(r.inst.name) +
+          " · <span>" + ui.esc(String(r.u.current)) + '</span> <span class="arrow">→</span> <span class="to">' + ui.esc(String(r.u.latest)) + "</span></div></div>" +
+          '<button class="btn btn-sm btn-primary" data-upd="' + idx + '">Обновить</button>' +
+          "</div>";
+      });
+      html += "</div></div>";
+      box.innerHTML = html;
+
+      box.querySelector('[data-act="all"]').onclick = async function () {
+        var btn = this;
+        btn.classList.add("loading");
+        try {
+          var pairs = [], seen = {};
+          rows.forEach(function (r) {
+            var key = r.inst.id + "|" + r.kind;
+            if (!seen[key]) { seen[key] = 1; pairs.push({ instanceId: r.inst.id, kind: r.kind }); }
+          });
+          var updated = 0, failed = 0;
+          for (var i = 0; i < pairs.length; i++) {
+            try {
+              var res = await api("content.updateAll", pairs[i]);
+              updated += (res && res.updated) || 0;
+              failed += (res && res.failed) || 0;
+            } catch (e) { failed++; }
+          }
+          if (failed) ui.notifyWarn("Обновление завершено частично", "Обновлено: " + updated + ", ошибок: " + failed);
+          else ui.notifySuccess("Обновления установлены", "Обновлено: " + updated);
+          renderUpdates(box, list);
+        } catch (e) {
+          btn.classList.remove("loading");
+          ui.notifyError(e, "Не удалось обновить");
+        }
+      };
+      box.querySelectorAll("[data-upd]").forEach(function (b) {
+        b.onclick = async function () {
+          var r = rows[+b.dataset.upd];
+          b.classList.add("loading");
+          try {
+            await api("content.update", {
+              instanceId: r.inst.id, kind: r.kind, id: r.u.modId, versionId: r.u.latestVersionId,
+            });
+            ui.notifySuccess("Обновлено", (r.u.projectName || r.u.filename) + " → " + r.u.latest);
+            renderUpdates(box, list);
+          } catch (e) {
+            b.classList.remove("loading");
+            ui.notifyError(e, "Не удалось обновить проект");
+          }
+        };
+      });
+    }).catch(function (e) {
+      if (S.dead) return;
+      box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Доступные обновления</h3></div>' +
+        '<div class="card tight">' + errBlock(e) + "</div></div>";
+      bindRetry(box, function () { renderUpdates(box, list); });
+    });
+  }
+
+  /* ---------- секция «Обновление лаунчера» ---------- */
+  function renderLauncher(box) {
+    box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>NullLauncher</h3></div>' + skel(1) + "</div>";
+    api("system.checkUpdate").then(function (u) {
+      if (S.dead) return;
+      u = u || {};
+      if (u.updateAvailable && u.latest) {
+        box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Обновление лаунчера</h3></div>' +
+          '<div class="banner info">' + ui.icon("download") +
+          '<span class="grow">Доступно обновление NullLauncher ' + ui.esc(u.current || "") + " → " + ui.esc(u.latest) +
+          (u.notes ? '<div class="small dim" style="margin-top:3px">' + ui.esc(u.notes) + "</div>" : "") + "</span>" +
+          '<button class="btn btn-sm btn-primary" data-act="update">Обновить</button>' +
+          '<button class="btn btn-sm btn-ghost" data-act="later">Позже</button></div></div>';
+        box.querySelector('[data-act="update"]').onclick = function () {
+          if (u.url) api("system.openUrl", { url: u.url }).catch(function (e) { ui.notifyError(e); });
+          else navigate("settings", { section: "about" });
+        };
+        box.querySelector('[data-act="later"]').onclick = function () {
+          box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Обновление лаунчера</h3></div>' +
+            emptyBlock("check", "У вас актуальная версия") + "</div>";
+        };
+      } else {
+        box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Обновление лаунчера</h3></div>' +
+          emptyBlock("check", "У вас актуальная версия") + "</div>";
+      }
+    }).catch(function (e) {
+      if (S.dead) return;
+      box.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Обновление лаунчера</h3></div>' +
+        '<div class="card tight">' + errBlock(e) + "</div></div>";
+      bindRetry(box, function () { renderLauncher(box); });
+    });
+  }
+
+  /* ---------- register ---------- */
+  Pages.register("home", {
+    title: "Главная",
+    async init(ctx) {
+      S.dead = false;
+      var root = ctx.root;
+      var hero = root.querySelector("#home-hero");
+      var insts = root.querySelector("#home-insts");
+
+      hero.innerHTML = '<div class="card home-hero">' + skel(2) + "</div>";
+      insts.innerHTML = '<div class="home-sec"><div class="home-sec-head"><h3>Мои сборки</h3></div>' +
+        '<div class="grid grid-cards home-grid"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div></div>';
+
+      /* события запуска */
+      S.unsubs.push(on("launch.progress", function (d) {
+        if (!d || d.instanceId !== S.activeId) return;
+        if (!S.playBtn) return;
+        setPlayLoading(true);
+        setStatus(d.message || d.stage || "Запуск…",
+          typeof d.percent === "number" ? d.percent : undefined, progressMeta(d));
+      }));
+      S.unsubs.push(on("launch.state", function (d) {
+        if (!d) return;
+        refreshRunning();
+        if (d.instanceId !== S.activeId) return;
+        setPlayLoading(false);
+        var failed = !!d.error || (typeof d.exitCode === "number" && d.exitCode !== 0);
+        var running = /run|prep|start|launch|load/i.test(String(d.state || "")) && !failed && typeof d.exitCode !== "number";
+        if (running) {
+          setStatus(String(d.state || "").toLowerCase() === "preparing" ? "Идёт подготовка запуска…" : "Minecraft запущен и работает");
+          return;
+        }
+        if (!failed && String(d.state || "") === "idle") {
+          // запуск отменён пользователем во время подготовки — это не ошибка
+          setStatus("Запуск отменён", 0);
+          ui.notifyInfo("Запуск отменён", "Подготовка и скачивание файлов остановлены");
+          setTimeout(hideStatus, 4000);
+          return;
+        }
+        if (failed) {
+          setStatus("Minecraft завершился с ошибкой" + (typeof d.exitCode === "number" ? " · Exit Code " + d.exitCode : ""), 100);
+          ui.notifyError(d.error || ("Exit Code " + d.exitCode), "Minecraft завершился с ошибкой");
+        } else {
+          setStatus("Minecraft завершён, Exit Code 0", 100);
+          ui.notifySuccess("Сессия завершена", "Minecraft завершён, Exit Code 0");
+        }
+        setTimeout(hideStatus, 6000);
+      }));
+
+      var list = [];
+      try {
+        list = (await api("instances.list")) || [];
+      } catch (e) {
+        hero.innerHTML = '<div class="card">' + errBlock(e, true) + "</div>";
+        insts.innerHTML = "";
+        bindRetry(hero, function () { ctx.reload(); });
+        renderRecent(root.querySelector("#home-recent"));
+        renderLauncher(root.querySelector("#home-launcher"));
+        return;
+      }
+
+      renderHero(hero, pickActive(list));
+      renderInstances(insts, list);
+      renderRecent(root.querySelector("#home-recent"));
+      renderUpdates(root.querySelector("#home-updates"), list);
+      renderLauncher(root.querySelector("#home-launcher"));
+
+      // состояние запуска показываем сразу и поддерживаем в актуальном виде
+      refreshRunning();
+      if (S.runTimer) clearInterval(S.runTimer);
+      S.runTimer = setInterval(function () { if (!S.dead) refreshRunning(); }, 5000);
+    },
+    dispose() {
+      S.dead = true;
+      if (S.runTimer) { clearInterval(S.runTimer); S.runTimer = null; }
+      S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
+      S.unsubs = [];
+      S.playBtn = null;
+      S.activeId = null;
+      S.running = [];
+    },
+  });
+})();
+</script>

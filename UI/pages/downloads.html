@@ -1,0 +1,360 @@
+<style>
+/* ===== downloads — страница-специфичные стили (префикс dl-) ===== */
+.dl-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dl-summary {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  font-size: 12.5px; color: var(--text-2);
+}
+.dl-summary .sep { color: var(--text-3); }
+.dl-filters { display: flex; gap: 7px; flex-wrap: wrap; }
+.dl-list { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.dl-row { display: flex; gap: 13px; padding: 13px 15px; border-bottom: 1px solid var(--line); align-items: flex-start; transition: background var(--t); }
+.dl-row:last-child { border-bottom: none; }
+.dl-row:hover { background: var(--card-2); }
+.dl-row .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.dl-row .head { display: flex; align-items: center; gap: 9px; }
+.dl-row .title { font-weight: 600; font-size: 13.5px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dl-row .sub { font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dl-row .meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.dl-row .err { font-size: 11.5px; color: var(--danger); line-height: 1.45; }
+.dl-actions { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
+.dl-bar { display: flex; align-items: center; gap: 10px; }
+.dl-bar .progress { flex: 1; min-width: 90px; }
+.dl-bar .pct { width: 42px; text-align: right; font-size: 11.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.dl-skel { display: flex; flex-direction: column; gap: 10px; }
+.dl-skel .skeleton { height: 62px; border-radius: var(--r-md); }
+.dl-empty { padding: 52px 20px; }
+</style>
+
+<section class="page">
+  <div class="page-head">
+    <div class="grow">
+      <h1 class="page-title">Загрузки</h1>
+      <div class="page-sub" id="dl-sub">Файлы, которые скачивает лаунчер</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-sm" id="dl-clear"><svg><use href="#i-trash"/></svg> Очистить завершённые</button>
+      <button class="btn btn-sm btn-ghost" id="dl-refresh"><svg><use href="#i-refresh"/></svg> Обновить</button>
+    </div>
+  </div>
+
+  <div class="dl-top">
+    <div class="dl-filters" id="dl-filters">
+      <button class="chip active" data-f="all">Все</button>
+      <button class="chip" data-f="active">Активные</button>
+      <button class="chip" data-f="done">Завершённые</button>
+      <button class="chip" data-f="error">Ошибки</button>
+    </div>
+    <div class="dl-summary" id="dl-summary"></div>
+  </div>
+
+  <div id="dl-body"></div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
+
+  var KIND_ICONS = {
+    mods: "package", modpacks: "box", resourcepacks: "image", shaderpacks: "sun",
+    datapacks: "layers", versions: "cube", libraries: "box", java: "coffee",
+    instance: "grid", backup: "save", log: "file",
+  };
+  var STATES = {
+    queued: { cls: "chip", label: "В очереди" },
+    running: { cls: "chip info", label: "Загрузка" },
+    paused: { cls: "chip warn", label: "Пауза" },
+    done: { cls: "chip on", label: "Готово" },
+    error: { cls: "chip danger", label: "Ошибка" },
+  };
+  var ACTIVE = { queued: 1, running: 1 };
+
+  var S = {
+    dead: false, list: [], loading: true, error: null,
+    filter: "all", unsub: null, timer: null, els: {},
+  };
+
+  /* ---------- утилиты ---------- */
+  function errBlock(e, onRetry) {
+    var d = ui.errDetail(e);
+    return '<div class="state error">' + ui.icon("alert") +
+      "<h3>Не удалось загрузить список</h3><p>" + ui.esc(ui.errText(e)) + "</p>" +
+      (d ? '<details><summary style="cursor:pointer;font-size:12px;color:var(--text-3)">Подробнее</summary><pre class="mono dim" style="white-space:pre-wrap;text-align:left">' + ui.esc(d) + "</pre></details>" : "") +
+      (onRetry ? '<div class="actions"><button class="btn" data-retry="1">' + ui.icon("refresh") + " Повторить</button></div>" : "") +
+      "</div>";
+  }
+  function normalizeList(data) {
+    if (!data) return null;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.downloads)) return data.downloads;
+    if (data.id !== undefined && data.state !== undefined) {
+      var list = S.list.slice();
+      var i = list.findIndex(function (x) { return x.id === data.id; });
+      if (i >= 0) list[i] = Object.assign({}, list[i], data); else list.push(data);
+      return list;
+    }
+    return null;
+  }
+  function isActive(d) { return !!ACTIVE[d.state]; }
+  function activeCount() { return S.list.filter(isActive).length; }
+  function percent(d) {
+    var p = d.progress;
+    var haveBytes = d.totalBytes > 0 && d.receivedBytes !== undefined && d.receivedBytes !== null;
+    if (typeof p === "number" && isFinite(p)) {
+      if (p <= 1) return haveBytes ? clampPct(d.receivedBytes / d.totalBytes * 100) : clampPct(p * 100);
+      return clampPct(p);
+    }
+    if (haveBytes) return clampPct(d.receivedBytes / d.totalBytes * 100);
+    return 0;
+  }
+  function clampPct(v) { return Math.max(0, Math.min(100, v)); }
+  function stateChip(d) {
+    var st = STATES[d.state] || { cls: "chip", label: String(d.state || "—") };
+    return '<span class="' + st.cls + '">' + ui.esc(st.label) + "</span>";
+  }
+  function bytesLine(d) {
+    var got = d.receivedBytes !== undefined && d.receivedBytes !== null ? ui.fmtBytes(d.receivedBytes) : "—";
+    if (d.totalBytes > 0) return got + " / " + ui.fmtBytes(d.totalBytes);
+    return got;
+  }
+  function updateBadge() {
+    var badge = document.getElementById("nav-downloads-badge");
+    if (!badge) return;
+    var n = activeCount();
+    badge.textContent = n > 99 ? "99+" : String(n);
+    badge.hidden = n === 0;
+  }
+
+  /* ---------- отрисовка ---------- */
+  function filtered() {
+    if (S.filter === "active") return S.list.filter(isActive);
+    if (S.filter === "done") return S.list.filter(function (d) { return d.state === "done"; });
+    if (S.filter === "error") return S.list.filter(function (d) { return d.state === "error"; });
+    return S.list.slice();
+  }
+
+  function renderSummary() {
+    var box = S.els.summary;
+    if (!box) return;
+    var n = activeCount();
+    var speed = 0, got = 0, total = 0;
+    S.list.forEach(function (d) {
+      if (!isActive(d)) return;
+      if (d.state === "running") speed += (d.speedBps || 0);
+      got += (d.receivedBytes || 0);
+      total += (d.totalBytes || 0);
+    });
+    if (!S.list.length) { box.innerHTML = ""; return; }
+    var pct = total > 0 ? Math.round(clampPct(got / total * 100)) : 0;
+    var eta = speed > 0 && total > got ? (total - got) / speed : 0;
+    box.innerHTML =
+      "<span>Активных: <b class=\"tnum\">" + n + "</b></span><span class=\"sep\">·</span>" +
+      "<span>Скорость: <b class=\"tnum\">" + (speed > 0 ? ui.esc(ui.fmtSpeed(speed)) : "—") + "</b></span>" +
+      (n ? "<span class=\"sep\">·</span><span>Прогресс: <b class=\"tnum\">" + pct + "%</b></span>" +
+           "<span class=\"sep\">·</span><span>Осталось: <b class=\"tnum\">" + (eta > 0 ? ui.esc(ui.fmtEta(eta)) : "—") + "</b></span>" : "") +
+      "<span class=\"sep\">·</span><span>Всего: <b class=\"tnum\">" + S.list.length + "</b></span>";
+    if (S.els.sub) S.els.sub.textContent = n ? "Скачивается файлов: " + n : "Файлы, которые скачивает лаунчер";
+  }
+
+  function rowHTML(d) {
+    var pct = percent(d);
+    var showBar = d.state === "running" || d.state === "paused" || d.state === "queued" || (d.state === "error" && d.receivedBytes > 0);
+    var actions = "";
+    if (d.state === "running") {
+      actions += '<button class="btn btn-sm" data-act="pause">' + ui.icon("eye-off") + " Пауза</button>";
+      actions += '<button class="btn btn-sm btn-ghost" data-act="cancel">Отменить</button>';
+    } else if (d.state === "paused") {
+      actions += '<button class="btn btn-sm btn-primary" data-act="resume">' + ui.icon("play") + " Продолжить</button>";
+      actions += '<button class="btn btn-sm btn-ghost" data-act="cancel">Отменить</button>';
+    } else if (d.state === "queued") {
+      actions += '<button class="btn btn-sm btn-ghost" data-act="cancel">Отменить</button>';
+    } else if (d.state === "error") {
+      actions += '<button class="btn btn-sm btn-primary" data-act="retry">' + ui.icon("refresh") + " Повторить</button>";
+      actions += '<button class="btn btn-sm btn-ghost" data-act="cancel">Отменить</button>';
+    } else if (d.state === "done") {
+      actions += '<button class="btn btn-sm" data-act="open">' + ui.icon("folder") + " Открыть файл</button>";
+    }
+
+    var meta = '<span class="meta">' +
+      "<span>" + ui.esc(bytesLine(d)) + "</span>";
+    if (d.state === "running" || d.state === "paused") {
+      if (d.speedBps > 0) meta += "<span>" + ui.esc(ui.fmtSpeed(d.speedBps)) + "</span>";
+      if (d.etaS > 0) meta += "<span>осталось " + ui.esc(ui.fmtEta(d.etaS)) + "</span>";
+    }
+    if (d.kind) meta += "<span>" + ui.esc(d.kind) + "</span>";
+    if (d.state === "error" && d.retryCount > 0) meta += "<span>попыток: " + ui.fmtNum(d.retryCount) + "</span>";
+    meta += "</span>";
+
+    return '<div class="dl-row" data-id="' + ui.esc(d.id) + '">' +
+      '<div class="item-icon sm">' + ui.icon(KIND_ICONS[d.kind] || "download") + "</div>" +
+      '<div class="grow">' +
+        '<div class="head"><span class="title">' + ui.esc(d.title || d.url || d.id || "Файл") + "</span>" + stateChip(d) + "</div>" +
+        (d.target ? '<div class="sub" title="' + ui.esc(d.target) + '">' + ui.esc(d.target) + "</div>" : "") +
+        (showBar ? '<div class="dl-bar"><div class="progress' + (d.state === "error" ? " danger" : "") + '"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
+          '<span class="pct">' + Math.round(pct) + "%</span></div>" : "") +
+        meta +
+        (d.state === "error" && d.error ? '<div class="err">' + ui.esc(d.error) + "</div>" : "") +
+      "</div>" +
+      '<div class="dl-actions">' + actions + "</div>" +
+      "</div>";
+  }
+
+  function render() {
+    var box = S.els.body;
+    if (!box) return;
+    renderSummary();
+    updateBadge();
+
+    if (S.loading) {
+      box.innerHTML = '<div class="dl-skel"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+      return;
+    }
+    if (S.error) {
+      box.innerHTML = errBlock(S.error, true);
+      box.querySelector("[data-retry]").onclick = function () { load(); };
+      return;
+    }
+    if (!S.list.length) {
+      box.innerHTML = '<div class="state dl-empty">' + ui.icon("download") +
+        "<h3>Сейчас ничего не скачивается</h3><p>Здесь появятся загрузки модов, версий и библиотек. Найдите что-нибудь в каталоге Modrinth.</p>" +
+        '<div class="actions"><button class="btn btn-primary" data-act="discover">' + ui.icon("compass") + " Открыть Modrinth</button></div></div>";
+      box.querySelector('[data-act="discover"]').onclick = function () { navigate("discover"); };
+      return;
+    }
+    var items = filtered();
+    if (!items.length) {
+      var msg = S.filter === "active" ? "Активных загрузок нет" :
+                S.filter === "done" ? "Завершённых загрузок нет" : "Ошибок нет";
+      box.innerHTML = '<div class="state">' + ui.icon("check") + "<h3>" + msg + "</h3>" +
+        '<div class="actions"><button class="btn" data-act="all">Показать все</button></div></div>';
+      box.querySelector('[data-act="all"]').onclick = function () { setFilter("all"); };
+      return;
+    }
+    box.innerHTML = '<div class="dl-list">' + items.map(rowHTML).join("") + "</div>";
+    bindRows(box);
+  }
+
+  function bindRows(box) {
+    box.querySelectorAll(".dl-row").forEach(function (row) {
+      var id = row.dataset.id;
+      var d = S.list.find(function (x) { return String(x.id) === String(id); });
+      if (!d) return;
+      row.querySelectorAll("[data-act]").forEach(function (b) {
+        b.onclick = function () { action(b.dataset.act, d, b); };
+      });
+    });
+  }
+
+  function setFilter(f) {
+    S.filter = f;
+    S.els.filters.querySelectorAll("[data-f]").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.f === f);
+    });
+    render();
+  }
+
+  /* ---------- действия ---------- */
+  async function action(act, d, btn) {
+    if (btn) btn.classList.add("loading");
+    try {
+      if (act === "pause") await api("downloads.pause", { id: d.id });
+      else if (act === "resume") await api("downloads.resume", { id: d.id });
+      else if (act === "cancel") await api("downloads.cancel", { id: d.id });
+      else if (act === "retry") await api("downloads.retry", { id: d.id });
+      else if (act === "open") await api("system.openPath", { path: d.target });
+      if (act !== "open") await load(true);
+      else if (btn) btn.classList.remove("loading");
+      return;
+    } catch (e) {
+      if (btn) btn.classList.remove("loading");
+      ui.notifyError(e, "Не удалось выполнить действие");
+    }
+    if (btn) btn.classList.remove("loading");
+  }
+
+  async function clearFinished() {
+    try {
+      await api("downloads.clearFinished");
+      ui.notifySuccess("Список очищен", "Завершённые загрузки удалены");
+      await load(true);
+    } catch (e) { ui.notifyError(e, "Не удалось очистить список"); }
+  }
+
+  /* ---------- загрузка данных ---------- */
+  async function load(silent) {
+    if (!silent) { S.loading = true; S.error = null; render(); }
+    try {
+      var list = await api("downloads.list");
+      if (S.dead) return;
+      S.list = normalizeList(list) || (Array.isArray(list) ? list : []);
+      S.loading = false;
+      S.error = null;
+    } catch (e) {
+      if (S.dead) return;
+      S.loading = false;
+      S.error = e;
+    }
+    syncTimer();
+    render();
+  }
+
+  function syncTimer() {
+    if (S.dead) return;
+    if (activeCount() > 0) {
+      if (!S.timer) S.timer = setInterval(function () { load(true); }, 3000);
+    } else if (S.timer) {
+      clearInterval(S.timer);
+      S.timer = null;
+    }
+  }
+
+  /* ---------- register ---------- */
+  Pages.register("downloads", {
+    title: "Загрузки",
+    async init(ctx) {
+      S.dead = false;
+      S.list = [];
+      S.loading = true;
+      S.error = null;
+      S.filter = "all";
+
+      var root = ctx.root;
+      S.els = {
+        sub: root.querySelector("#dl-sub"),
+        summary: root.querySelector("#dl-summary"),
+        filters: root.querySelector("#dl-filters"),
+        body: root.querySelector("#dl-body"),
+      };
+
+      S.els.filters.querySelectorAll("[data-f]").forEach(function (b) {
+        b.onclick = function () { setFilter(b.dataset.f); };
+      });
+      root.querySelector("#dl-refresh").onclick = function () { load(); };
+      root.querySelector("#dl-clear").onclick = clearFinished;
+
+      S.unsub = on("downloads.progress", function (data) {
+        var arr = normalizeList(data);
+        if (!arr || S.dead) return;
+        var sig = JSON.stringify(arr);
+        if (sig === JSON.stringify(S.list)) return;
+        S.list = arr;
+        S.loading = false;
+        S.error = null;
+        syncTimer();
+        render();
+      });
+
+      await load();
+    },
+
+    dispose() {
+      S.dead = true;
+      if (S.timer) { clearInterval(S.timer); S.timer = null; }
+      if (S.unsub) { try { S.unsub(); } catch (e) { /* noop */ } }
+      S.unsub = null;
+      S.els = {};
+    },
+  });
+})();
+</script>
