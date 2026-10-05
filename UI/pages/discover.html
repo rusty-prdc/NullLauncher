@@ -68,6 +68,19 @@
 .disco-pick .sub { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
 .disco-details summary { cursor: pointer; font-size: 12px; color: var(--text-3); }
 .disco-details pre { white-space: pre-wrap; word-break: break-word; font-size: 11px; color: var(--text-3); margin: 6px 0 0; font-family: var(--mono); text-align: left; }
+
+/* выбор версии модпака */
+.disco-vpick-list { display: flex; flex-direction: column; gap: 7px; max-height: 46vh; overflow-y: auto; }
+.disco-vpick {
+  display: flex; flex-direction: column; gap: 3px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card-2); text-align: left; cursor: pointer; transition: background var(--t), border-color var(--t);
+}
+.disco-vpick:hover { background: var(--card-3); border-color: var(--line-strong); }
+.disco-vpick.active { border-color: var(--accent); background: var(--accent-soft); }
+.disco-vpick .vp-top { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+.disco-vpick .vp-name { font-weight: 600; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.disco-vpick .vp-sub { font-size: 11.5px; color: var(--text-3); }
 </style>
 
 <section class="page">
@@ -471,25 +484,17 @@
   }
 
   /* ---------- установка модпака (.mrpack) через Modrinth ---------- */
-  async function installModpack(versionId) {
-    if (!S.versions || !S.versions.length) { await loadVersions(); }
-    var v = (S.versions || []).find(function (x) { return x.id === versionId; }) || (S.versions || [])[0];
-    if (!v) { ui.notifyWarn("Нет версий", "Для этого модпака версии не найдены."); return; }
-    var file = (v.files || []).find(function (f) { return f && f.primary; }) || (v.files || [])[0];
+  function modpackFile(v) {
+    return (v.files || []).find(function (f) { return f && f.primary; }) || (v.files || [])[0] || null;
+  }
+
+  /* фактическая установка выбранной версии модпака */
+  async function doInstallModpack(v) {
+    var file = modpackFile(v);
     if (!file || !file.url) { ui.notifyError("Файл модпака не найден", v.name || ""); return; }
-
     var title = (S.project && (S.project.title || S.project.name)) || "модпак";
-    var ok = await ui.confirmDialog({
-      title: "Установить модпак",
-      message: "Будет создана новая сборка из модпака <b>" + ui.esc(title) + "</b>" +
-        (v.name ? " (" + ui.esc(v.name) + ")" : "") +
-        ". Лаунчер скачает .mrpack с Modrinth, развернёт его и загрузит все моды. Продолжить?",
-      okLabel: "Установить",
-      cancelLabel: "Отмена",
-    });
-    if (!ok || S.dead) return;
 
-    var btns = document.querySelectorAll('[data-inst="' + versionId + '"], [data-act="install-latest"]');
+    var btns = document.querySelectorAll('[data-inst="' + v.id + '"], [data-act="install-latest"]');
     btns.forEach(function (b) { b.classList.add("loading"); });
     try {
       var inst = await api("instances.importMrpack", { sourceUrl: file.url, instanceName: title });
@@ -502,6 +507,100 @@
     } finally {
       if (!S.dead) btns.forEach(function (b) { b.classList.remove("loading"); });
     }
+  }
+
+  /* путь из таблицы версий: подтверждение, затем установка */
+  async function installModpack(versionId) {
+    if (!S.versions || !S.versions.length) { await loadVersions(); }
+    var v = (S.versions || []).find(function (x) { return x.id === versionId; }) || null;
+    if (!v) {
+      // версия могла не попасть в отфильтрованный список — грузим весь список проекта
+      try {
+        v = ((await api("modrinth.versions", { id: S.detailId })) || [])
+          .find(function (x) { return x.id === versionId; }) || null;
+      } catch (e) { /* сообщим ниже */ }
+    }
+    if (!v) { ui.notifyWarn("Версия не найдена", "Обновите список версий проекта."); return; }
+    if (!modpackFile(v)) { ui.notifyError("Файл модпака не найден", v.name || ""); return; }
+
+    var title = (S.project && (S.project.title || S.project.name)) || "модпак";
+    var ok = await ui.confirmDialog({
+      title: "Установить модпак",
+      messageHtml: true,
+      message: "Будет создана новая сборка из модпака <b>" + ui.esc(title) + "</b>" +
+        (v.name ? " (" + ui.esc(v.name) + ")" : "") +
+        ". Лаунчер скачает .mrpack с Modrinth, развернёт его и загрузит все моды. Продолжить?",
+      okLabel: "Установить",
+      cancelLabel: "Отмена",
+    });
+    if (!ok || S.dead) return;
+    await doInstallModpack(v);
+  }
+
+  /* диалог выбора версии модпака → версия или null */
+  function pickModpackVersionDialog(list) {
+    return new Promise(function (resolve) {
+      // по умолчанию — последняя стабильная версия (release), иначе просто первая
+      var sel = 0;
+      for (var ri = 0; ri < list.length; ri++) {
+        if ((list[ri].versionType || "release") === "release") { sel = ri; break; }
+      }
+      var body = document.createElement("div");
+      body.className = "disco-vpick-list";
+      body.innerHTML = list.map(function (v, i) {
+        var file = modpackFile(v);
+        var meta = [ui.fmtDate(v.datePublished)];
+        var gvs = normalizeValue(v.gameVersions);
+        if (gvs) meta.push("Minecraft " + gvs);
+        var ldr = normalizeValue(v.loaders);
+        if (ldr) meta.push(ldr);
+        if (file && file.size) meta.push(ui.fmtBytes(file.size));
+        return '<button type="button" class="disco-vpick' + (i === sel ? " active" : "") + '" data-i="' + i + '">' +
+          '<span class="vp-top"><span class="vp-name">' + ui.esc(v.name || v.id || "—") + "</span>" +
+          channelBadge(v) + "</span>" +
+          '<span class="vp-sub">' + ui.esc(meta.join(" · ")) + "</span>" +
+          "</button>";
+      }).join("");
+
+      var title = (S.project && (S.project.title || S.project.name)) || "модпак";
+      ui.openDialog({
+        title: "Установить модпак",
+        icon: "package",
+        width: "wide",
+        sub: "Будет создана новая сборка из модпака <b>" + ui.esc(title) +
+          "</b>. Выберите версию — лаунчер скачает .mrpack с Modrinth и загрузит все моды.",
+        subHtml: true,
+        body: body,
+        buttons: [
+          { label: "Отмена", role: "cancel", onClick: function () { resolve(null); } },
+          { label: "Установить", role: "primary", onClick: function () { resolve(list[sel]); } },
+        ],
+        onClose: function () { resolve(null); },
+      });
+      body.querySelectorAll(".disco-vpick").forEach(function (b) {
+        b.onclick = function () {
+          sel = +b.dataset.i;
+          body.querySelectorAll(".disco-vpick").forEach(function (x) { x.classList.toggle("active", x === b); });
+        };
+      });
+    });
+  }
+
+  /* кнопка «Установить» на модпаке: показать выбор версии (весь список проекта) */
+  async function chooseModpackVersion() {
+    var list;
+    try {
+      list = (await api("modrinth.versions", { id: S.detailId })) || [];
+    } catch (e) {
+      ui.notifyError(e, "Не удалось загрузить версии модпака");
+      return;
+    }
+    if (S.dead) return;
+    if (!list.length) { ui.notifyWarn("Нет версий", "Для этого модпака версии не найдены."); return; }
+
+    var v = await pickModpackVersionDialog(list);
+    if (!v || S.dead) return;
+    await doInstallModpack(v);
   }
 
   /* ---------- детальный вид ---------- */
@@ -873,6 +972,11 @@
       inst.onclick = async function () {
         inst.classList.add("loading");
         try {
+          if (isModpack) {
+            // модпак: всегда показываем выбор версии, а не ставим молча последнюю
+            await chooseModpackVersion();
+            return;
+          }
           if (!S.versions) await loadVersions();
           if (S.dead) return;
           if (!S.versions || !S.versions.length) { ui.notifyWarn("Нет версий", "Для этого проекта версии не найдены."); return; }

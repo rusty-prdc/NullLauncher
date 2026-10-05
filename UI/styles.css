@@ -613,6 +613,7 @@ html[data-theme="light"] .banner.ok { color: #146c47; }
   display: grid; place-items: center; overflow: hidden; position: relative;
 }
 .inst-card .cover .item-icon { width: 50px; height: 50px; font-size: 19px; border-radius: var(--r-sm); }
+.inst-card .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .inst-card .cover.has-img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.55), transparent 60%); }
 .inst-card h4 { margin: 0; font-size: 14.5px; font-weight: 620; display: flex; align-items: center; gap: 7px; }
 .inst-card h4 .fav { color: var(--warn); fill: var(--warn); width: 14px; height: 14px; }

@@ -262,10 +262,10 @@ function openDialog(opts) {
   }
 }
 
-function confirmDialog({ title, message, okLabel = "Продолжить", cancelLabel = "Отмена", danger, icon: ic }) {
+function confirmDialog({ title, message, okLabel = "Продолжить", cancelLabel = "Отмена", danger, icon: ic, messageHtml }) {
   return new Promise((resolve) => {
     openDialog({
-      title, sub: message, icon: ic || (danger ? "alert" : "alert"), iconType: danger ? "error" : "warn",
+      title, sub: message, subHtml: !!messageHtml, icon: ic || (danger ? "alert" : "alert"), iconType: danger ? "error" : "warn",
       buttons: [
         { label: cancelLabel, role: "cancel", onClick: () => resolve(false) },
         { label: okLabel, role: danger ? "danger" : "primary", onClick: () => resolve(true) },
@@ -741,6 +741,22 @@ function fixSkinFacePos(el, h) {
   }
 }
 
+/* Обложка сборки: instances.image (cover → icon) → <img> внутри el (класс has-img). */
+function applyCover(el, id) {
+  if (!el || !id) return;
+  api("instances.image", { id: id, kind: "cover" })
+    .then(function (url) {
+      if (!url) return api("instances.image", { id: id, kind: "icon" });
+      return url;
+    })
+    .then(function (url) {
+      if (!url || !el.isConnected) return;
+      el.classList.add("has-img");
+      el.innerHTML = '<img src="' + url + '" alt="" loading="lazy">';
+    })
+    .catch(function () { /* без обложки — остаётся буква */ });
+}
+
 /* экспорт для страниц */
 window.api = api;
 window.on = on;
@@ -754,7 +770,7 @@ window.ui = {
   notify, notifySuccess, notifyError, notifyWarn, notifyInfo, copyText,
   openDialog, confirmDialog, promptDialog, contextMenu, bindContextMenu,
   onFilesDropped, errText, errDetail, goBack, updateAccountChip, applySettings,
-  openPalette, DefaultHotkeys, applySkinFace,
+  openPalette, DefaultHotkeys, applySkinFace, applyCover,
 };
 
 let _booted = false;

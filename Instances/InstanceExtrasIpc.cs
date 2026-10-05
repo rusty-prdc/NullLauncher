@@ -228,6 +228,9 @@ public static class InstanceExtrasIpc
                     RamMinMb: 512, RamMaxMb: 4096,
                     Width: null, Height: null, Fullscreen: null, GroupIds: null));
 
+                // обложка и иконка проекта Modrinth — чтобы карточка сборки выглядела как на сайте
+                await ApplyModrinthArtAsync(s, rec.Id, sourceUrl.Length > 0 ? sourceUrl : null, ct).ConfigureAwait(false);
+
                 // файлы по downloads (последовательно — не более одной загрузки за раз)
                 var (downloaded, failed, skipped) = await DownloadPackFilesAsync(s, rec, index, ct).ConfigureAwait(false);
 
@@ -712,6 +715,71 @@ public static class InstanceExtrasIpc
         foreach (var c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
         var trimmed = name.Trim();
         return trimmed.Length == 0 ? "modpack" : trimmed;
+    }
+
+    /* ------------------------------------------------- обложка проекта Modrinth */
+
+    /// <summary>
+    /// Скачивает обложку (первая картинка галереи, иначе иконка) и иконку проекта Modrinth
+    /// и привязывает их к сборке — карточка на главной выглядит как на сайте Modrinth.
+    /// sourceUrl — ссылка, по которой ставился модпак (cdn.modrinth.com/data/&lt;id&gt;/... или modrinth.com/modpack/&lt;slug&gt;).
+    /// </summary>
+    private static async Task ApplyModrinthArtAsync(AppServices s, string instanceId, string? sourceUrl, CancellationToken ct)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(sourceUrl) || !Uri.TryCreate(sourceUrl, UriKind.Absolute, out var u))
+                return;
+
+            string? projectKey = null;
+            var segs = u.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var di = Array.IndexOf(segs, "data");
+            if (di >= 0 && di + 1 < segs.Length) projectKey = segs[di + 1];   // cdn.modrinth.com/data/<projectId>/...
+            else if (segs.Length > 0) projectKey = segs[^1];                   // modrinth.com/modpack/<slug>
+            if (string.IsNullOrEmpty(projectKey)) return;
+
+            using var http = HttpFactory.Create(s);
+            using var resp = await http.GetAsync(
+                "https://api.modrinth.com/v2/project/" + Uri.EscapeDataString(projectKey), ct).ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode) return;
+            var json = JsonNode.Parse(await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
+            if (json is null) return;
+
+            var iconUrl = Str(json["icon_url"]);
+            string? coverUrl = null;
+            if (json["gallery"] is JsonArray ga)
+                foreach (var g in ga)
+                {
+                    var url = g is JsonValue ? g.ToString().Trim('"') : Str(g?["url"]);
+                    if (!string.IsNullOrWhiteSpace(url)) { coverUrl = url; break; }
+                }
+            coverUrl ??= iconUrl;
+
+            var temps = new List<string>();
+            var patch = new JsonObject();
+            foreach (var (key, url) in new[] { ("coverPath", coverUrl), ("iconPath", iconUrl) })
+            {
+                if (string.IsNullOrWhiteSpace(url)) continue;
+                var ext = Path.GetExtension(new Uri(url).AbsolutePath);
+                if (ext is not (".png" or ".jpg" or ".jpeg" or ".webp" or ".gif" or ".bmp")) ext = ".png";
+                var tmp = Path.Combine(s.Paths.TempDir, $"art-{instanceId}-{key}{ext}");
+                await s.Downloads.DownloadAsync(url, tmp, key == "coverPath" ? "Обложка сборки" : "Иконка сборки",
+                    kind: "image", ct: ct).ConfigureAwait(false);
+                if (!File.Exists(tmp)) continue;
+                temps.Add(tmp);
+                patch[key] = tmp;
+            }
+
+            if (patch.Count > 0)
+            {
+                try { s.Instances.Update(instanceId, patch); }
+                catch (Exception ex) { Log.Debug($"Не удалось сохранить обложку '{instanceId}': {ex.Message}"); }
+            }
+            foreach (var t in temps)
+                try { File.Delete(t); } catch { /* файл уже скопирован в сборку */ }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { Log.Debug($"Не удалось получить обложку проекта Modrinth: {ex.Message}"); }
     }
 
     private static string? Str(JsonNode? n)

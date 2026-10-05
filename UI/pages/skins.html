@@ -199,6 +199,7 @@
     if (!S.file) { ui.notifyWarn("Файл не выбран", "Сначала выберите PNG-текстуру скина"); return; }
     var ok = await ui.confirmDialog({
       title: "Применить скин",
+      messageHtml: true,
       message: "Скин <b>" + ui.esc(S.file.split(/[\\/]/).pop()) + "</b> будет отправлен в Minecraft Services для аккаунта <b>" +
         ui.esc(S.acc ? S.acc.name : "") + "</b> (тип: " + (S.variant === "slim" ? "Слим" : "Классическая") + "). Продолжить?",
       okLabel: "Применить",

@@ -2136,6 +2136,7 @@
     if (!r || !r.url) { ui.notifyError("Обновление недоступно", "Ссылка на установщик отсутствует"); return; }
     var ok = await ui.confirmDialog({
       title: "Установить обновление",
+      messageHtml: true,
       message: "Будет скачан и запущен установщик <b>NullLauncher " + esc(r.latest || "") + "</b> из релиза на GitHub. " +
         "Лаунчер закроется, чтобы установщик мог обновить файлы. Продолжить?",
       okLabel: "Скачать и установить",

@@ -482,6 +482,7 @@
         '<button class="btn btn-sm play" data-act="play">' + ui.icon("play") + "</button></div>";
     el.onclick = function () { navigate("instance", { id: inst.id }); };
     el.dataset.id = inst.id;
+    ui.applyCover(el.querySelector(".cover"), inst.id);
     el.querySelector('[data-act="play"]').onclick = function (ev) {
       ev.stopPropagation();
       var other = otherRunning(inst.id);

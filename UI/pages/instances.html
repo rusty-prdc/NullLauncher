@@ -423,6 +423,7 @@
         var el = div.firstElementChild;
         grid.appendChild(el);
         bindCard(el, i.id);
+        ui.applyCover(el.querySelector(".cover"), i.id);
       });
     }
   }
