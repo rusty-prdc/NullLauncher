@@ -83,10 +83,10 @@ public static class InstanceIpc
             var (path, bytes) = s.Instances.Export(id, target!, include);
             return Task.FromResult<object?>(new { path, bytes });
         });
-        r.Register("instances.import", (p, _) =>
+        r.Register("instances.import", async (p, ct) =>
         {
             var src = p?.Str("sourcePath");
-            if (string.IsNullOrWhiteSpace(src))
+            if (string.IsNullOrWhiteSpace(src) && string.IsNullOrWhiteSpace(p?.Str("sourceUrl")))
             {
                 string? picked = null;
                 System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -94,15 +94,19 @@ public static class InstanceIpc
                     var dlg = new Microsoft.Win32.OpenFileDialog
                     {
                         Title = "Рмпорт сборки",
-                        Filter = "Сборка (*.nlpkg;*.zip)|*.nlpkg;*.zip",
+                        Filter = "Модпаки и сборки (*.mrpack;*.zip;*.nlpkg)|*.mrpack;*.zip;*.nlpkg|Все файлы|*.*",
                         Multiselect = false,
                     };
                     if (dlg.ShowDialog() == true) picked = dlg.FileName;
                 });
                 src = picked;
             }
-            if (string.IsNullOrWhiteSpace(src)) return Task.FromResult<object?>(new { cancelled = true });
-            return Task.FromResult<object?>(s.Instances.Import(src));
+            if (string.IsNullOrWhiteSpace(src) && string.IsNullOrWhiteSpace(p?.Str("sourceUrl")))
+                return (object?)new { cancelled = true };
+
+            // формат определяется по содержимому архива: nlpkg / mrpack / CurseForge / папка игры
+            return await PackImport.ImportAsync(s, src, p?.Str("sourceUrl"), p?.Str("instanceName"), ct)
+                .ConfigureAwait(false);
         });
         r.Register("instances.installedVersions", (_, _) =>
         {

@@ -3,7 +3,7 @@
 ; Ручная сборка: iscc installer\NullLauncher.iss
 
 #define AppName "NullLauncher"
-#define AppVersion "1.0.2"
+#define AppVersion "1.0.3"
 #define AppExe "NullLauncher.exe"
 #define PublishDir "..\publish\NullLauncher"
 

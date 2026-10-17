@@ -291,7 +291,7 @@ public static class ExtrasIpc
         try
         {
             var rows = Database.DatabaseService.Query<CacheRow>(
-                "SELECT key AS Key, value AS Value FROM api_cache WHERE key LIKE 'modrinth:%'");
+                "SELECT key AS Key, value AS Value FROM api_cache WHERE key LIKE 'modrinth:%' OR key LIKE 'cf:%'");
             foreach (var row in rows)
             {
                 if (result.Count >= MaxPerGroup) break;

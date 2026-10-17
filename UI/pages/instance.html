@@ -1954,7 +1954,7 @@
 
   async function importInstanceArchive() {
     try {
-      var files = await api("system.pickFiles", { title: "Импорт сборки", filter: "instance" });
+      var files = await api("system.pickFiles", { title: "Импорт сборки или модпака", filter: "pack" });
       if (!files || !files.length) return;
       var created = await api("instances.import", { sourcePath: files[0] });
       if (S.dead) return;

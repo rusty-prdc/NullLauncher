@@ -75,7 +75,7 @@ Errors are always user friendly: never raw .NET exception names. `detail` may ho
 | `instances.repair` | `{ id }` | `{ downloaded, failed }` |
 | `instances.changeVersion` | `{ id, mcVersion, loader, loaderVersion? }` | `{ ok:true }` (auto-backup + mod check) |
 | `instances.export` | `{ id, targetPath, include: {mods,resourcepacks,shaders,configs,worlds,options} }` | `{ path, bytes }` |
-| `instances.import` | `{ sourcePath }` | `Instance` (accepts `.zip` instance archives) |
+| `instances.import` | `{ sourcePath, instanceName? }` | `Instance` (auto-detects `.nlpkg`/`.mrpack`/CurseForge/game-folder by archive content) |
 | `instances.exportMrpack` | `{ id, targetPath, meta:{name,description,author,versionId} }` | `{ path }` |
 | `instances.importMrpack` | `{ sourcePath, instanceName? }` | `Instance` |
 | `instances.recentLaunches` | `{ limit? }` | `[{ instanceId, name, startedAt, exitCode, durationMs, error? }]` |

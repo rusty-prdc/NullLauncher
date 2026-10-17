@@ -127,6 +127,23 @@ public sealed class InstanceService
         catch (Exception ex) { throw Core.LauncherException.Wrap(ex, "Не удалось сохранить изображение"); }
     }
 
+    /// <summary>
+    /// Путь из instance.json при импорте часто указывает на чужой компьютер — тогда ищем файл
+    /// с тем же именем в корне инстанса (архив кладёт картинки рядом с instance.json).
+    /// </summary>
+    private static string? LocalImage(InstanceRecord rec, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return null;
+        if (File.Exists(path)) return path;
+        try
+        {
+            var local = Path.Combine(rec.Dir, Path.GetFileName(path));
+            if (File.Exists(local)) return local;
+        }
+        catch { /* имя из чужого пути непригодно */ }
+        return null;
+    }
+
     /* ------------------------------------------------------------ обновление */
     public InstanceRecord Update(string id, JsonNode? patch)
     {
@@ -349,9 +366,12 @@ public sealed class InstanceService
         try
         {
             ZipFile.ExtractToDirectory(sourcePath, tmp, true);
-            var metaFile = Path.Combine(tmp, "instance.json");
-            if (!File.Exists(metaFile))
+
+            // архив может быть обёрнут в лишнюю папку («главная папка / instance.json / .minecraft»)
+            var metaFile = InstanceExtrasIpc.FindMarkerFile(tmp, "instance.json");
+            if (metaFile is null)
                 throw new Core.LauncherException("Это не файл сборки NullLauncher", "В архиве нет instance.json");
+            var root = Path.GetDirectoryName(metaFile)!;
 
             var rec = JsonSerializer.Deserialize<InstanceRecord>(File.ReadAllText(metaFile), JsonOpts)
                       ?? throw new Core.LauncherException("Повреждённый файл instance.json");
@@ -363,15 +383,17 @@ public sealed class InstanceService
 
             if (Directory.Exists(rec.Dir)) Directory.Delete(rec.Dir, true);
             Directory.CreateDirectory(Path.GetDirectoryName(rec.Dir)!);
-            Directory.Move(tmp, rec.Dir);
+            if (root == tmp) Directory.Move(tmp, rec.Dir);
+            else
+            {
+                // внутри обёртки: переносим её содержимое, временнную обёртку удалит finally
+                Directory.Move(root, rec.Dir);
+            }
 
-            // Переносим картинки внутрь, если они лежали в корне архива
-            foreach (var img in new[] { rec.IconPath, rec.CoverPath })
-                if (!string.IsNullOrEmpty(img))
-                {
-                    var local = Path.Combine(rec.Dir, Path.GetFileName(img));
-                    if (File.Exists(local)) { if (img != local) { } }
-                }
+            // картинки из архива: путь из instance.json может быть чужим/несуществующим —
+            // ищем файл с тем же именем внутри инстанса
+            rec.IconPath = LocalImage(rec, rec.IconPath);
+            rec.CoverPath = LocalImage(rec, rec.CoverPath);
             SaveMetadata(rec);
             InstanceRepository.Upsert(rec);
             foreach (var g in rec.GroupIds) AddToGroup(g, rec.Id);

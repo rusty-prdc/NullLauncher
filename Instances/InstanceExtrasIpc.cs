@@ -171,106 +171,139 @@ public static class InstanceExtrasIpc
         });
 
         /* ========================================================== импорт .mrpack */
-        r.Register("instances.importMrpack", async (p, ct) =>
+        r.Register("instances.importMrpack", (p, ct) => ImportMrpackAsync(s, p, ct));
+
+        RegisterRecent(r, s);
+    }
+
+    /// <summary>
+    /// Импорт .mrpack (или ссылки на него). Переиспользуется универсальным импортом архивов:
+    /// зип с modrinth.index.json внутри роутится сюда же.
+    /// </summary>
+    public static async Task<object?> ImportMrpackAsync(AppServices s, JsonNode? p, CancellationToken ct)
+    {
+        var source = (p?.Str("sourcePath") ?? "").Trim();
+        var sourceUrl = (p?.Str("sourceUrl") ?? "").Trim();
+        var downloadedSrc = false;
+        if (source.Length == 0 && sourceUrl.Length > 0)
         {
-            var source = (p?.Str("sourcePath") ?? "").Trim();
-            var sourceUrl = (p?.Str("sourceUrl") ?? "").Trim();
-            var downloadedSrc = false;
-            if (source.Length == 0 && sourceUrl.Length > 0)
-            {
-                // установка модпака с Modrinth: качаем .mrpack во временную папку
-                if (!Uri.TryCreate(sourceUrl, UriKind.Absolute, out var su) ||
-                    (su.Scheme != Uri.UriSchemeHttps && su.Scheme != Uri.UriSchemeHttp))
-                    throw new LauncherException("Недопустимая ссылка на модпак", sourceUrl);
-                source = Path.Combine(s.Paths.TempDir,
-                    "mrpack-dl-" + Guid.NewGuid().ToString("N")[..8] + ".mrpack");
-                await s.Downloads.DownloadAsync(sourceUrl, source, "Модпак", kind: "modpack", ct: ct)
-                    .ConfigureAwait(false);
-                downloadedSrc = true;
-            }
-            if (source.Length == 0) throw new LauncherException("Укажите файл модпака");
-            if (!File.Exists(source)) throw new LauncherException("Файл модпака не найден", source);
+            // установка модпака с Modrinth: качаем .mrpack во временную папку
+            if (!Uri.TryCreate(sourceUrl, UriKind.Absolute, out var su) ||
+                (su.Scheme != Uri.UriSchemeHttps && su.Scheme != Uri.UriSchemeHttp))
+                throw new LauncherException("Недопустимая ссылка на модпак", sourceUrl);
+            source = Path.Combine(s.Paths.TempDir,
+                "mrpack-dl-" + Guid.NewGuid().ToString("N")[..8] + ".mrpack");
+            await s.Downloads.DownloadAsync(sourceUrl, source, "Модпак", kind: "modpack", ct: ct)
+                .ConfigureAwait(false);
+            downloadedSrc = true;
+        }
+        if (source.Length == 0) throw new LauncherException("Укажите файл модпака");
+        if (!File.Exists(source)) throw new LauncherException("Файл модпака не найден", source);
 
-            var tmp = Path.Combine(s.Paths.TempDir, "mrpack-" + Guid.NewGuid().ToString("N")[..8]);
-            Directory.CreateDirectory(tmp);
-            try
-            {
-                try { ZipFile.ExtractToDirectory(source, tmp, overwriteFiles: true); }
-                catch (Exception ex) { throw new LauncherException("Не удалось распаковать модпак", ex.Message, ex); }
+        var tmp = Path.Combine(s.Paths.TempDir, "mrpack-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tmp);
+        try
+        {
+            try { ZipFile.ExtractToDirectory(source, tmp, overwriteFiles: true); }
+            catch (Exception ex) { throw new LauncherException("Не удалось распаковать модпак", ex.Message, ex); }
 
-                var indexFile = Path.Combine(tmp, "modrinth.index.json");
-                if (!File.Exists(indexFile))
-                    throw new LauncherException("Это не модпак Modrinth", "В архиве нет modrinth.index.json");
+            // архив может быть обёрнут в лишнюю папку — ищем index, пока есть одна папка на уровне
+            var indexFile = FindMarkerFile(tmp, "modrinth.index.json");
+            if (indexFile is null)
+                throw new LauncherException("Это не модпак Modrinth", "В архиве нет modrinth.index.json");
+            var workDir = Path.GetDirectoryName(indexFile)!;
 
-                JsonObject index;
-                try { index = JsonNode.Parse(await File.ReadAllTextAsync(indexFile, ct).ConfigureAwait(false)) as JsonObject
-                              ?? throw new LauncherException("Повреждённый modrinth.index.json"); }
-                catch (LauncherException) { throw; }
-                catch (Exception ex) { throw new LauncherException("Повреждённый modrinth.index.json", ex.Message, ex); }
-
-                var deps = index["dependencies"] as JsonObject;
-                var mcVersion = Str(deps?["minecraft"]);
-                if (string.IsNullOrWhiteSpace(mcVersion))
-                    throw new LauncherException("В модпаке не указана версия Minecraft", source);
-
-                var (loader, loaderVersion) = ResolveLoader(deps);
-                var name = (p?.Str("instanceName") ?? "").Trim();
-                if (name.Length == 0) name = Str(index["name"])?.Trim() ?? "";
-                if (name.Length == 0) name = Path.GetFileNameWithoutExtension(source);
-                var description = Str(index["description"]) ?? "";
-
-                var rec = s.Instances.Create(new CreateInstanceRequest(
-                    Name: name,
-                    Description: description,
-                    IconPath: null, CoverPath: null, Color: null,
-                    McVersion: mcVersion, Loader: loader, LoaderVersion: loaderVersion,
-                    JavaMode: null, JavaMajor: null, JavaPath: null,
-                    RamMinMb: 512, RamMaxMb: 4096,
-                    Width: null, Height: null, Fullscreen: null, GroupIds: null));
-
-                // обложка и иконка проекта Modrinth — чтобы карточка сборки выглядела как на сайте
-                await ApplyModrinthArtAsync(s, rec.Id, sourceUrl.Length > 0 ? sourceUrl : null, ct).ConfigureAwait(false);
-
-                // файлы по downloads (последовательно — не более одной загрузки за раз)
-                var (downloaded, failed, skipped) = await DownloadPackFilesAsync(s, rec, index, ct).ConfigureAwait(false);
-
-                // overrides поверх папки сборки
-                var overridesDir = Path.Combine(tmp, "overrides");
-                if (Directory.Exists(overridesDir))
-                {
-                    foreach (var file in Directory.EnumerateFiles(overridesDir, "*", SearchOption.AllDirectories))
-                    {
-                        var rel = Path.GetRelativePath(overridesDir, file);
-                        if (rel.StartsWith(".nulllauncher-meta.json", StringComparison.OrdinalIgnoreCase)) continue;
-                        var target = SafeCombine(rec.GameDir, rel);
-                        if (target is null) continue;
-                        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                        File.Copy(file, target, true);
-                    }
-                }
-
-                Log.Info($"Импорт .mrpack → '{rec.Name}' ({mcVersion}/{loader}): " +
-                         $"скачано {downloaded}, ошибок {failed}, пропущено {skipped}");
-                if (failed > 0 || skipped > 0)
-                    s.NotifyUser("warn", "Модпак импортирован частично",
-                        $"Скачано: {downloaded}, не удалось: {failed}, без ссылок: {skipped}. " +
-                        "Недостающие моды можно доустановить из вкладки Mods.");
-
-                s.Emit("instance.changed", new { id = rec.Id });
-                return (object?)(s.Instances.Get(rec.Id) ?? rec);
-            }
+            JsonObject index;
+            try { index = JsonNode.Parse(await File.ReadAllTextAsync(indexFile, ct).ConfigureAwait(false)) as JsonObject
+                          ?? throw new LauncherException("Повреждённый modrinth.index.json"); }
             catch (LauncherException) { throw; }
-            catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { throw new LauncherException("Не удалось импортировать модпак", ex.Message, ex); }
-            finally
+            catch (Exception ex) { throw new LauncherException("Повреждённый modrinth.index.json", ex.Message, ex); }
+
+            var deps = index["dependencies"] as JsonObject;
+            var mcVersion = Str(deps?["minecraft"]);
+            if (string.IsNullOrWhiteSpace(mcVersion))
+                throw new LauncherException("В модпаке не указана версия Minecraft", source);
+
+            var (loader, loaderVersion) = ResolveLoader(deps);
+            var name = (p?.Str("instanceName") ?? "").Trim();
+            if (name.Length == 0) name = Str(index["name"])?.Trim() ?? "";
+            if (name.Length == 0) name = Path.GetFileNameWithoutExtension(source);
+            var description = Str(index["description"]) ?? "";
+
+            var rec = s.Instances.Create(new CreateInstanceRequest(
+                Name: name,
+                Description: description,
+                IconPath: null, CoverPath: null, Color: null,
+                McVersion: mcVersion, Loader: loader, LoaderVersion: loaderVersion,
+                JavaMode: null, JavaMajor: null, JavaPath: null,
+                RamMinMb: 512, RamMaxMb: 4096,
+                Width: null, Height: null, Fullscreen: null, GroupIds: null));
+
+            // обложка и иконка проекта Modrinth — чтобы карточка сборки выглядела как на сайте
+            await ApplyModrinthArtAsync(s, rec.Id, sourceUrl.Length > 0 ? sourceUrl : null, ct).ConfigureAwait(false);
+
+            // файлы по downloads (последовательно — не более одной загрузки за раз)
+            var (downloaded, failed, skipped) = await DownloadPackFilesAsync(s, rec, index, ct).ConfigureAwait(false);
+
+            // overrides поверх папки сборки
+            var overridesDir = Path.Combine(workDir, "overrides");
+            if (Directory.Exists(overridesDir))
             {
-                try { if (Directory.Exists(tmp)) Directory.Delete(tmp, true); }
-                catch (Exception ex) { Log.Debug($"Не удалось удалить временную папку {tmp}: {ex.Message}"); }
-                if (downloadedSrc)
-                    try { if (File.Exists(source)) File.Delete(source); }
-                    catch (Exception ex) { Log.Debug($"Не удалось удалить {source}: {ex.Message}"); }
+                foreach (var file in Directory.EnumerateFiles(overridesDir, "*", SearchOption.AllDirectories))
+                {
+                    var rel = Path.GetRelativePath(overridesDir, file);
+                    if (rel.StartsWith(".nulllauncher-meta.json", StringComparison.OrdinalIgnoreCase)) continue;
+                    var target = SafeCombine(rec.GameDir, rel);
+                    if (target is null) continue;
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    File.Copy(file, target, true);
+                }
             }
-        });
+
+            Log.Info($"Импорт .mrpack → '{rec.Name}' ({mcVersion}/{loader}): " +
+                     $"скачано {downloaded}, ошибок {failed}, пропущено {skipped}");
+            if (failed > 0 || skipped > 0)
+                s.NotifyUser("warn", "Модпак импортирован частично",
+                    $"Скачано: {downloaded}, не удалось: {failed}, без ссылок: {skipped}. " +
+                    "Недостающие моды можно доустановить из вкладки Mods.");
+
+            s.Emit("instance.changed", new { id = rec.Id });
+            return (object?)(s.Instances.Get(rec.Id) ?? rec);
+        }
+        catch (LauncherException) { throw; }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { throw new LauncherException("Не удалось импортировать модпак", ex.Message, ex); }
+        finally
+        {
+            try { if (Directory.Exists(tmp)) Directory.Delete(tmp, true); }
+            catch (Exception ex) { Log.Debug($"Не удалось удалить временную папку {tmp}: {ex.Message}"); }
+            if (downloadedSrc)
+                try { if (File.Exists(source)) File.Delete(source); }
+                catch (Exception ex) { Log.Debug($"Не удалось удалить {source}: {ex.Message}"); }
+        }
+    }
+
+    /// <summary>
+    /// Ищет файл <paramref name="marker"/> в распакованном архиве: сначала в корне, затем
+    /// спускаясь по единственной папке каждого уровня (архивы часто обёрнуты в одну папку).
+    /// </summary>
+    internal static string? FindMarkerFile(string root, string marker, int maxDepth = 4)
+    {
+        var dir = root;
+        for (var depth = 0; depth <= maxDepth; depth++)
+        {
+            var hit = Path.Combine(dir, marker);
+            if (File.Exists(hit)) return hit;
+            var subs = Directory.Exists(dir) ? Directory.GetDirectories(dir) : Array.Empty<string>();
+            if (subs.Length != 1) return null;
+            dir = subs[0];
+        }
+        return null;
+    }
+
+    /* ========================================================== история запусков (часть Register) */
+    private static void RegisterRecent(IpcRouter r, AppServices s)
+    {
 
         /* ========================================================== история запусков */
         r.Register("instances.recentLaunches", (p, _) =>

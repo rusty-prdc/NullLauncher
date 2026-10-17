@@ -624,14 +624,13 @@
   /* ---------- импорт / drag&drop ---------- */
   async function importArchive() {
     try {
-      var files = await api("system.pickFiles", { title: "Импорт сборки или модпака", filter: "zip" });
+      var files = await api("system.pickFiles", { title: "Импорт сборки или модпака", filter: "pack" });
       if (!files || !files.length) return;
       var ok = 0, fail = 0;
       for (var i = 0; i < files.length; i++) {
         var f = files[i];
         try {
-          if (/\.mrpack$/i.test(f)) await api("instances.importMrpack", { sourcePath: f });
-          else await api("instances.import", { sourcePath: f });
+          await api("instances.import", { sourcePath: f });
           ok++;
         } catch (e) { fail++; ui.notifyError(e, "Не удалось импортировать " + f.split(/[\\/]/).pop()); }
       }
@@ -648,9 +647,8 @@
       var p = paths[i];
       var name = p.split(/[\\/]/).pop();
       try {
-        if (/\.mrpack$/i.test(name)) { await api("instances.importMrpack", { sourcePath: p }); ok++; }
-        else if (/\.zip$/i.test(name)) { await api("instances.import", { sourcePath: p }); ok++; }
-        else ui.notifyWarn("Файл пропущен", name + " — этот формат импортируется внутри сборки.");
+        if (/\.(zip|mrpack|nlpkg)$/i.test(name)) { await api("instances.import", { sourcePath: p }); ok++; }
+        else ui.notifyWarn("Файл пропущен", name + " — нужен .zip, .mrpack или .nlpkg.");
       } catch (e) { ui.notifyError(e, "Не удалось импортировать " + name); }
     }
     if (ok) { ui.notifySuccess("Импортировано", "Сборок добавлено: " + ok); reload(); }

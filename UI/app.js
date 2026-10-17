@@ -7,17 +7,27 @@
 const _pending = new Map();
 const _listeners = new Map();
 let _seq = 0;
+/* долгие операции: импорт архивов качает сотни файлов */
+const API_TIMEOUTS = {
+  "instances.import": 1800000,
+  "instances.importMrpack": 1800000,
+  "instances.repair": 1800000,
+  "instances.restore": 1800000,
+  "accounts.check": 600000,
+};
 const _hasBridge = typeof window.chrome !== "undefined" && !!window.chrome.webview;
 
 function api(method, params) {
   if (!_hasBridge) return Promise.reject(new Error("Хост недоступен: приложение должно запускаться из NullLauncher.exe"));
+  /* импорт больших паков (CurseForge на 250+ файлов) идёт дольше пяти минут */
+  const timeoutMs = API_TIMEOUTS[method] || 300000;
   return new Promise((resolve, reject) => {
     const id = ++_seq;
     _pending.set(id, { resolve, reject });
     window.chrome.webview.postMessage({ id, method, params: params || {} });
     setTimeout(() => {
       if (_pending.has(id)) { _pending.delete(id); reject({ code: "Тайм-аут", message: `Операция «${method}» не завершилась вовремя` }); }
-    }, 300000);
+    }, timeoutMs);
   });
 }
 
@@ -638,11 +648,79 @@ function setupDrop() {
   });
 }
 
+/* ---------------- глобальная полоса загрузок ----------------
+   Все скачивания (модпак, моды, ресурсы, шейдеры, файлы игры при запуске)
+   идут через DownloadService и шлют downloads.progress — поэтому полоса
+   внизу окна живёт на всех страницах без привязки к конкретной. */
+function setupDownloadsBar() {
+  const bar = document.getElementById("dlbar");
+  if (!bar) return;
+  const prog = bar.querySelector("#dlbar-progress");
+  const fill = prog && prog.querySelector("i");
+  const textEl = document.getElementById("dlbar-text");
+  const pctEl = document.getElementById("dlbar-pct");
+  const badge = document.getElementById("nav-downloads-badge");
+  let hideTimer = null;
+
+  bar.addEventListener("click", () => navigate("downloads"));
+
+  function update(list) {
+    if (!Array.isArray(list)) return;
+    const act = list.filter((d) => d && (d.state === "running" || d.state === "queued"));
+    const paused = list.some((d) => d && d.state === "paused");
+    const n = act.length;
+
+    if (badge) {
+      badge.textContent = n > 99 ? "99+" : String(n);
+      badge.hidden = n === 0;
+    }
+    if (!n) {
+      /* между файлами модпака бывает пауза в очереди — прячем с задержкой, чтобы не мигало */
+      if (!paused && !hideTimer) hideTimer = setTimeout(() => {
+        bar.hidden = true; hideTimer = null;
+        if (fill) fill.style.width = "0%";
+        if (prog) prog.classList.remove("indeterminate");
+        textEl.textContent = ""; pctEl.textContent = "";
+      }, 1400);
+      return;
+    }
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+
+    let got = 0, total = 0, speed = 0;
+    for (const d of act) {
+      got += d.receivedBytes || 0;
+      total += d.totalBytes || 0;
+      if (d.state === "running") speed += d.speedBps || 0;
+    }
+    const cur = act.find((d) => d.state === "running") || act[0];
+    const name = (cur && (cur.title || cur.url)) || "файлов";
+    const meta = [fmtBytes(got) + (total > 0 ? " / " + fmtBytes(total) : "")];
+    if (speed > 0) meta.push(fmtSpeed(speed));
+    textEl.textContent = (n > 1 ? `Скачивание: ${name} · ещё ${n - 1}` : `Скачивание: ${name}`) + " · " + meta.join(" · ");
+
+    if (total > 0 && fill) {
+      prog.classList.remove("indeterminate");
+      const pct = Math.max(0, Math.min(100, (got / total) * 100));
+      fill.style.width = pct.toFixed(2) + "%";
+      pctEl.textContent = (pct >= 10 ? Math.round(pct) : pct.toFixed(1)) + "%";
+    } else if (prog) {
+      prog.classList.add("indeterminate");
+      pctEl.textContent = "";
+    }
+    bar.hidden = false;
+  }
+
+  on("downloads.progress", update);
+  /* при старте UI сверяемся с очередью: если что-то качается ещё до перезагрузки страницы — покажем сразу */
+  api("downloads.list").then((r) => { if (r && Array.isArray(r.items)) update(r.items); }).catch(() => {});
+}
+
 /* ---------------- boot ---------------- */
 async function boot() {
   setupWindow();
   setupPalette();
   setupDrop();
+  setupDownloadsBar();
 
   document.addEventListener("keydown", (e) => {
     if (!$("#palette").hidden && e.key === "Escape") { closePalette(); return; }

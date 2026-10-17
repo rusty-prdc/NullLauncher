@@ -178,6 +178,7 @@ public static class SystemIpc
             "jar" => ("Выберите мод", "Java-моды (*.jar)|*.jar|Все файлы|*.*"),
             "zip" => ("Выберите архив", "Архивы (*.zip)|*.zip|Все файлы|*.*"),
             "mrpack" => ("Модпак Modrinth", "Modrinth (*.mrpack)|*.mrpack|Все файлы|*.*"),
+            "pack" => ("Импорт сборки или модпака", "Модпаки и сборки (*.mrpack;*.zip;*.nlpkg)|*.mrpack;*.zip;*.nlpkg|Все файлы|*.*"),
             "instance" => ("Файл сборки", "Сборка NullLauncher (*.nlpkg;*.zip)|*.nlpkg;*.zip|Все файлы|*.*"),
             "world" => ("Мир Minecraft", "Архив мира (*.zip)|*.zip|Все файлы|*.*"),
             "json" => ("JSON", "JSON (*.json)|*.json|Все файлы|*.*"),

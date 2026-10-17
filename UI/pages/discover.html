@@ -201,9 +201,17 @@
   }
   function projectUrl() {
     var p = S.project || {};
+    if (isCfProject()) {
+      if (p.links && p.links.homepage) return p.links.homepage;
+      return "https://www.curseforge.com/minecraft/modpacks/" + encodeURIComponent(p.slug || String(S.detailId || "").replace(/^cf:/, ""));
+    }
     var slug = p.slug || p.id || S.detailId;
     return "https://modrinth.com/project/" + encodeURIComponent(slug);
   }
+  /* проекты CurseForge приходят с id вида «cf:NNN» */
+  function isCfProject() { return /^cf:/i.test(String(S.detailId || "")); }
+  /* откуда скачивается модпак — для честных текстов в подтверждении */
+  function packSourceLabel() { return isCfProject() ? "архив модпака с CurseForge" : ".mrpack с Modrinth"; }
 
   /* ---------- баннер офлайна ---------- */
   function renderBanner() {
@@ -497,7 +505,7 @@
     var btns = document.querySelectorAll('[data-inst="' + v.id + '"], [data-act="install-latest"]');
     btns.forEach(function (b) { b.classList.add("loading"); });
     try {
-      var inst = await api("instances.importMrpack", { sourceUrl: file.url, instanceName: title });
+      var inst = await api("instances.import", { sourceUrl: file.url, instanceName: title });
       if (S.dead) return;
       ui.notifySuccess("Модпак установлен",
         inst && inst.name ? "Сборка «" + inst.name + "» готова к запуску" : "Сборка готова к запуску");
@@ -529,7 +537,7 @@
       messageHtml: true,
       message: "Будет создана новая сборка из модпака <b>" + ui.esc(title) + "</b>" +
         (v.name ? " (" + ui.esc(v.name) + ")" : "") +
-        ". Лаунчер скачает .mrpack с Modrinth, развернёт его и загрузит все моды. Продолжить?",
+        ". Лаунчер скачает " + packSourceLabel() + ", развернёт его и загрузит все моды. Продолжить?",
       okLabel: "Установить",
       cancelLabel: "Отмена",
     });
@@ -568,7 +576,7 @@
         icon: "package",
         width: "wide",
         sub: "Будет создана новая сборка из модпака <b>" + ui.esc(title) +
-          "</b>. Выберите версию — лаунчер скачает .mrpack с Modrinth и загрузит все моды.",
+          "</b>. Выберите версию — лаунчер скачает " + packSourceLabel() + " и загрузит все моды.",
         subHtml: true,
         body: body,
         buttons: [
@@ -841,7 +849,8 @@
           ui.icon("external") + ui.esc(LINK_LABELS[k] || k) + "</button>";
       });
     }
-    linkBtns += '<button class="btn btn-sm" data-link="' + ui.esc(projectUrl()) + '">' + ui.icon("compass") + " Открыть на Modrinth</button>";
+    linkBtns += '<button class="btn btn-sm" data-link="' + ui.esc(projectUrl()) + '">' + ui.icon("compass") +
+      (isCfProject() ? " Открыть на CurseForge" : " Открыть на Modrinth") + "</button>";
     html += '<div class="card"><div class="card-title">Ссылки</div><div class="disco-links">' + linkBtns + "</div></div>";
 
     return html;
@@ -931,7 +940,8 @@
     var actions = "";
     if (isModpack) {
       actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
-      actions += '<button class="btn" data-act="open-mr">' + ui.icon("external") + " На Modrinth</button>";
+      actions += '<button class="btn" data-act="open-mr">' + ui.icon("external") +
+        (isCfProject() ? " На CurseForge" : " На Modrinth") + "</button>";
     } else {
       actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
       actions += '<button class="btn" data-act="versions">' + ui.icon("package") + " Версии</button>";

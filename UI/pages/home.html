@@ -233,9 +233,10 @@
 
   async function importInstance() {
     try {
-      var files = await api("system.pickFiles", { title: "Импорт сборки", filter: "zip" });
+      var files = await api("system.pickFiles", { title: "Импорт сборки или модпака", filter: "pack" });
       if (!files || !files.length) return;
-      for (var i = 0; i < files.length; i++) await api("instances.import", { sourcePath: files[i] });
+      for (var i = 0; i < files.length; i++)
+        await api("instances.import", { sourcePath: files[i] });
       ui.notifySuccess("Сборка импортирована", files.length > 1 ? "Импортировано файлов: " + files.length : "");
       App.reload();
     } catch (e) { ui.notifyError(e, "Не удалось импортировать сборку"); }

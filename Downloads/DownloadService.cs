@@ -304,25 +304,39 @@ public sealed class DownloadService : IDisposable
             var resumeFrom = File.Exists(part) ? new FileInfo(part).Length : 0;
             var speedLimit = _s.Settings.Get("speedLimitKbs", 0);
 
+            // watchdog: если байты не идут 90 секунд — обрываем попытку и уходим в ретрай,
+            // иначе зависший сокет держит закачку вечно (HttpClient.Timeout тело не обрывает)
+            using var stall = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            stall.CancelAfter(TimeSpan.FromSeconds(90));
+
             using var http = HttpFactory.Get(_s);
             using var req = new HttpRequestMessage(HttpMethod.Get, item.Url);
             if (resumeFrom > 0) req.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(resumeFrom, null);
 
-            using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, stall.Token)
+                .ConfigureAwait(false);
 
             if (resp.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable && resumeFrom > 0)
             {
                 // докачка с середины не поддерживается — удаляем огрызок и повторяем через очередь
                 File.Delete(part);
+                item.ReceivedBytes = 0;
+                item.Progress = 0;
                 throw new LauncherException("Докачка невозможна", "Файл будет скачан заново");
             }
             resp.EnsureSuccessStatusCode();
 
+            // сервер проигнорировал Range и прислал файл целиком (200 вместо 206):
+            // дописывать его в огрызок нельзя — иначе файл всегда битый и хеш не сойдётся
+            if (resumeFrom > 0 && resp.StatusCode != System.Net.HttpStatusCode.PartialContent)
+                resumeFrom = 0;
+
+            item.ReceivedBytes = resumeFrom;
             item.TotalBytes = resp.Content.Headers.ContentLength is long l ? l + (resumeFrom > 0 ? resumeFrom : 0)
                 : resumeFrom;
             if (resp.Content.Headers.ContentRange?.Length is long full) item.TotalBytes = full;
 
-            await using var input = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+            await using var input = await resp.Content.ReadAsStreamAsync(stall.Token).ConfigureAwait(false);
             await using var output = new FileStream(part, resumeFrom > 0 ? FileMode.Append : FileMode.Create,
                 FileAccess.Write, FileShare.None, 1 << 16, useAsync: true);
 
@@ -331,8 +345,9 @@ public sealed class DownloadService : IDisposable
             int n;
             var lastEmit = DateTime.UtcNow;
 
-            while ((n = await input.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+            while ((n = await input.ReadAsync(buffer, stall.Token).ConfigureAwait(false)) > 0)
             {
+                stall.CancelAfter(TimeSpan.FromSeconds(90)); // данные идут — сбрасываем watchdog
                 if (item.PauseRequested) throw new OperationCanceledException();
                 await output.WriteAsync(buffer.AsMemory(0, n), ct).ConfigureAwait(false);
 
@@ -370,13 +385,19 @@ public sealed class DownloadService : IDisposable
             {
                 var ok = await VerifyAsync(part, item.HashAlgo!, item.Hash!, ct).ConfigureAwait(false);
                 if (!ok)
+                {
+                    // огрызок битый — удаляем, чтобы следующая попытка качала заново, а не дописывала мусор
+                    try { File.Delete(part); } catch { /* файл может быть занят */ }
+                    item.ReceivedBytes = 0;
+                    item.Progress = 0;
                     throw new LauncherException("Контрольная сумма не совпала",
                         $"{Path.GetFileName(item.Target)}: ожидался {item.HashAlgo}:{item.Hash}");
+                }
             }
 
             Finish(item, part);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (item.PauseRequested || ct.IsCancellationRequested)
         {
             if (item.PauseRequested)
             {
@@ -396,24 +417,34 @@ public sealed class DownloadService : IDisposable
         }
         catch (Exception ex)
         {
-            item.Error = ex is LauncherException le ? le.UserMessage : ex.Message;
-            item.State = DownloadState.Error;
+            // OperationCanceledException от stall-watchdog (ct не отменён) тоже попадает сюда — это ошибка с ретраем
+            item.Error = ex is LauncherException le ? le.UserMessage
+                : ex is OperationCanceledException ? "Соединение прервалось (нет данных 90 секунд)"
+                : ex.Message;
             item.SpeedBps = 0;
-            item.Tcs?.TrySetException(ex is LauncherException ? ex
-                : new LauncherException("Не удалось скачать файл", $"{item.Url}\n{ex.Message}", ex));
             Persist(item);
             Emit(force: true);
-            Log.Warn($"Загрузка {item.Title}: {item.Error}");
+            Log.Warn($"Загрузка {item.Title}: {item.Error} (попытка {item.RetryCount + 1}/4)");
 
             if (item.RetryCount < 3)
             {
+                // фоновый ретрай: Tcs НЕ завершаем — вызывающий продолжает ждать,
+                // иначе первый сбой отдаёт исключение сразу, а докачка в фоне бессмысленна
                 item.RetryCount++;
                 await Task.Delay(1000 * item.RetryCount).ConfigureAwait(false);
                 item.Error = null;
                 item.State = DownloadState.Queued;
-                item.Tcs = new TaskCompletionSource<DownloadItem>(TaskCreationOptions.RunContinuationsAsynchronously);
                 Persist(item);
                 _signal.Release();
+            }
+            else
+            {
+                item.State = DownloadState.Error;
+                item.Tcs?.TrySetException(ex is LauncherException ? ex
+                    : ex is OperationCanceledException
+                        ? new LauncherException("Соединение прервалось", $"{item.Url}\nФайл не удалось докачать", ex)
+                        : new LauncherException("Не удалось скачать файл", $"{item.Url}\n{ex.Message}", ex));
+                Emit(force: true);
             }
         }
     }
