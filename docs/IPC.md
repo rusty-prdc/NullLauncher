@@ -75,7 +75,7 @@ Errors are always user friendly: never raw .NET exception names. `detail` may ho
 | `instances.repair` | `{ id }` | `{ downloaded, failed }` |
 | `instances.changeVersion` | `{ id, mcVersion, loader, loaderVersion? }` | `{ ok:true }` (auto-backup + mod check) |
 | `instances.export` | `{ id, targetPath, include: {mods,resourcepacks,shaders,configs,worlds,options} }` | `{ path, bytes }` |
-| `instances.import` | `{ sourcePath, instanceName? }` | `Instance` (auto-detects `.nlpkg`/`.mrpack`/CurseForge/game-folder by archive content) |
+| `instances.import` | `{ sourcePath, instanceName? }` | `Instance` (auto-detects `.nlpkg`/`.mrpack`/CurseForge by archive content; a **folder** path imports a MultiMC/Prism instance via `mmc-pack.json`+`instance.cfg` or a plain `.minecraft` game folder) |
 | `instances.exportMrpack` | `{ id, targetPath, meta:{name,description,author,versionId} }` | `{ path }` |
 | `instances.importMrpack` | `{ sourcePath, instanceName? }` | `Instance` |
 | `instances.recentLaunches` | `{ limit? }` | `[{ instanceId, name, startedAt, exitCode, durationMs, error? }]` |
@@ -188,6 +188,26 @@ Errors are always user friendly: never raw .NET exception names. `detail` may ho
 
 Events: `launch.progress {instanceId, stage, step, total, message, percent}`, `launch.state {instanceId,state,exitCode,error}`, `launch.log {instanceId, line, level}`
 
+### stats
+| method | params | result |
+|---|---|---|
+| `stats.overview` | – | `{ totals:{playMs,launches,instances,avgSessionMs,bestDayMs}, instances:[{id,name,color,mcVersion,loader,playMs,launches,lastPlayedAt}], daily:[{date,ms,launches}], recent:[{instanceId,name,startedAt,durationMs,exitCode,crashed}], since }` |
+
+`daily` covers the last 14 days (only non-empty days; zero-fill on the frontend). `playMs` per instance comes from `instances.play_time_ms`; sessions/daily from the `launch_history` table. Playtime counts actual game runtime (from `Process.Start`), not download/prep time.
+
+### skins (гардероб)
+| method | params | result |
+|---|---|---|
+| `skins.list` | – | `[{id,name,variant:"classic"\|"slim",slim,sha1,source,createdAt,lastUsedAt,preview(data URL),sizeBytes,sortOrder}]` |
+| `skins.add` | `{ path? \| url?, name?, variant? }` | skin DTO (auto-detects slim vs classic; validates PNG 64×64 / 64×32) |
+| `skins.rename` | `{ id, name }` | `{ ok:true }` |
+| `skins.remove` | `{ id }` | `{ ok:true }` |
+| `skins.apply` | `{ id }` | `Account` (sends skin to Minecraft Services for the default Microsoft account) |
+| `skins.image` | `{ id }` | data URL of the stored PNG |
+| `skins.open` | `{ id }` | `{ ok:true }` (opens the stored PNG in the system viewer) |
+
+Seeded with the two default Mojang skins (Steve, Alex) on first use. Emits `skins.changed {action, id}`.
+
 ### logs / crash
 `logs.listLauncher` → `[{name,sizeBytes,createdAt}]`
 `logs.readLauncher {name, query?, level?}` → `{ lines:[{ts,level,message}] }`
@@ -213,6 +233,8 @@ Events: `launch.progress {instanceId, stage, step, total, message, percent}`, `l
 - `notify {type:"success"|"error"|"warn"|"info", title, message, actions?:[{id,label}]}`
 - `downloads.progress {…}` (batched list snapshot)
 - `launch.progress`, `launch.state`, `launch.log`
+- `crash.detected {instanceId, instanceName, path, cause, summary, suggestions}` – auto-analysis after an error exit (when `crashAutoAnalyze` is on)
+- `skins.changed {action:"added"|"renamed"|"removed"|"applied", id}`
 - `instance.changed {id}` – content modified externally
 - `settings.changed {…}`
 - `app.updateAvailable {…}`

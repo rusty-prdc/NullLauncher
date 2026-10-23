@@ -62,17 +62,17 @@
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><path d="m11 11 8 8M16 16l2-2M14 14l2-2"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M5 5v6M5 15v4M12 5v3M12 12v7M19 5v9M19 18v1"/><circle cx="5" cy="13" r="1.8"/><circle cx="12" cy="10" r="1.8"/><circle cx="19" cy="16" r="1.8"/></symbol>
   <symbol id="i-shirt" viewBox="0 0 24 24"><path d="M8.5 3.5 4.5 5.6l1.6 4 1.9-.9V20.5h8V8.7l1.9.9 1.6-4-4-2.1a3.5 3.5 0 0 1-7 0Z"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2.5a9.5 9.5 0 0 0-3 18.5c.47.09.65-.2.65-.45v-1.6c-2.64.57-3.2-1.26-3.2-1.26-.43-1.1-1.05-1.4-1.05-1.4-.86-.59.07-.58.07-.58.95.07 1.45.98 1.45.98.84 1.44 2.21 1.03 2.75.79.09-.61.33-1.03.6-1.27-2.11-.24-4.33-1.06-4.33-4.7 0-1.04.37-1.89.98-2.55-.1-.24-.42-1.2.09-2.51 0 0 .8-.26 2.62.98a9.1 9.1 0 0 1 4.78 0c1.82-1.24 2.62-.98 2.62-.98.51 1.31.19 2.27.09 2.51.61.66.98 1.51.98 2.55 0 3.65-2.23 4.46-4.35 4.69.34.3.65.88.65 1.78v2.63c0 .25.17.55.65.45A9.5 9.5 0 0 0 12 2.5Z" fill="currentColor" stroke="none"/></symbol>
 </svg>
 
 <div id="window">
   <div id="titlebar">
-    <div class="tb-drag" data-drag="1">
-      <div class="tb-brand">
-        <svg class="tb-logo" viewBox="0 0 24 24"><path d="M12 3.2 20 7.6v8.8L12 20.8 4 16.4V7.6z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 9.6v4.8M15 9.6v4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-        <span>NullLauncher</span>
-      </div>
-      <div class="tb-title" id="tb-title">Главная</div>
+    <div class="tb-drag" data-drag="1"></div>
+    <div class="tb-brand">
+      <span class="tb-badge"><svg viewBox="0 0 24 24"><path d="M12 3.2 20 7.6v8.8L12 20.8 4 16.4V7.6z"/><path d="M9 9.6v4.8M15 9.6v4.8" stroke-linecap="round"/></svg></span>
+      <span>NullLauncher</span>
     </div>
+    <div class="tb-title" id="tb-title">Главная</div>
     <div class="tb-actions">
       <button class="tb-btn" id="tb-min" title="Свернуть"><svg><use href="#i-minus"/></svg><span class="minimize-glyph"></span></button>
       <button class="tb-btn" id="tb-max" title="Развернуть"><span class="maximize-glyph"></span></button>
@@ -82,10 +82,16 @@
 
   <div id="shell">
     <aside id="sidebar">
+      <div class="sb-brand">
+        <svg class="sb-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 20 7.6v8.8L12 20.8 4 16.4V7.6z"/><path d="M9 9.6v4.8M15 9.6v4.8" stroke-linecap="round"/></svg>
+        <div class="sb-text"><strong>NullLauncher</strong><span>Майнкрафт лаунчер</span></div>
+      </div>
       <nav id="nav">
         <a class="nav-item" data-route="home"><svg><use href="#i-home"/></svg><span>Главная</span></a>
         <a class="nav-item" data-route="instances"><svg><use href="#i-grid"/></svg><span>Мои сборки</span></a>
         <a class="nav-item" data-route="discover"><svg><use href="#i-compass"/></svg><span>Modrinth</span></a>
+        <a class="nav-item" data-route="skins"><svg><use href="#i-shirt"/></svg><span>Скины</span></a>
+        <a class="nav-item" data-route="stats"><svg><use href="#i-gauge"/></svg><span>Статистика</span></a>
         <a class="nav-item" data-route="downloads"><svg><use href="#i-download"/></svg><span>Загрузки</span><em class="nav-badge" id="nav-downloads-badge" hidden></em></a>
         <div class="nav-sep"></div>
         <a class="nav-item" data-route="settings"><svg><use href="#i-settings"/></svg><span>Настройки</span></a>
@@ -98,7 +104,14 @@
             <small id="account-sub">Не вошли</small>
           </span>
         </button>
-        <div class="version-chip">NullLauncher <span id="app-version">1.0.0</span></div>
+        <div class="sb-row">
+          <div class="version-chip">NullLauncher <span id="app-version">1.0.0</span></div>
+          <div class="sb-links">
+            <a class="sb-link" id="link-github" title="Исходный код на GitHub"><svg><use href="#i-github"/></svg></a>
+            <a class="sb-link" id="link-site" title="Сайт проекта"><svg><use href="#i-globe"/></svg></a>
+          </div>
+        </div>
+        <div class="sb-note">Независимый проект. Не связан с Mojang Studios и Microsoft. Для игры может потребоваться лицензия Minecraft.</div>
       </div>
     </aside>
 
@@ -140,8 +153,10 @@
   </div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 <script src="accounts-ui.js"></script>
+<script src="vendor/skinview3d/skinview3d.bundle.js"></script>
 <script src="skin3d.js"></script>
 </body>
 </html>

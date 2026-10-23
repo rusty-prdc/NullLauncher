@@ -43,6 +43,7 @@ public sealed class AppPaths
     public string DatabaseDir => Path.Combine(DataRoot, "database");
     public string BackupsDir => Path.Combine(DataRoot, "backups");
     public string AssetsDir => Path.Combine(DataRoot, "assets");
+    public string SkinsDir => Path.Combine(DataRoot, "skins");
     public string VersionsDir => Path.Combine(DataRoot, "versions");
     public string LibrariesDir => Path.Combine(DataRoot, "libraries");
     public string ResourcesDir => Path.Combine(DataRoot, "resources");
@@ -62,7 +63,7 @@ public sealed class AppPaths
         {
             ConfigDir, InstancesDir, GroupsDir, ProfilesDir, DownloadsDir, CacheDir, MetadataDir,
             JavaDir, LogsDir, CrashReportsDir, DatabaseDir, BackupsDir, AssetsDir, VersionsDir,
-            LibrariesDir, ResourcesDir, PluginsDir, TempDir,
+            LibrariesDir, ResourcesDir, PluginsDir, TempDir, SkinsDir,
             Path.Combine(CacheDir, "webview2"), Path.Combine(CacheDir, "images"), Path.Combine(CacheDir, "modrinth"),
         };
         foreach (var d in dirs)

@@ -1,136 +1,158 @@
 # NullLauncher
 
-Полноценный лаунчер Minecraft для Windows: настоящие версии Mojang, моды с Modrinth, загрузчики Fabric/Quilt/Forge/NeoForge, автоматический подбор Java, бэкапы и запуск игры.
+A Minecraft launcher for Windows 10/11, built with .NET 8, WPF, WebView2, HTML/CSS/JavaScript and SQLite.
 
-**Стек:** C# / .NET 8 · WPF + WebView2 · HTML/CSS/JS · SQLite
-**Интерфейс:** русский, тёмная тема с изумрудным акцентом.
+**Current release:** [1.0.4](https://github.com/rusty-prdc/NullLauncher/releases/tag/v1.0.4) · **License:** MIT
 
----
+## Features
 
-## Возможности
+- **Isolated instances** with separate game versions, mods, worlds, configs and logs.
+- **Official Minecraft version metadata** with releases, snapshots, beta/alpha versions, SHA-1 validation and an offline metadata cache.
+- **Mod loaders:** Fabric and Quilt profiles; Forge and NeoForge installers.
+- **Modrinth catalog** for mods, modpacks, resource packs and shaders, with project search and installation into an instance.
+- **CurseForge modpacks:** catalog browsing, version selection and installation.
+- **Archive import:** NullLauncher archives, Modrinth `.mrpack`, CurseForge modpacks and existing `.minecraft` folders.
+- **Java runtime management** with automatic Java version selection and Temurin download when required.
+- **Microsoft device-code sign-in**, offline profiles and guest mode. Microsoft tokens are protected with Windows DPAPI.
+- **Game launch preparation** with library validation, native files, classpath and process logs.
+- **Download queue** with pause, resume, retry, SHA-1 validation and history.
+- **Worlds and backups:** import/export, backup and restore workflows.
+- **Settings and diagnostics:** theme, memory, Java, proxy, storage, logs and crash reports.
 
-- **Сборки (инстансы)** — каждая сборка изолирована: свои версии, моды, миры, конфиги, журналы.
-- **Версии Mojang** — релизы, снапшоты, бета/альфа из официального piston-meta, с проверкой sha1 и офлайн-кэшем.
-- **Загрузчики** — Fabric и Quilt из официальных meta-профилей, Forge и NeoForge официальными инсталляторами.
-- **Modrinth** — поиск модов, модпаков, ресурспаков и шейдеров, установка в сборку, проверка обновлений.
-- **Java** — автоопределение установленных JRE, автоматический подбор версии (8/17/21) под требования Minecraft, докачка Temurin при нехватке.
-- **Аккаунты** — вход через Microsoft (device code, OAuth без пароля), оффлайн-аккаунты и гость; токены шифруются DPAPI.
-- **Запуск** — проверка целостности файлов, разбор правил аргументов, нативники, класспасс, реальный прогресс и логи процесса.
-- **Загрузки** — единая очередь с паузой, возобновлением, повторами, sha1-контролем и историей.
-- **Миры и серверы** — список, переименование, экспорт/импорт zip, бэкапы, быстрый запуск с конкретным миром или сервером.
-- **Журналы и сбои** — чтение логов лаунчера и игры, анализ crash-report с реальными причинами и советами.
-- **Бэкапы** — архивы сборок и миров по запросу и перед опасными операциями.
-- **Настройки** — тема, акцент, память, Java, прокси, экспертный режим, экспорт/сброс, диагностика.
+## Download
 
----
+Get signed Windows builds from [GitHub Releases](https://github.com/rusty-prdc/NullLauncher/releases):
 
-## Установка
+- `NullLauncher-<version>-Setup.exe` installs the app and creates shortcuts.
+- `NullLauncher-<version>-win-x64.zip` is a portable archive.
 
-Готовые сборки — в [Releases](../../releases):
+Builds target Windows 10/11 x64 and are self-contained; the WebView2 Runtime is required and is included with most Windows 11 and current Windows 10 installations.
 
-- **`NullLauncher-<версия>-Setup.exe`** — инсталлятор (ярлыки в меню Пуск и на рабочем столе, деинсталлятор).
-- **`NullLauncher-<версия>-win-x64.zip`** — архив для переноса без установки.
+## Build from source
 
-Самодостаточная сборка: .NET ставить не нужно, достаточно Windows 10/11 x64.
-Для запуска игры потребуется установленный **Microsoft WebView2 Runtime** (встроен в Windows 11 и почти во все сборки Windows 10).
-
----
-
-## Сборка из исходников
-
-Требования: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+Requirements: .NET 8 SDK and Windows 10/11 x64.
 
 ```powershell
-# отладочная сборка
+# Build
 .\build.ps1
 
-# сборка и запуск
+# Build and run
 .\build.ps1 -Run
 
-# релиз
+# Release configuration
 .\build.ps1 -Configuration Release
 ```
 
-Результат: `bin\Debug\net8.0-windows\NullLauncher.exe`.
-
-### Самодостаточный релиз (win-x64)
+Create a self-contained distribution:
 
 ```powershell
-.\publish.ps1                # self-contained, несколько файлов
-.\publish.ps1 -SingleFile    # один exe
-.\publish.ps1 -FrameworkDependent   # меньше размер, нужен .NET 8 на ПК
+.\publish.ps1
+.\publish.ps1 -SingleFile
 ```
 
-Результат: `publish\NullLauncher\NullLauncher.exe` — работает на чистой Windows 10/11 без установленного .NET.
-
-### Дистрибутив (ZIP + инсталлятор)
+Create a ZIP archive and installer with Inno Setup 6:
 
 ```powershell
-.\installer\make-installer.ps1            # publish → ZIP → Setup.exe
-.\installer\make-installer.ps1 -SkipPublish   # использовать готовый publish\
-.\installer\make-installer.ps1 -NoZip     # только Setup.exe
+.\installer\make-installer.ps1
 ```
 
-Результат в `dist\`. Инсталлятор собирается [Inno Setup 6](https://jrsoftware.org/isinfo.php).
+## User data
 
----
+By default, user data is stored in `%APPDATA%\NullLauncher\`:
 
-## Данные
-
-Всё пользовательское хранится в `%APPDATA%\NullLauncher\` (рядом с exe ничего не создаётся):
-
-| Путь | Содержимое |
+| Path | Contents |
 |---|---|
-| `config\settings.json` | настройки лаунчера |
-| `instances\` | сборки: mods, config, saves, logs, options |
-| `versions\`, `libraries\`, `assets\` | общие файлы Minecraft |
-| `java\` | скачанные JRE |
-| `downloads\`, `cache\`, `metadata\` | кэш и очередь загрузок |
-| `backups\` | резервные копии |
-| `logs\` | журналы лаунчера |
-| `NullLauncher.db` | SQLite: аккаунты (DPAPI), группы, содержимое, бэкапы |
+| `config\settings.json` | Launcher settings |
+| `instances\` | Instances, mods, worlds and configuration |
+| `versions\`, `libraries\`, `assets\` | Shared Minecraft files |
+| `java\` | Downloaded Java runtimes |
+| `downloads\`, `cache\`, `metadata\` | Download queue and caches |
+| `backups\` | Backups |
+| `logs\` | Launcher logs |
+| `NullLauncher.db` | SQLite data, including protected account tokens |
 
-Корень данных можно сменить в **Настройки → Хранилище**; настройки всегда остаются в `%APPDATA%`.
+The data root can be changed under **Settings → Storage**.
+
+## Project layout
+
+`Core/` contains settings, HTTP, paths and logging; `Instances/`, `Versions/`, `Minecraft/`, `Java/` and `Accounts/` contain the corresponding services; `UI/` contains the WebView interface; `docs/IPC.md` documents the UI/backend IPC contract.
+
+## Support and legal
+
+- Support: [xprodc@yandex.ru](mailto:xprodc@yandex.ru)
+- Source and issue tracker: [github.com/rusty-prdc/NullLauncher](https://github.com/rusty-prdc/NullLauncher)
+- NullLauncher is an independent project and is not affiliated with Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.
 
 ---
+
+# Русская версия
+
+Лаунчер Minecraft для Windows 10/11 на .NET 8, WPF, WebView2, HTML/CSS/JavaScript и SQLite.
+
+**Текущий релиз:** [1.0.4](https://github.com/rusty-prdc/NullLauncher/releases/tag/v1.0.4) · **Лицензия:** MIT
+
+## Возможности
+
+- **Изолированные сборки** с отдельными версиями игры, модами, мирами, настройками и журналами.
+- **Официальные метаданные Minecraft:** релизы, снапшоты, бета/альфа-версии, проверка SHA-1 и офлайн-кэш.
+- **Загрузчики модов:** профили Fabric и Quilt, установщики Forge и NeoForge.
+- **Каталог Modrinth** для модов, модпаков, ресурс-паков и шейдеров.
+- **Модпаки CurseForge:** каталог, выбор версии и установка.
+- **Импорт архивов:** NullLauncher, Modrinth `.mrpack`, CurseForge и готовые папки `.minecraft`.
+- **Управление Java** с автоматическим выбором версии и загрузкой Temurin при необходимости.
+- **Вход Microsoft по коду устройства**, офлайн-профили и гостевой режим. Токены защищаются Windows DPAPI.
+- **Подготовка запуска игры:** проверка библиотек, нативные файлы, classpath и логи процесса.
+- **Очередь загрузок** с паузой, возобновлением, повторами, проверкой SHA-1 и историей.
+- **Миры и резервные копии:** импорт, экспорт, создание и восстановление.
+- **Настройки и диагностика:** тема, память, Java, прокси, хранилище, журналы и отчёты о сбоях.
+
+## Скачать
+
+Готовые сборки для Windows опубликованы в разделе [GitHub Releases](https://github.com/rusty-prdc/NullLauncher/releases):
+
+- `NullLauncher-<version>-Setup.exe` — установщик с ярлыками.
+- `NullLauncher-<version>-win-x64.zip` — переносная версия.
+
+Сборки предназначены для Windows 10/11 x64 и автономны. Требуется WebView2 Runtime; он уже есть в большинстве установок Windows 11 и актуальных Windows 10.
+
+## Сборка из исходников
+
+Требования: .NET 8 SDK и Windows 10/11 x64.
+
+```powershell
+# Сборка
+.\build.ps1
+
+# Сборка и запуск
+.\build.ps1 -Run
+
+# Release-конфигурация
+.\build.ps1 -Configuration Release
+```
+
+Автономная публикация:
+
+```powershell
+.\publish.ps1
+.\publish.ps1 -SingleFile
+```
+
+Сборка ZIP и установщика с Inno Setup 6:
+
+```powershell
+.\installer\make-installer.ps1
+```
+
+## Пользовательские данные
+
+По умолчанию данные хранятся в `%APPDATA%\NullLauncher\`: настройки, сборки, версии Minecraft, Java, загрузки, резервные копии, журналы и база SQLite с защищёнными токенами. Путь можно изменить в **Настройки → Хранилище**.
 
 ## Структура проекта
 
-```
-Core/          контейнер сервисов, IPC-маршрутизатор, настройки, HTTP, логи, пути
-Database/      схема и доступ к SQLite
-Instances/     сборки: создание, копирование, импорт/экспорт, метаданные
-Versions/      манифест Mojang, список версий, Fabric/Quilt/Forge/NeoForge
-Minecraft/     разбор version.json, подготовка файлов, запуск, совместимость
-Downloads/     очередь загрузок с паузой и повторами
-Java/          поиск, установка и выбор JRE
-Accounts/      Microsoft OAuth (device code), офлайн, гость
-Modrinth/      API Modrinth v2: поиск, версии, установка
-Content/       моды/ресурспаки/шейдеры/датапаки внутри сборки
-Worlds/ Servers/ Logs/ Backups/   миры, серверы, журналы, копии
-Modules/       системные IPC: инфо, настройки, хранилище, диагностика
-UI/            index.html, app.js, styles.css, pages/*.html, assets/
-docs/IPC.md    контракт фронт-бэкенд обмена
-```
+`Core/` — настройки, HTTP, пути и журналы; `Instances/`, `Versions/`, `Minecraft/`, `Java/` и `Accounts/` — соответствующие сервисы; `UI/` — интерфейс WebView; контракт IPC описан в `docs/IPC.md`.
 
----
+## Поддержка и правовая информация
 
-## IPC
-
-Весь UI общается с бэкендом одной командой:
-
-```js
-await api("versions.list", { type: "release", limit: 50 })
-```
-
-Маршруты, формы запросов/ответов и события — в [docs/IPC.md](docs/IPC.md).
-Ошибки всегда дружелюбные: `{ code: "Заголовок", message: "детали" }` без сырых исключений.
-
----
-
-## Лицензия
-
-[MIT](LICENSE) — свободное использование, изменение и распространение с сохранением упоминания автора.
-
-Не связано с Mojang Studios и Microsoft. Minecraft — товарный знак Mojang Studios.
-Использование официальных API (piston-meta, Modrinth, Microsoft OAuth) не нарушает их условий.
+- Поддержка: [xprodc@yandex.ru](mailto:xprodc@yandex.ru)
+- Исходный код и сообщения об ошибках: [github.com/rusty-prdc/NullLauncher](https://github.com/rusty-prdc/NullLauncher)
+- NullLauncher — независимый проект, не связанный с Mojang Studios или Microsoft. Minecraft — товарный знак Mojang Studios.

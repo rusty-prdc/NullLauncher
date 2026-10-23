@@ -225,6 +225,11 @@ public sealed class DatabaseService : IDisposable
           ended_at TEXT, exit_code INTEGER, duration_ms INTEGER, safe_mode INTEGER NOT NULL DEFAULT 0,
           error TEXT, account_uuid TEXT
         );
+        CREATE TABLE IF NOT EXISTS skins (
+          id TEXT PRIMARY KEY, name TEXT NOT NULL, file TEXT NOT NULL,
+          variant TEXT NOT NULL DEFAULT 'classic', sha1 TEXT, source TEXT NOT NULL DEFAULT 'local',
+          account_uuid TEXT, created_at TEXT NOT NULL, last_used_at TEXT, sort_order INTEGER NOT NULL DEFAULT 0
+        );
         CREATE TABLE IF NOT EXISTS api_cache (
           key TEXT PRIMARY KEY, value TEXT NOT NULL, expires_at TEXT NOT NULL
         );

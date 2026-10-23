@@ -500,4 +500,34 @@ public static class LogsIpc
 
     private static string Truncate(string s, int max)
         => s.Length <= max ? s : s[..max].TrimEnd() + "…";
+
+    /// <summary>
+    /// Автоанализ после аварийного завершения запуска: находит самый свежий crash-*.txt
+    /// (не старше момента старта игры) в папке сборки и анализирует его.
+    /// Возвращает null, если отчёта о сбое не появилось.
+    /// </summary>
+    public static (string Path, string? Cause, string? Summary, List<string> Suggestions)? 
+        AnalyzeNewCrash(AppServices s, string instanceId, DateTime since)
+    {
+        try
+        {
+            var dir = s.Instances.Require(instanceId).CrashReportsDir;
+            if (!Directory.Exists(dir)) return null;
+            var fresh = Directory.EnumerateFiles(dir, "crash-*.txt")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.LastWriteTime >= since.AddSeconds(-3))
+                .OrderByDescending(f => f.LastWriteTime)
+                .FirstOrDefault();
+            if (fresh is null) return null;
+
+            var text = ReadCapped(fresh.FullName, 512 * 1024);
+            var (cause, summary, suggestions) = Diagnose(text);
+            return (fresh.FullName, cause, summary, suggestions);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Автоанализ сбоя: {ex.Message}");
+            return null;
+        }
+    }
 }

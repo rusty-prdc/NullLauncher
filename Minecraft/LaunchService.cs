@@ -410,6 +410,7 @@ public sealed class LaunchService
         var safeMode = req.SafeMode || inst.SafeMode || _s.Settings.Get("safeModeByDefault", false);
         var state = Status(req.InstanceId);
         var startedWall = DateTime.UtcNow;
+        var gameStart = startedWall; // фактический старт процесса игры (без времени подготовки/скачивания)
         string? error = null;
 
         try
@@ -475,17 +476,24 @@ public sealed class LaunchService
 
             var proc = Process.Start(psi)
                        ?? throw new LauncherException("Не удалось запустить процесс Java", javaExe);
+            gameStart = DateTime.UtcNow;
 
             lock (_sync)
             {
                 _running[req.InstanceId] = proc;
                 _status[req.InstanceId] = new LaunchStatus
                 {
-                    State = "running", StartedAt = startedWall, VersionId = versionId,
+                    State = "running", StartedAt = gameStart, VersionId = versionId,
                 };
             }
             EmitProgress(req.InstanceId, "Запуск", 6, 6, "Minecraft запущен");
             _s.Emit("launch.state", new { instanceId = req.InstanceId, state = "running", exitCode = (int?)null });
+            // Discord: в статусе появляется, во что человек играет
+            var loaderLabel = (inst.Loader ?? "vanilla").ToLowerInvariant() switch
+            {
+                "fabric" => "Fabric", "forge" => "Forge", "neoforge" => "NeoForge", "quilt" => "Quilt", _ => "Vanilla",
+            };
+            _s.Discord.SetGamePresence(inst.Name, inst.McVersion, loaderLabel);
             started?.TrySetResult();
 
             var logFile = Path.Combine(inst.LogsDir, $"launcher-{DateTime.Now:yyyyMMdd_HHmmss}.log");
@@ -499,20 +507,23 @@ public sealed class LaunchService
             await proc.WaitForExitAsync(ct).ConfigureAwait(false);
             var exit = proc.ExitCode;
 
-            var durationMs = (long)(DateTime.UtcNow - startedWall).TotalMilliseconds;
+            var durationMs = (long)(DateTime.UtcNow - gameStart).TotalMilliseconds;
             lock (_sync)
             {
                 _running.Remove(req.InstanceId);
                 _status[req.InstanceId] = new LaunchStatus
                 {
                     State = exit == 0 ? "exited" : "error",
-                    ExitCode = exit, StartedAt = startedWall, EndedAt = DateTime.UtcNow,
+                    ExitCode = exit, StartedAt = gameStart, EndedAt = DateTime.UtcNow,
                     VersionId = versionId,
                     Error = exit == 0 ? null : $"Код возврата {exit}",
                 };
             }
 
             await UpdateStatsAsync(inst, durationMs, exit, safeMode, account: null).ConfigureAwait(false);
+            if (exit != 0 && _s.Settings.Get("crashAutoAnalyze", true))
+                TryAutoAnalyzeCrash(inst, gameStart);
+            _s.Discord.ClearGamePresence();
             _s.Emit("launch.state", new
             {
                 instanceId = req.InstanceId,
@@ -534,6 +545,7 @@ public sealed class LaunchService
                 };
             }
             _s.Emit("launch.state", new { instanceId = req.InstanceId, state = "idle", exitCode = (int?)null, error = (string?)null });
+            _s.Discord.ClearGamePresence();
             Log.Info($"Запуск отменён ({inst.Name})");
             started?.TrySetCanceled();
         }
@@ -549,6 +561,7 @@ public sealed class LaunchService
                 };
             }
             _s.Emit("launch.state", new { instanceId = req.InstanceId, state = "error", exitCode = (int?)null, error });
+            _s.Discord.ClearGamePresence();
             _s.NotifyUser("error", "Не удалось запустить Minecraft", error);
             Log.Error($"Запуск {inst.Name} не удался", ex);
             started?.TrySetException(ex is LauncherException ? ex
@@ -927,6 +940,31 @@ public sealed class LaunchService
             }
             catch (Exception ex) { Log.Warn($"Не удалось обновить статистику: {ex.Message}"); }
         }).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// После аварийного завершения (exit != 0) ищет свежий отчёт о сбое, анализирует причину
+    /// и рассылает событие crash.detected — UI покажет причину и подсказки.
+    /// </summary>
+    private void TryAutoAnalyzeCrash(Instances.InstanceRecord inst, DateTime since)
+    {
+        try
+        {
+            var res = Logs.LogsIpc.AnalyzeNewCrash(_s, inst.Id, since);
+            if (res is null) return;
+            var r = res.Value;
+            _s.Emit("crash.detected", new
+            {
+                instanceId = inst.Id,
+                instanceName = inst.Name,
+                path = r.Path,
+                cause = r.Cause,
+                summary = r.Summary,
+                suggestions = r.Suggestions,
+            });
+            Log.Info($"Автоанализ сбоя '{inst.Name}': {r.Cause ?? "причина не определена"}");
+        }
+        catch (Exception ex) { Log.Warn($"Автоанализ сбоя: {ex.Message}"); }
     }
 
     /* ------------------------------------------------------------ остановка */

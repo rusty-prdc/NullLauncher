@@ -9,21 +9,39 @@
 
 .disco-card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
-  padding: 14px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; text-align: left;
-  transition: border-color var(--t), transform var(--t), background var(--t);
+  padding: 15px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; text-align: left;
+  transition: border-color var(--t), transform var(--t), box-shadow var(--t), background var(--t);
 }
-.disco-card:hover { border-color: var(--line-strong); background: var(--card-2); transform: translateY(-2px); }
-.disco-top { display: flex; gap: 11px; align-items: center; min-width: 0; }
+.disco-card:hover { border-color: var(--accent-line); background: var(--card-2); transform: translateY(-2px); box-shadow: var(--shadow-1); }
+.disco-top { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.disco-top .item-icon { border-radius: 12px; }
 .disco-names { min-width: 0; }
-.disco-title { font-weight: 620; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disco-title { font-weight: 650; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disco-card:hover .disco-title { color: var(--accent); }
 .disco-author { font-size: 11.5px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .disco-desc {
   font-size: 12.5px; color: var(--text-2); line-height: 1.5; min-height: 37px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .disco-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.disco-chips .chip svg { width: 12px; height: 12px; }
 .disco-skel { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 .disco-skel .skeleton { height: 152px; border-radius: var(--r-md); }
+
+/* лента «Популярные модпаки» — показывается, пока поиск пуст */
+.disco-pop { margin: 2px 0 4px; }
+.disco-pop[hidden] { display: none; }
+.disco-pop-head { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+.disco-pop-head h3 { margin: 0; font-size: 15px; font-weight: 650; }
+.disco-pop-head svg { width: 16px; height: 16px; color: var(--accent); }
+.disco-pop-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 236px); gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+.disco-pop-card { display: flex; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); cursor: pointer; text-align: left; transition: border-color var(--t), transform var(--t), background var(--t); min-width: 0; }
+.disco-pop-card:hover { border-color: var(--accent-line); background: var(--card-2); transform: translateY(-1px); }
+.disco-pop-card .item-icon { flex: 0 0 auto; background-size: cover; background-position: center; }
+.disco-pop-card .pp-names { min-width: 0; display: block; }
+.disco-pop-card .pp-title { display: block; font-weight: 620; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disco-pop-card .pp-sub { display: flex; gap: 4px; align-items: center; font-size: 11px; color: var(--text-3); margin-top: 3px; }
+.disco-pop-card .pp-sub svg { width: 11px; height: 11px; }
 
 .disco-hero { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 .disco-hero .grow { flex: 1; min-width: 220px; }
@@ -81,6 +99,12 @@
 .disco-vpick .vp-top { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
 .disco-vpick .vp-name { font-weight: 600; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .disco-vpick .vp-sub { font-size: 11.5px; color: var(--text-3); }
+.disco-loaders { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.disco-loaders .disco-fchips { flex: 0 1 auto; }
+.disco-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); cursor: pointer; white-space: nowrap; }
+.disco-toggle input { width: 14px; height: 14px; accent-color: var(--accent); }
+.chip .chip-logo { width: 14px; height: 14px; object-fit: contain; }
+#disco-cat[hidden] { display: none; }
 </style>
 
 <section class="page">
@@ -116,18 +140,22 @@
       <button class="chip" data-t="datapack">Датапаки</button>
     </div>
     <div class="disco-row1">
-      <select id="disco-loader" title="Загрузчик">
-        <option value="">Все загрузчики</option>
-      </select>
-      <select id="disco-cat" title="Категория">
+      <div class="disco-loaders" id="disco-ldrow">
+        <span class="lbl">Ядро:</span>
+        <div class="disco-fchips" id="disco-loaders"></div>
+        <label class="disco-toggle" title="Показать все загрузчики с Modrinth"><input type="checkbox" id="disco-more" /> Показывать остальные</label>
+      </div>
+      <select id="disco-cat" title="Категория" hidden>
         <option value="">Все категории</option>
       </select>
+      <label class="disco-toggle"><input type="checkbox" id="disco-cats" /> Показывать категории</label>
       <button class="btn btn-sm btn-ghost" id="disco-reset">Сбросить фильтры</button>
     </div>
     <div class="disco-fchips" id="disco-mc"><span class="lbl">Версии MC:</span></div>
   </div>
 
   <div id="disco-banner"></div>
+  <div id="disco-pop" hidden></div>
   <div id="disco-body"></div>
 
   <div class="row between" id="disco-pager" hidden>
@@ -148,6 +176,27 @@
   var KIND_BY_TYPE = { mod: "mods", resourcepack: "resourcepacks", shader: "shaderpacks", datapack: "datapacks" };
   var LINK_LABELS = { source: "Источник", homepage: "Сайт", wiki: "Вики", discord: "Discord", donation: "Донат", support: "Поддержка" };
 
+  /* ядра (загрузчики): популярные — с логотипами; неизвестные названия приводятся к виду «Bta Babric» */
+  var LD_LABELS = {
+    vanilla: "Ванилла", fabric: "Fabric", forge: "Forge", neoforge: "NeoForge", quilt: "Quilt",
+    liteloader: "LiteLoader", rift: "Rift", modloader: "ModLoader", optifine: "OptiFine", bukkit: "Bukkit",
+  };
+  var LD_POPULAR = ["vanilla", "fabric", "neoforge", "forge", "quilt"];
+  var LD_LOGOS = {
+    vanilla: "assets/logos/mojang.png", fabric: "assets/logos/fabric.png",
+    forge: "assets/logos/forge.jpg", neoforge: "assets/logos/neoforge.png", quilt: "assets/logos/quilt.png",
+  };
+  function ldLabel(l) {
+    l = String(l || "");
+    if (LD_LABELS[l]) return LD_LABELS[l];
+    return l.split(/[-_]/).map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(" ");
+  }
+  function ldLabelsText(v) {
+    var s = normalizeValue(v);
+    if (!s) return "—";
+    return s.split(", ").map(function (x) { return ldLabel(x); }).join(", ");
+  }
+
   var S = {
     dead: false,
     q: "", type: "", loader: "", cat: "", mcs: [], sort: "relevance",
@@ -157,6 +206,8 @@
     projLoading: false, projError: null, tab: "about",
     versions: null, verLoading: false, verError: null,
     instanceId: "", searchTimer: null, unsubs: [], els: {},
+    pop: null, popLoading: false,
+    moreLoaders: false, showCats: !!(window.App && App.settings && App.settings.modrinthShowCats),
   };
 
   /* ---------- утилиты ---------- */
@@ -226,18 +277,45 @@
   /* ---------- теги / фильтры ---------- */
   function renderFilters() {
     var t = S.tags;
-    var loaderSel = S.els.loader, catSel = S.els.cat, mcBox = S.els.mc;
-    if (!loaderSel || !catSel || !mcBox) return;
+    var ldBox = S.els.loaders, catSel = S.els.cat, mcBox = S.els.mc;
+    if (!ldBox || !catSel || !mcBox) return;
     if (t) {
       var loaders = tagsList(t.loaders);
       var cats = tagsList(t.categories);
-      loaderSel.innerHTML = '<option value="">Все загрузчики</option>' + loaders.map(function (l) {
-        return '<option value="' + ui.esc(l) + '"' + (S.loader === l ? " selected" : "") + ">" + ui.esc(l) + "</option>";
-      }).join("");
+
+      /* ядра: популярные всегда (с логотипами), остальные — по галочке «показывать остальные» */
+      var known = {};
+      var chips = ['<button class="chip' + (S.loader ? "" : " active") + '" data-ld="">Все</button>'];
+      LD_POPULAR.forEach(function (l) {
+        if (loaders.length && loaders.indexOf(l) < 0) return;
+        known[l] = 1;
+        chips.push('<button class="chip' + (S.loader === l ? " active" : "") + '" data-ld="' + ui.esc(l) + '">' +
+          (LD_LOGOS[l] ? '<img class="chip-logo" src="' + LD_LOGOS[l] + '" alt="" />' : "") + ldLabel(l) + "</button>");
+      });
+      if (S.moreLoaders) {
+        loaders.forEach(function (l) {
+          if (known[l]) return;
+          chips.push('<button class="chip' + (S.loader === l ? " active" : "") + '" data-ld="' + ui.esc(l) + '">' + ldLabel(l) + "</button>");
+        });
+      }
+      ldBox.innerHTML = chips.join("");
+      ldBox.querySelectorAll("[data-ld]").forEach(function (b) {
+        b.onclick = function () {
+          S.loader = b.dataset.ld;
+          ldBox.querySelectorAll("[data-ld]").forEach(function (x) { x.classList.toggle("active", x === b); });
+          S.offset = 0;
+          doSearch();
+        };
+      });
+
+      /* категории — по галочке «показывать категории» */
+      catSel.hidden = !S.showCats;
       catSel.innerHTML = '<option value="">Все категории</option>' + cats.map(function (c) {
         return '<option value="' + ui.esc(c) + '"' + (S.cat === c ? " selected" : "") + ">" + ui.esc(c) + "</option>";
       }).join("");
-      var mcs = tagsList(t.gameVersions).slice(0, 30);
+
+      /* все релизные версии Minecraft — без снапшотов, пререлизов и кандидатов */
+      var mcs = tagsList(t.gameVersions).filter(function (v) { return /^\d+(\.\d+)*$/.test(v); });
       mcBox.innerHTML = '<span class="lbl">Версии MC:</span>' + mcs.map(function (v) {
         return '<button class="chip' + (S.mcs.indexOf(v) >= 0 ? " active" : "") + '" data-mc="' + ui.esc(v) + '">' + ui.esc(v) + "</button>";
       }).join("");
@@ -252,7 +330,7 @@
         };
       });
     } else if (S.tagsError) {
-      loaderSel.innerHTML = '<option value="">Фильтры недоступны</option>';
+      ldBox.innerHTML = '<span class="chip">Фильтры по ядрам недоступны</span>';
       catSel.innerHTML = '<option value="">Фильтры недоступны</option>';
       mcBox.innerHTML = '<span class="lbl dim">Фильтры по версиям недоступны: ' + ui.esc(ui.errText(S.tagsError)) + "</span>";
     }
@@ -330,7 +408,7 @@
       if (vers.length > 2) shown += " +" + (vers.length - 2);
       chips += '<span class="chip">' + ui.esc(shown) + "</span>";
     }
-    if (Array.isArray(h.loaders) && h.loaders.length) chips += '<span class="chip">' + ui.esc(h.loaders[0]) + "</span>";
+    if (Array.isArray(h.loaders) && h.loaders.length) chips += '<span class="chip">' + ui.esc(ldLabel(h.loaders[0])) + "</span>";
     chips += '<span class="chip info">' + ui.esc(typeLabel(h.projectType)) + "</span>";
 
     return '<div class="disco-card" data-id="' + ui.esc(h.projectId || h.slug || "") + '">' +
@@ -347,9 +425,50 @@
     return '<div class="disco-skel">' + h + "</div>";
   }
 
+  /* ---------- лента «Популярные модпаки» (видна, пока поиск пуст) ---------- */
+  function paintPop(hits) {
+    var box = S.els.pop;
+    if (!box) return;
+    if (!hits.length) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    var h = '<div class="disco-pop"><div class="disco-pop-head">' + ui.icon("compass") + "<h3>Популярные модпаки</h3></div>" +
+      '<div class="disco-pop-row">';
+    hits.forEach(function (p) {
+      var letter = ui.esc((p.title || "?").trim().charAt(0).toUpperCase() || "?");
+      var iconHtml = p.iconUrl
+        ? '<div class="item-icon" style="width:38px;height:38px;border-radius:10px;font-size:15px;background-image:url(&quot;' + ui.esc(p.iconUrl) + '&quot;)">' + letter + "</div>"
+        : '<div class="item-icon" style="width:38px;height:38px;border-radius:10px;font-size:15px">' + letter + "</div>";
+      h += '<button class="disco-pop-card" data-id="' + ui.esc(p.projectId || p.slug || "") + '">' + iconHtml +
+        '<span class="pp-names"><span class="pp-title">' + ui.esc(p.title || "Без названия") + "</span>" +
+        '<span class="pp-sub">' + ui.icon("download") + ui.fmtNum(p.downloads || 0) + "</span></span></button>";
+    });
+    h += "</div></div>";
+    box.innerHTML = h;
+    box.querySelectorAll(".disco-pop-card").forEach(function (b) {
+      b.onclick = function () { openDetail(b.dataset.id, "modpack"); };
+    });
+  }
+
+  function renderPop() {
+    var box = S.els.pop;
+    if (!box) return;
+    var want = S.view === "list" && !S.q.trim() && !S.type;
+    if (!want) { box.hidden = true; box.innerHTML = ""; return; }
+    if (S.pop && S.pop.length) { paintPop(S.pop); return; }
+    if (S.popLoading) return;
+    S.popLoading = true;
+    api("modrinth.search", { type: "modpack", sort: "downloads", limit: 12 }).then(function (res) {
+      S.popLoading = false;
+      if (S.dead) return;
+      S.pop = (res && res.hits) || [];
+      if (S.view === "list" && !S.q.trim() && !S.type) paintPop(S.pop);
+    }).catch(function () { S.popLoading = false; });
+  }
+
   function renderBody() {
     var box = S.els.body;
     if (!box) return;
+    renderPop();
 
     if (S.view === "detail") { renderDetail(box); return; }
 
@@ -560,8 +679,8 @@
         var meta = [ui.fmtDate(v.datePublished)];
         var gvs = normalizeValue(v.gameVersions);
         if (gvs) meta.push("Minecraft " + gvs);
-        var ldr = normalizeValue(v.loaders);
-        if (ldr) meta.push(ldr);
+        var ldr = ldLabelsText(v.loaders);
+        if (ldr && ldr !== "—") meta.push(ldr);
         if (file && file.size) meta.push(ui.fmtBytes(file.size));
         return '<button type="button" class="disco-vpick' + (i === sel ? " active" : "") + '" data-i="' + i + '">' +
           '<span class="vp-top"><span class="vp-name">' + ui.esc(v.name || v.id || "—") + "</span>" +
@@ -686,7 +805,7 @@
 
   function versionsFilterNote() {
     var f = [];
-    if (S.loader) f.push("загрузчик: " + S.loader);
+    if (S.loader) f.push("ядро: " + ldLabel(S.loader));
     if (S.mcs.length) f.push("Minecraft: " + S.mcs.join(", "));
     return f.join(" · ");
   }
@@ -713,7 +832,7 @@
       "</tr></thead><tbody>";
     S.versions.forEach(function (v, idx) {
       var file = (v.files || []).find(function (f) { return f.primary; }) || (v.files || [])[0] || null;
-      var loaders = normalizeValue(v.loaders) || "—";
+      var loaders = ldLabelsText(v.loaders);
       html += "<tr>" +
         '<td><div style="font-weight:600">' + ui.esc(v.name || v.id || "—") + "</div>" +
         (v.versionNumber ? '<div class="small dim mono">' + ui.esc(v.versionNumber) + "</div>" : "") + "</td>" +
@@ -831,7 +950,7 @@
     if (p.datePublished) facts.push(["Опубликован", ui.fmtDate(p.datePublished)]);
     if (p.dateModified) facts.push(["Обновлён", ui.fmtDate(p.dateModified)]);
     if (Array.isArray(p.categories) && p.categories.length) facts.push(["Категории", p.categories.map(function (c) { return normalizeValue(c); }).filter(Boolean).join(", ")]);
-    if (Array.isArray(p.loaders) && p.loaders.length) facts.push(["Загрузчики", p.loaders.map(function (c) { return normalizeValue(c); }).filter(Boolean).join(", ")]);
+    if (Array.isArray(p.loaders) && p.loaders.length) facts.push(["Загрузчики", p.loaders.map(function (c) { return ldLabel(normalizeValue(c)); }).filter(Boolean).join(", ")]);
     if (Array.isArray(p.gameVersions) && p.gameVersions.length) facts.push(["Версии MC", p.gameVersions.slice(0, 8).join(", ") + (p.gameVersions.length > 8 ? " +" + (p.gameVersions.length - 8) : "")]);
 
     html += '<div class="card"><div class="card-title">Информация</div><div class="disco-facts">' +
@@ -884,9 +1003,7 @@
           // сбрасываем фильтры загрузчика и версии Minecraft — показываем весь список версий проекта
           S.loader = "";
           S.mcs = [];
-          if (S.els.loader) S.els.loader.value = "";
-          var chips = S.els.filters ? S.els.filters.querySelectorAll("[data-mc]") : [];
-          Array.prototype.forEach.call(chips, function (c) { c.classList.remove("active"); });
+          renderFilters();
           S.versions = null;
           loadVersions();
         };
@@ -1024,10 +1141,13 @@
         q: root.querySelector("#disco-q"),
         sort: root.querySelector("#disco-sort"),
         types: root.querySelector("#disco-types"),
-        loader: root.querySelector("#disco-loader"),
+        loaders: root.querySelector("#disco-loaders"),
+        more: root.querySelector("#disco-more"),
+        cats: root.querySelector("#disco-cats"),
         cat: root.querySelector("#disco-cat"),
         mc: root.querySelector("#disco-mc"),
         banner: root.querySelector("#disco-banner"),
+        pop: root.querySelector("#disco-pop"),
         body: root.querySelector("#disco-body"),
         pager: root.querySelector("#disco-pager"),
         total: root.querySelector("#disco-total"),
@@ -1051,7 +1171,15 @@
 
       S.els.q.oninput = function () { S.q = S.els.q.value; scheduleSearch(true); };
       S.els.sort.onchange = function () { S.sort = S.els.sort.value; S.offset = 0; doSearch(); };
-      S.els.loader.onchange = function () { S.loader = S.els.loader.value; S.offset = 0; doSearch(); };
+      S.els.more.checked = S.moreLoaders;
+      S.els.more.onchange = function () { S.moreLoaders = !!S.els.more.checked; renderFilters(); };
+      S.els.cats.checked = S.showCats;
+      S.els.cats.onchange = function () {
+        S.showCats = !!S.els.cats.checked;
+        S.els.cat.hidden = !S.showCats;
+        if (!S.showCats && S.cat) { S.cat = ""; S.offset = 0; doSearch(); }
+        api("settings.set", { modrinthShowCats: S.showCats }).catch(function () { /* noop */ });
+      };
       S.els.cat.onchange = function () { S.cat = S.els.cat.value; S.offset = 0; doSearch(); };
       root.querySelector("#disco-reset").onclick = resetFilters;
       root.querySelector("#disco-refresh").onclick = function () { S.versions = null; loadTags(); doSearch(); };
@@ -1083,6 +1211,7 @@
 
     dispose() {
       S.dead = true;
+      S.popLoading = false;
       if (S.searchTimer) { clearTimeout(S.searchTimer); S.searchTimer = null; }
       S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
       S.unsubs = [];

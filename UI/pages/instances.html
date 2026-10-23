@@ -11,6 +11,13 @@
 .ipl-table td:first-child { width: 44px; }
 .ipl-table .row-name { display: flex; align-items: center; gap: 9px; font-weight: 600; }
 .ipl-table .row-actions { display: flex; gap: 5px; justify-content: flex-end; }
+/* обложка карточки: логотип загрузчика + версия Minecraft */
+.inst-card .cover .cover-box {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; border-radius: var(--r-md);
+}
+.inst-card .cover .cover-box .cover-logo { width: 34px; height: 34px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
+.inst-card .cover .cover-box .cover-ver { font-size: 10.5px; font-weight: 800; color: #08130d; letter-spacing: 0.2px; }
 .ipl-empty { padding: 46px 20px; }
 .ipl-empty h3 { font-size: 16px; }
 .ipl-skel { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
@@ -191,6 +198,7 @@
   }
   function instLetter(inst) { return ui.esc((inst.name || "?").trim().charAt(0).toUpperCase() || "?"); }
   function instColor(inst) { return inst.color || "#3ecf8e"; }
+  function loaderLogoOf(loader) { return LOADER_LOGOS[String(loader || "vanilla").toLowerCase()] || ""; }
 
   function filtered() {
     var q = S.q.trim().toLowerCase();
@@ -245,7 +253,9 @@
   /* ---------- карточка / строка ---------- */
   function cardHTML(inst) {
     return '<div class="inst-card" draggable="true" data-id="' + ui.esc(inst.id) + '">' +
-      '<div class="cover"><div class="item-icon" style="background:' + ui.esc(instColor(inst)) + ';color:#08130d">' + instLetter(inst) + "</div></div>" +
+      '<div class="cover"><div class="cover-box" style="background:' + ui.esc(instColor(inst)) + '">' +
+        (loaderLogoOf(inst.loader) ? '<img class="cover-logo" src="' + loaderLogoOf(inst.loader) + '" alt="" />' : "") +
+        '<span class="cover-ver">' + ui.esc(inst.mcVersion) + "</span></div></div>" +
       "<h4>" + ui.esc(inst.name) + (inst.favorite ? ui.icon("star", "fav") : "") + "</h4>" +
       '<div class="meta">' +
         '<span class="chip">Minecraft ' + ui.esc(inst.mcVersion) + "</span>" +
@@ -387,7 +397,7 @@
         '<button class="btn" data-act="import">' + ui.icon("upload") + " Импортировать</button>" +
         "</div></div>";
       box.querySelector('[data-act="create"]').onclick = function () { openWizard(); };
-      box.querySelector('[data-act="import"]').onclick = importArchive;
+      box.querySelector('[data-act="import"]').onclick = importMenu;
       return;
     }
 
@@ -637,6 +647,26 @@
       if (ok) ui.notifySuccess("Импорт завершён", "Успешно: " + ok + (fail ? ", ошибок: " + fail : ""));
       reload();
     } catch (e) { ui.notifyError(e, "Не удалось выбрать файл"); }
+  }
+
+  function importMenu(e) {
+    var x = e && e.clientX ? e.clientX : 220;
+    var y = e && e.clientY ? e.clientY : 170;
+    ui.contextMenu(x, y, [
+      { label: "Архив (.zip / .mrpack / .nlpkg)…", icon: "package", onClick: function () { importArchive(); } },
+      { label: "Папка (MultiMC / Prism / .minecraft)…", icon: "folder", onClick: function () { importFolder(); } },
+    ]);
+  }
+
+  async function importFolder() {
+    try {
+      var res = await api("system.pickDirectory", { title: "Папка инстанса MultiMC/Prism или .minecraft" });
+      var dir = res && res.path ? res.path : res;
+      if (!dir) return;
+      await api("instances.import", { sourcePath: dir });
+      ui.notifySuccess("Импорт завершён", "Сборка добавлена из папки");
+      reload();
+    } catch (e) { ui.notifyError(e, "Не удалось импортировать папку"); }
   }
 
   function looksLikePath(p) { return /[\\/]/.test(p) || /^[a-zA-Z]:/.test(p); }
@@ -1197,7 +1227,7 @@
 
       /* шапка */
       root.querySelector("#ipl-create").onclick = function () { openWizard(); };
-      root.querySelector("#ipl-import").onclick = importArchive;
+      root.querySelector("#ipl-import").onclick = importMenu;
 
       /* поиск */
       S.els.q.value = S.q;

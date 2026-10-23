@@ -163,6 +163,8 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // снимаем Rich Presence, чтобы статус «Играет в NullLauncher» не висел после закрытия
+        try { _services?.Discord?.Dispose(); } catch { /* noop */ }
         Log.Info("NullLauncher завершён");
         base.OnExit(e);
     }

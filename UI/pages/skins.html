@@ -1,60 +1,41 @@
 <style>
-/* ===== skins — страница-специфичные стили (префикс sk-) ===== */
-.sk-grid { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
-@media (max-width: 900px) { .sk-grid { grid-template-columns: 1fr; } }
-.sk-preview { display: flex; flex-direction: column; gap: 14px; align-items: center; padding: 18px; text-align: center; }
-.sk-3d-wrap {
-  width: 100%; height: 340px; border-radius: var(--r-md);
-  background: linear-gradient(180deg, var(--card-2), var(--bg-1));
-  border: 1px solid var(--line); position: relative; overflow: hidden;
-}
-.sk-3d-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
-.sk-3d-wrap canvas:active { cursor: grabbing; }
-.sk-3d-hint {
-  position: absolute; left: 0; right: 0; bottom: 7px; text-align: center;
-  font-size: 10.5px; color: var(--text-3); pointer-events: none;
-}
-.sk-3d-empty {
-  position: absolute; inset: 0; display: grid; place-items: center;
-  color: var(--text-3); font-size: 12.5px; text-align: center; padding: 16px;
-}
-.sk-face {
-  width: 128px; height: 128px; border-radius: var(--r-md);
-  background-color: var(--card-2); background-repeat: no-repeat;
-  background-size: 800% 800%; background-position: 14.2857% 14.2857%;
-  image-rendering: pixelated; border: 1px solid var(--line);
-}
-.sk-face.empty { display: grid; place-items: center; color: var(--text-3); }
-.sk-name { font-weight: 600; font-size: 15px; }
-.sk-sub { font-size: 12px; color: var(--text-3); }
-.sk-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.sk-file {
-  display: flex; gap: 10px; align-items: center; padding: 11px 13px;
-  background: var(--card-2); border: 1px dashed var(--line); border-radius: var(--r-sm);
-  font-size: 12.5px; color: var(--text-2); word-break: break-all;
-}
-.sk-hint { font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+/* ===== гардероб скинов — стили страницы в styles.css (префикс wdb-) ===== */
 </style>
 
 <section class="page">
   <div class="page-head">
     <div class="grow">
-      <h1 class="page-title">Скины</h1>
-      <div class="page-sub" id="sk-sub">Смена скина лицензионного аккаунта</div>
+      <h1 class="page-title">Гардероб скинов</h1>
+      <div class="page-sub" id="wdb-sub">Сохраняйте скины, примеряйте в 3D и меняйте в один клик</div>
     </div>
     <div class="page-actions">
-      <button class="btn btn-sm btn-ghost" id="sk-refresh"><svg><use href="#i-refresh"/></svg> Обновить</button>
+      <button class="btn btn-sm btn-ghost" id="wdb-refresh"><svg><use href="#i-refresh"/></svg> Обновить</button>
+      <button class="btn btn-sm btn-primary" id="wdb-add"><svg><use href="#i-plus"/></svg> Добавить скин</button>
     </div>
   </div>
 
-  <div id="sk-body"></div>
+  <div id="wdb-banner"></div>
+  <div id="wdb-body"></div>
 </section>
 
 <script>
 (function () {
   if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
 
-  var S = { dead: false, accounts: [], acc: null, file: null, variant: "classic", unsubs: [], viewer: null };
+  var S = {
+    dead: false, unsubs: [], skins: [], accounts: [], acc: null,
+    sel: null, viewer: null, anim: "walk", autoRotate: true, zoom: 1, faceCache: {}, nametag: true,
+  };
+
+  var ANIMS = {
+    idle:   { label: "Стоять",  make: function () { return new skinview3d.IdleAnimation(); } },
+    walk:   { label: "Ходить",  make: function () { return new skinview3d.WalkingAnimation(); } },
+    run:    { label: "Бегать",  make: function () { return new skinview3d.RunningAnimation(); } },
+    swim:   { label: "Плавать", make: function () { return new skinview3d.SwimAnimation(); } },
+    wave:   { label: "Махать",  make: function () { return new skinview3d.WaveAnimation(); } },
+    fly:    { label: "Летать",  make: function () { return new skinview3d.FlyingAnimation(); } },
+    crouch: { label: "Присесть", make: function () { return new skinview3d.CrouchAnimation(); } },
+  };
 
   function errBlock(e, onRetry) {
     var d = ui.errDetail(e);
@@ -65,180 +46,362 @@
       "</div>";
   }
 
-  function skinFaceHtml(acc) {
-    var empty = !(acc && acc.skinUrl);
-    return '<div class="sk-3d-wrap">' +
-      '<canvas id="sk-3d"></canvas>' +
-      (empty ? '<div class="sk-3d-empty">' + ui.icon("shirt") + "<br>Скин не выбран<br>Загрузите PNG, чтобы увидеть модель</div>" : "") +
-      '<div class="sk-3d-hint">Перетаскивайте — вращение · колесо — приближение</div>' +
-      "</div>";
+  /* ---------------------------------- 3D-превью (skinview3d) ---------------------------------- */
+
+  function dprSize(el) {
+    var dpr = window.devicePixelRatio || 1;
+    var w = Math.max(180, el.clientWidth || 340);
+    var h = Math.max(220, el.clientHeight || 440);
+    return { w: Math.round(w * dpr), h: Math.round(h * dpr) };
   }
 
+  function ensureViewer() {
+    var stage = document.getElementById("wdb-stage");
+    var canvas = document.getElementById("wdb-canvas");
+    if (!stage || !canvas || !window.skinview3d) return null;
+    if (S.viewer) return S.viewer;
+    var s = dprSize(stage);
+    var v = new skinview3d.SkinViewer({ canvas: canvas, width: s.w, height: s.h });
+    v.fov = 46;
+    v.zoom = S.zoom;
+    v.autoRotate = S.autoRotate;
+    v.autoRotateSpeed = 1.0;
+    v.cameraLight = v.cameraLight || null;
+    try { if (v.cameraLight) v.cameraLight.intensity = 0.55; } catch (e) { /* noop */ }
+    try { if (v.globalLight) v.globalLight.intensity = 2.2; } catch (e) { /* noop */ }
+    applyAnim();
+    S.viewer = v;
+    return v;
+  }
+
+  function applyAnim() {
+    if (!S.viewer) return;
+    var a = ANIMS[S.anim] || ANIMS.walk;
+    try { S.viewer.animation = a.make(); if (S.viewer.animation) S.viewer.animation.speed = 1.0; }
+    catch (e) { S.viewer.animation = null; }
+  }
+
+  function loadViewerSkin(skin) {
+    var v = ensureViewer();
+    if (!v) return;
+    var url = skin && skin.preview ? skin.preview : null;
+    try { v.loadSkin(url); } catch (e) { /* noop */ }
+    try { v.nameTag = (S.nametag && skin) ? skin.name : null; } catch (e) { /* noop */ }
+    // неймтег рисуется в WebGL шрифтом Minecraft — нужен фолбэк-подпись над сценой
+    var tag = document.getElementById("wdb-nametag");
+    if (tag) { tag.textContent = S.nametag && skin ? skin.name : ""; }
+    var empty = document.getElementById("wdb-empty");
+    if (empty) empty.hidden = !!skin;
+  }
+
+  function resizeViewer() {
+    if (!S.viewer) return;
+    var stage = document.getElementById("wdb-stage");
+    if (!stage) return;
+    var s = dprSize(stage);
+    try { S.viewer.width = s.w; S.viewer.height = s.h; } catch (e) { /* noop */ }
+  }
+
+  function disposeViewer() {
+    if (S.viewer) { try { S.viewer.dispose(); } catch (e) { /* noop */ } S.viewer = null; }
+  }
+
+  /* ---------------------------------- лицо скина для карточек ---------------------------------- */
+
+  function faceOf(skin, cb) {
+    if (!skin || !skin.preview) { cb(""); return; }
+    if (S.faceCache[skin.id]) { cb(S.faceCache[skin.id]); return; }
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var c = document.createElement("canvas");
+        c.width = 64; c.height = 64;
+        var g = c.getContext("2d");
+        g.imageSmoothingEnabled = false;
+        // передняя грань головы — 8×8 в точке (8,8)
+        g.drawImage(img, 8, 8, 8, 8, 0, 0, 64, 64);
+        var url = c.toDataURL("image/png");
+        S.faceCache[skin.id] = url;
+        cb(url);
+      } catch (e) { cb(""); }
+    };
+    img.onerror = function () { cb(""); };
+    img.src = skin.preview;
+  }
+
+  function renderFaces() {
+    S.skins.forEach(function (skin) {
+      var el = document.querySelector('[data-face="' + skin.id + '"]');
+      if (!el) return;
+      faceOf(skin, function (url) {
+        if (!url || !el.isConnected) return;
+        el.style.backgroundImage = "url(" + url + ")";
+        el.style.backgroundSize = "100% 100%";
+        el.style.imageRendering = "pixelated";
+        el.textContent = "";
+      });
+    });
+  }
+
+  /* ---------------------------------- разметка ---------------------------------- */
+
+  function hasMs() { return S.acc && S.acc.type === "microsoft"; }
+
   function paint() {
-    var box = document.getElementById("sk-body");
+    var box = document.getElementById("wdb-body");
     if (!box || S.dead) return;
 
-    var acc = S.acc;
-    if (!acc) {
+    if (!S.skins.length) {
       box.innerHTML = '<div class="card"><div class="state">' + ui.icon("shirt") +
-        "<h3>Нет лицензионного аккаунта</h3>" +
-        "<p>Смена скина работает только с аккаунтом Microsoft. Войдите, чтобы менять скин в один клик.</p>" +
-        '<div class="actions"><button class="btn btn-primary" id="sk-login">' + ui.icon("user") + " Войти через Microsoft</button></div>" +
+        "<h3>Гардероб пуст</h3><p>Добавьте PNG-скин (64×64 или 64×32), чтобы он появился здесь и его можно было примерить в 3D.</p>" +
+        '<div class="actions"><button class="btn btn-primary" id="wdb-empty-add">' + ui.icon("plus") + " Добавить скин</button></div>" +
         "</div></div>";
-      var lg = document.getElementById("sk-login");
-      if (lg) lg.onclick = function () { AccUI.openMicrosoft({ onDone: load }); };
+      var ea = document.getElementById("wdb-empty-add");
+      if (ea) ea.onclick = addMenu;
       return;
     }
 
-    var offline = acc.type !== "microsoft";
+    if (!S.sel || !S.skins.some(function (x) { return x.id === S.sel.id; })) S.sel = S.skins[0];
+
     box.innerHTML =
-      '<div class="sk-grid">' +
-        '<div class="card sk-preview">' +
-          skinFaceHtml(acc) +
-          '<div class="sk-actions">' +
-            '<button class="btn btn-sm" id="sk-spin">' + (S.auto === false ? "Вращать" : "Стоп") + "</button>" +
-            (acc.skinUrl ? '<button class="btn btn-sm btn-ghost" id="sk-open-skin">' + ui.icon("external") + " Открыть PNG</button>" : "") +
+      '<div class="wdb-layout">' +
+        '<div class="wdb-panel">' +
+          '<div class="wdb-stage" id="wdb-stage">' +
+            '<canvas id="wdb-canvas"></canvas>' +
+            '<div class="wdb-floor"></div>' +
+            '<div class="wdb-nametag" id="wdb-nametag"></div>' +
+            '<div class="wdb-empty" id="wdb-empty" hidden>' + ui.icon("shirt") + "<br>Выберите скин</div>" +
           "</div>" +
-          '<div class="sk-name">' + ui.esc(acc.name) + "</div>" +
-          '<div class="sk-sub">' + (acc.skinUrl ? "Текущий скин" : "Скин не выбран") + "</div>" +
-          '<div class="chip">' + ui.esc(offline ? "офлайн" : "лицензионный") + "</div>" +
+          '<div class="wdb-anim-bar" id="wdb-anims">' +
+            Object.keys(ANIMS).map(function (k) {
+              return '<button class="btn btn-sm' + (S.anim === k ? " btn-primary" : " btn-ghost") + '" data-anim="' + k + '">' + ANIMS[k].label + "</button>";
+            }).join("") +
+          "</div>" +
+          '<div class="wdb-row">' +
+            '<button class="btn btn-sm' + (S.autoRotate ? " btn-primary" : " btn-ghost") + '" id="wdb-rotate">' + ui.icon("refresh") + (S.autoRotate ? " Вращение" : " Вращение выкл") + "</button>" +
+            '<button class="btn btn-sm' + (S.nametag ? " btn-primary" : " btn-ghost") + '" id="wdb-tag">' + ui.icon("user") + (S.nametag ? " Ник вкл" : " Ник выкл") + "</button>" +
+          "</div>" +
+          '<div class="wdb-row" style="gap:10px">' +
+            '<span class="wdb-sub">Зум</span>' +
+            '<input type="range" id="wdb-zoom" min="0.5" max="2" step="0.05" value="' + S.zoom + '" style="flex:1">' +
+          "</div>" +
+          '<div class="wdb-hint">Перетаскивайте — вращение · колесо — зум · анимация переключается кнопками выше</div>' +
+          '<div class="card" style="margin-top:2px">' +
+            '<div class="wdb-name">' + ui.esc(S.sel.name) + "</div>" +
+            '<div class="wdb-sub">' + (S.sel.slim ? "Слим (узкие руки)" : "Классическая (широкие руки)") +
+              " · " + ui.fmtBytes(S.sel.sizeBytes) + (S.sel.lastUsedAt ? " · менялся " + ui.fmtRelative(S.sel.lastUsedAt) : "") + "</div>" +
+            '<div class="wdb-row" style="margin-top:8px">' +
+              '<button class="btn btn-primary" id="wdb-apply">' + ui.icon("check") + " Применить скин</button>" +
+              '<button class="btn" id="wdb-rename">' + ui.icon("edit") + " Переименовать</button>" +
+              '<button class="btn btn-ghost" id="wdb-open">' + ui.icon("external") + " Открыть PNG</button>" +
+              '<button class="btn btn-ghost" id="wdb-del" style="color:var(--danger)">' + ui.icon("trash") + " Удалить</button>" +
+            "</div>" +
+            (hasMs() ? "" : '<div class="banner warn" style="margin-top:10px">' + ui.icon("alert") +
+              '<span class="grow">Применение скина доступно только для лицензионного (Microsoft) аккаунта.</span>' +
+              '<button class="btn btn-sm btn-primary" id="wdb-login">Войти</button></div>') +
+          "</div>" +
         "</div>" +
-        '<div class="card">' +
-          '<div class="card-title">' + ui.icon("shirt") + "Сменить скин</div>" +
-          (offline
-            ? '<div class="banner warn" style="margin-bottom:12px">' + ui.icon("alert") +
-              '<span class="grow">Смена скина доступна только для лицензионного аккаунта. Войдите через Microsoft.</span>' +
-              '<button class="btn btn-sm btn-primary" id="sk-login">Войти</button></div>'
-            : '<div class="set-row"><div class="set-info"><div class="set-title">Файл скина</div>' +
-              '<div class="set-desc">PNG-текстура 64×64 или легаси 64×32. Файл остаётся у вас: лаунчер отправит его в Minecraft Services.</div></div>' +
-              '<div class="set-ctrl"><button class="btn btn-sm" id="sk-pick">' + ui.icon("folder") + " Выбрать PNG…</button></div></div>" +
-              '<div class="set-row"><div class="set-info"><div class="set-title">Тип модели</div>' +
-              '<div class="set-desc">Классическая — широкие руки, Слим — узкие.</div></div>' +
-              '<div class="set-ctrl"><div class="segmented" id="sk-variant">' +
-                '<button type="button" data-val="classic"' + (S.variant === "classic" ? ' class="active"' : "") + ">Классическая</button>" +
-                '<button type="button" data-val="slim"' + (S.variant === "slim" ? ' class="active"' : "") + ">Слим</button>" +
-              "</div></div></div>" +
-              '<div id="sk-file-box" style="padding:0 0 12px"></div>' +
-              '<div class="sk-actions">' +
-                '<button class="btn btn-primary" id="sk-apply"' + (S.file ? "" : " disabled") + ">" + ui.icon("check") + " Применить скин</button>" +
-                '<button class="btn btn-ghost" id="sk-open-ms">' + ui.icon("external") + "minecraft.net</button>" +
-              "</div>") +
-          '<div class="sk-hint" style="margin-top:12px">Скин применяется к основному аккаунту <b>' + ui.esc(acc.name) +
-            "</b> и появляется в игре после следующего входа. Лаунчер не хранит копию файла.</div>" +
-          '<div id="sk-result" style="margin-top:10px"></div>' +
+        '<div class="wdb-grid" id="wdb-grid">' +
+          S.skins.map(function (sk) {
+            var active = S.sel && sk.id === S.sel.id;
+            return '<div class="wdb-card' + (active ? " active" : "") + '" data-skin="' + sk.id + '">' +
+              (active ? '<span class="wdb-active-dot"></span>' : "") +
+              '<div class="wdb-thumb"><div data-face="' + sk.id + '" style="width:100%;height:100%;background:var(--card-3)"></div>' +
+                '<span class="wdb-badge">' + (sk.slim ? "слим" : "classic") + "</span></div>" +
+              '<div class="wdb-card-name" title="' + ui.esc(sk.name) + '">' + ui.esc(sk.name) + "</div>" +
+            "</div>";
+          }).join("") +
+          '<div class="wdb-add" id="wdb-add-tile">' + ui.icon("plus") + "<div>Добавить скин</div></div>" +
         "</div>" +
       "</div>";
 
-    if (S.viewer) { try { S.viewer.dispose(); } catch (e) { /* noop */ } S.viewer = null; }
-    var cv = document.getElementById("sk-3d");
-    if (cv && window.Skin3D) {
-      S.viewer = Skin3D.create(cv, { auto: S.auto !== false });
-      S.viewer.setImage(acc.skinUrl || "");
-      S.viewer.setAuto(S.auto !== false);
-    }
-    var stopBtn = document.getElementById("sk-spin");
-    if (stopBtn) {
-      stopBtn.textContent = S.auto === false ? "Вращать" : "Стоп";
-      stopBtn.onclick = function () {
-        S.auto = S.auto === false;
-        if (S.viewer) S.viewer.setAuto(S.auto);
-        stopBtn.textContent = S.auto ? "Стоп" : "Вращать";
-      };
-    }
+    bindStage();
+    loadViewerSkin(S.sel);
+    renderFaces();
+    bindActions();
+  }
 
-    var lg2 = document.getElementById("sk-login");
-    if (lg2) lg2.onclick = function () { AccUI.openMicrosoft({ onDone: load }); };
-
-    var openSkin = document.getElementById("sk-open-skin");
-    if (openSkin && acc.skinUrl) openSkin.onclick = function () {
-      api("system.openUrl", { url: acc.skinUrl }).catch(function (e) { ui.notifyError(e); });
-    };
-
-    var openMs = document.getElementById("sk-open-ms");
-    if (openMs) openMs.onclick = function () {
-      api("system.openUrl", { url: "https://www.minecraft.net/msaprofile/mygames/editappearance" })
-        .catch(function (e) { ui.notifyError(e); });
-    };
-
-    var pick = document.getElementById("sk-pick");
-    if (pick) pick.onclick = pickSkin;
-
-    var seg = document.getElementById("sk-variant");
-    if (seg) seg.querySelectorAll("button").forEach(function (b) {
+  function bindStage() {
+    var a = document.getElementById("wdb-anims");
+    if (a) a.querySelectorAll("button").forEach(function (b) {
       b.onclick = function () {
-        S.variant = b.dataset.val;
-        seg.querySelectorAll("button").forEach(function (x) { x.classList.toggle("active", x === b); });
+        S.anim = b.dataset.anim;
+        a.querySelectorAll("button").forEach(function (x) {
+          x.classList.toggle("btn-primary", x === b);
+          x.classList.toggle("btn-ghost", x !== b);
+        });
+        applyAnim();
       };
     });
-
-    var apply = document.getElementById("sk-apply");
-    if (apply) apply.onclick = applySkin;
-
-    renderFileBox();
+    var rot = document.getElementById("wdb-rotate");
+    if (rot) rot.onclick = function () {
+      S.autoRotate = !S.autoRotate;
+      if (S.viewer) S.viewer.autoRotate = S.autoRotate;
+      rot.classList.toggle("btn-primary", S.autoRotate);
+      rot.classList.toggle("btn-ghost", !S.autoRotate);
+      rot.innerHTML = ui.icon("refresh") + (S.autoRotate ? " Вращение" : " Вращение выкл");
+    };
+    var tag = document.getElementById("wdb-tag");
+    if (tag) tag.onclick = function () {
+      S.nametag = !S.nametag;
+      if (S.viewer) { try { S.viewer.nameTag = (S.nametag && S.sel) ? S.sel.name : null; } catch (e) {} }
+      var t = document.getElementById("wdb-nametag");
+      if (t) t.textContent = (S.nametag && S.sel) ? S.sel.name : "";
+      tag.classList.toggle("btn-primary", S.nametag);
+      tag.classList.toggle("btn-ghost", !S.nametag);
+      tag.innerHTML = ui.icon("user") + (S.nametag ? " Ник вкл" : " Ник выкл");
+    };
+    var zm = document.getElementById("wdb-zoom");
+    if (zm) zm.oninput = function () {
+      S.zoom = parseFloat(zm.value);
+      if (S.viewer) S.viewer.zoom = S.zoom;
+    };
+    var lg = document.getElementById("wdb-login");
+    if (lg) lg.onclick = function () { AccUI.openMicrosoft({ onDone: function () { load(); } }); };
   }
 
-  function renderFileBox() {
-    var box = document.getElementById("sk-file-box");
-    if (!box) return;
-    if (!S.file) { box.innerHTML = ""; return; }
-    box.innerHTML = '<div class="sk-file">' + ui.icon("image") + "<span>" + ui.esc(S.file) + "</span></div>";
+  function bindActions() {
+    document.querySelectorAll(".wdb-card").forEach(function (c) {
+      c.onclick = function () {
+        var id = c.dataset.skin;
+        var sk = S.skins.find(function (x) { return x.id === id; });
+        if (!sk) return;
+        S.sel = sk;
+        document.querySelectorAll(".wdb-card").forEach(function (x) { x.classList.toggle("active", x === c); });
+        loadViewerSkin(sk);
+      };
+    });
+    var tile = document.getElementById("wdb-add-tile");
+    if (tile) tile.onclick = addMenu;
+
+    var apply = document.getElementById("wdb-apply");
+    if (apply) apply.onclick = applySel;
+    var ren = document.getElementById("wdb-rename");
+    if (ren) ren.onclick = renameSel;
+    var open = document.getElementById("wdb-open");
+    if (open) open.onclick = function () { openPng(S.sel); };
+    var del = document.getElementById("wdb-del");
+    if (del) del.onclick = deleteSel;
   }
 
-  async function pickSkin() {
+  /* ---------------------------------- действия ---------------------------------- */
+
+  function addMenu(e) {
+    var x = e && e.clientX ? e.clientX : Math.round(window.innerWidth / 2);
+    var y = e && e.clientY ? e.clientY : 150;
+    ui.contextMenu(x, y, [
+      { label: "Загрузить PNG с диска…", icon: "folder", onClick: function () { pickFile(); } },
+      { label: "Добавить по ссылке…", icon: "globe", onClick: function () { addByUrl(); } },
+    ]);
+  }
+
+  async function pickFile() {
     try {
-      var files = await api("system.pickFiles", { title: "Выберите файл скина (PNG)", filter: "skin", multiple: false });
+      var files = await api("system.pickFiles", { title: "Выберите PNG-скин (64×64)", filter: "skin", multiple: false });
       if (!files || !files.length) return;
-      S.file = files[0];
-      renderFileBox();
-      var apply = document.getElementById("sk-apply");
-      if (apply) apply.disabled = false;
-    } catch (e) { ui.notifyError(e, "Не удалось выбрать файл"); }
+      var path = files[0];
+      var name = path.split(/[\\/]/).pop().replace(/\.png$/i, "");
+      await api("skins.add", { path: path, name: name });
+      ui.notifySuccess("Скин добавлен", name);
+      await load();
+    } catch (e) { ui.notifyError(e, "Не удалось добавить скин"); }
   }
 
-  async function applySkin() {
-    if (!S.file) { ui.notifyWarn("Файл не выбран", "Сначала выберите PNG-текстуру скина"); return; }
+  async function addByUrl() {
+    var res = await ui.promptDialog({
+      title: "Добавить скин по ссылке",
+      message: "Вставьте ссылку на PNG-текстуру скина (например https://textures.minecraft.net/texture/<hash>).",
+      placeholder: "https://textures.minecraft.net/texture/…",
+      okLabel: "Добавить",
+    });
+    if (!res) return;
+    try {
+      var skin = await api("skins.add", { url: res, name: "Скин по ссылке" });
+      ui.notifySuccess("Скин добавлен", skin && skin.name ? skin.name : "");
+      await load();
+    } catch (e) { ui.notifyError(e, "Не удалось скачать скин"); }
+  }
+
+  async function applySel() {
+    if (!S.sel) return;
+    if (!hasMs()) {
+      ui.notifyWarn("Нужен лицензионный аккаунт", "Смена скина работает только с аккаунтом Microsoft.");
+      return;
+    }
     var ok = await ui.confirmDialog({
       title: "Применить скин",
       messageHtml: true,
-      message: "Скин <b>" + ui.esc(S.file.split(/[\\/]/).pop()) + "</b> будет отправлен в Minecraft Services для аккаунта <b>" +
-        ui.esc(S.acc ? S.acc.name : "") + "</b> (тип: " + (S.variant === "slim" ? "Слим" : "Классическая") + "). Продолжить?",
+      message: "Скин <b>" + ui.esc(S.sel.name) + "</b> будет отправлен в Minecraft Services для аккаунта <b>" + ui.esc(S.acc.name) + "</b>. Продолжить?",
       okLabel: "Применить",
-      cancelLabel: "Отмена",
     });
     if (!ok) return;
-    var btn = document.getElementById("sk-apply");
-    var res = document.getElementById("sk-result");
+    var btn = document.getElementById("wdb-apply");
     if (btn) btn.classList.add("loading");
     try {
-      var acc = await api("accounts.changeSkin", { path: S.file, variant: S.variant });
-      if (btn) btn.classList.remove("loading");
-      ui.notifySuccess("Скин обновлён", "Новый скин применён для " + (acc && acc.name ? acc.name : "аккаунта"));
-      S.file = null;
-      await load();
-      if (res = document.getElementById("sk-result"))
-        res.innerHTML = '<div class="banner ok">' + ui.icon("check") + '<span class="grow">Скин успешно применён.</span></div>';
-    } catch (e) {
-      if (btn) btn.classList.remove("loading");
-      ui.notifyError(e, "Не удалось сменить скин");
-      if (res = document.getElementById("sk-result"))
-        res.innerHTML = '<div class="banner error">' + ui.icon("alert") + '<span class="grow">' + ui.esc(ui.errText(e)) + "</span></div>";
-    }
+      var acc = await api("skins.apply", { id: S.sel.id });
+      ui.notifySuccess("Скин применён", "Обновлён для " + (acc && acc.name ? acc.name : "аккаунта"));
+      await load(true);
+    } catch (e) { ui.notifyError(e, "Не удалось применить скин"); }
+    finally { var b = document.getElementById("wdb-apply"); if (b) b.classList.remove("loading"); }
   }
+
+  async function renameSel() {
+    if (!S.sel) return;
+    var res = await ui.promptDialog({
+      title: "Переименовать скин",
+      value: S.sel.name,
+      okLabel: "Сохранить",
+      validate: function (v) { return (v && v.trim()) ? null : "Имя не может быть пустым"; },
+    });
+    if (!res) return;
+    try { await api("skins.rename", { id: S.sel.id, name: res }); await load(true); }
+    catch (e) { ui.notifyError(e, "Не удалось переименовать"); }
+  }
+
+  async function deleteSel() {
+    if (!S.sel) return;
+    var ok = await ui.confirmDialog({
+      title: "Удалить скин",
+      messageHtml: true,
+      message: "Скин <b>" + ui.esc(S.sel.name) + "</b> будет удалён из гардероба. Файл-исходник не пострадает.",
+      okLabel: "Удалить", danger: true,
+    });
+    if (!ok) return;
+    try { await api("skins.remove", { id: S.sel.id }); S.sel = null; await load(); }
+    catch (e) { ui.notifyError(e, "Не удалось удалить"); }
+  }
+
+  function openPng(skin) {
+    if (!skin) return;
+    api("skins.open", { id: skin.id }).catch(function () { ui.notifyWarn("Нет файла", "Исходный PNG недоступен."); });
+  }
+
+  /* ---------------------------------- загрузка ---------------------------------- */
 
   async function load(silent) {
     if (S.dead) return;
-    var box = document.getElementById("sk-body");
-    if (!silent && box) box.innerHTML = '<div class="card"><div class="skeleton" style="height:180px"></div></div>';
+    var box = document.getElementById("wdb-body");
+    if (!silent && box) box.innerHTML = '<div class="card"><div class="skeleton" style="height:320px"></div></div>';
     try {
-      var list = (await api("accounts.list")) || [];
+      var pair = await Promise.all([api("skins.list"), api("accounts.list")]);
       if (S.dead) return;
-      S.accounts = list;
-      S.acc = list.find(function (a) { return a.default; }) || list[0] || null;
-      var sub = document.getElementById("sk-sub");
-      if (sub)
-        sub.textContent = S.acc
-          ? "Лицензионный аккаунт: " + S.acc.name
-          : "Войдите через Microsoft, чтобы менять скин";
+      S.skins = pair[0] || [];
+      S.accounts = pair[1] || [];
+      S.acc = S.accounts.find(function (a) { return a.default; }) || S.accounts[0] || null;
+
+      var sub = document.getElementById("wdb-sub");
+      if (sub) sub.textContent = S.skins.length + " скинов в гардеробе" + (S.acc ? " · аккаунт: " + S.acc.name : "");
+
+      var banner = document.getElementById("wdb-banner");
+      if (banner) {
+        banner.innerHTML = (!S.acc || S.acc.type !== "microsoft")
+          ? '<div class="banner warn" style="margin-bottom:14px">' + ui.icon("alert") +
+            '<span class="grow">Войдите через Microsoft, чтобы применять скины к аккаунту. Гардероб доступен и без входа.</span>' +
+            '<button class="btn btn-sm btn-primary" id="wdb-banner-login">Войти через Microsoft</button></div>'
+          : "";
+        var bl = document.getElementById("wdb-banner-login");
+        if (bl) bl.onclick = function () { AccUI.openMicrosoft({ onDone: function () { load(); } }); };
+      }
       paint();
     } catch (e) {
       if (S.dead || !box || !box.isConnected) return;
@@ -253,19 +416,24 @@
     async init() {
       S.dead = false;
       S.unsubs.push(on("accounts.changed", function () { load(true); }));
-      var rf = document.getElementById("sk-refresh");
+      S.unsubs.push(on("skins.changed", function () { load(true); }));
+      var rf = document.getElementById("wdb-refresh");
       if (rf) rf.onclick = function () { load(); };
+      var ad = document.getElementById("wdb-add");
+      if (ad) ad.onclick = addMenu;
+      window.addEventListener("resize", onResize);
       await load();
     },
     dispose() {
       S.dead = true;
-      if (S.viewer) { try { S.viewer.dispose(); } catch (e) { /* noop */ } S.viewer = null; }
-      S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
+      window.removeEventListener("resize", onResize);
+      disposeViewer();
+      S.unsubs.forEach(function (u) { try { u(); } catch (e) {} });
       S.unsubs = [];
-      S.file = null;
-      S.acc = null;
-      S.accounts = [];
+      S.skins = []; S.accounts = []; S.acc = null; S.sel = null; S.faceCache = {};
     },
   });
+
+  function onResize() { resizeViewer(); }
 })();
 </script>

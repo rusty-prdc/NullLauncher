@@ -130,6 +130,9 @@
     confirmDelete: "Спрашивать подтверждение перед удалением сборок, модов и миров.",
     closeToTray: "Закрытие окна сворачивает лаунчер вместо выхода.",
     checkUpdatesOnStart: "Запрашивать новую версию NullLauncher при старте.",
+    discordPresence: "Показывает в Discord, что вы в лаунчере и во что играете. Статус виден только при запущенном Discord.",
+    discordClientId: "ID приложения Discord из Developers Portal. Пусто — используется встроенный ID лаунчера.",
+    curseForgeApiKey: "Свой ключ CurseForge (console.curseforge.com) для каталога CurseForge. Пусто — общий ключ лаунчера.",
     expertMode: "Открывает кастомный Java, JVM-аргументы, прокси, потоки загрузки и отладку.",
     dataDir: "Корень с сборками, Java, кэшем и бэкапами. Настройки всегда остаются в %APPDATA%.",
     instanceSort: "Поле сортировки библиотеки.",
@@ -188,6 +191,7 @@
     animations: true, rounding: "normal", opacity: 100, highContrast: false, cardSize: "normal",
     startPage: "home", showSidebarLabels: true, language: "ru", confirmDelete: true,
     closeToTray: false, checkUpdatesOnStart: true, onboardingDone: false, expertMode: false,
+    discordPresence: true, discordClientId: "",
     currentProfile: "default", dataDir: "", instanceSort: "lastPlayed", instanceView: "grid",
     showFavoritesFirst: true, showSnapshots: false, showOldVersions: false, autoBackup: true,
     backupBeforeUpdate: true, backupRetention: 5, javaAuto: true, javaMajor: 21, javaPath: "",
@@ -649,8 +653,8 @@
       card("Основное", "sliders",
         row("startPage", "Стартовая страница", "Какая страница открывается при запуске лаунчера.",
           sel("startPage", [["home", "Главная"], ["instances", "Мои сборки"], ["discover", "Modrinth"]])) +
-        row("language", "Язык интерфейса", "Текущая сборка поддерживает русский язык.",
-          sel("language", [["ru", "Русский"]])) +
+        row("language", "Язык интерфейса", "English переводится постепенно: оболочка и базовые элементы уже на английском.",
+          sel("language", [["ru", "Русский"], ["en", "English"]])) +
         row("confirmDelete", "Подтверждать удаление", "Спрашивать подтверждение перед удалением сборок, модов и миров.", sw("confirmDelete")) +
         row("closeToTray", "Сворачивать в трей", "Закрытие окна сворачивает лаунчер вместо выхода.", sw("closeToTray")) +
         row("checkUpdatesOnStart", "Проверять обновления лаунчера", "Запрашивать новую версию NullLauncher при старте.", sw("checkUpdatesOnStart"))) +
@@ -922,7 +926,11 @@
       card("Что покидает ваш компьютер", "lock",
         '<div class="sset-hint">При включённой телеметрии отправляются только обезличенные счётчики (версия лаунчера, число запусков, тип ошибок). ' +
         "Никогда не отправляются: токены доступа, пароли, идентификаторы аккаунтов, IP-адреса, содержимое сборок и миров. " +
-        "Отчёты о сбоях игры отправляются только после вашего явного подтверждения.</div>");
+        "Отчёты о сбоях игры отправляются только после вашего явного подтверждения.</div>") +
+      card("Discord", "user",
+        row("discordPresence", "Discord Rich Presence", "Показывать в Discord, что вы в лаунчере NullLauncher, а при запуске игры — какую сборку и версию играете.", sw("discordPresence")) +
+        row("discordClientId", "Application ID", "ID приложения Discord из Developers Portal. Пусто — встроенный ID лаунчера.",
+          txtIn("discordClientId", { ph: "1562930391499673773", w: 240 })));
     bind(pane, {});
   }
 
@@ -1173,6 +1181,9 @@
           sel("modrinthPageSize", [[10, "10"], [20, "20"], [40, "40"], [60, "60"]], true)) +
         row("modrinthOfflineCache", "Кэш Modrinth при офлайне", "Показывать сохранённые данные, если API недоступен.", sw("modrinthOfflineCache")) +
         row("modrinthAutoUpdateCheck", "Проверять обновления проектов", "Запрашивать обновления модов при открытии сборки.", sw("modrinthAutoUpdateCheck"))) +
+      card("CurseForge", "package",
+        row("curseForgeApiKey", "API-ключ", "Свой ключ с console.curseforge.com (бесплатно) для каталога CurseForge. Пусто — общий ключ лаунчера.",
+          txtIn("curseForgeApiKey", { ph: "Вставьте свой ключ CurseForge", w: 260 }))) +
       card("Кэш", "hdd",
         row("", "Очистить кэш Modrinth", "Удаляет сохранённые ответы каталога. Списки проектов загрузятся заново.",
           btn("Очистить кэш Modrinth", "clear", "", "trash")));

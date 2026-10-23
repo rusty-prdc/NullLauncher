@@ -14,6 +14,8 @@ const API_TIMEOUTS = {
   "instances.repair": 1800000,
   "instances.restore": 1800000,
   "accounts.check": 600000,
+  "skins.add": 180000,
+  "skins.apply": 120000,
 };
 const _hasBridge = typeof window.chrome !== "undefined" && !!window.chrome.webview;
 
@@ -76,54 +78,65 @@ function icon(name, cls = "") {
 
 function fmtBytes(n) {
   if (n === null || n === undefined || isNaN(n)) return "—";
-  if (n < 1024) return n + " Б";
-  const u = ["КБ", "МБ", "ГБ", "ТБ"];
+  const en = window.I18N && I18N.lang === "en";
+  if (n < 1024) return n + (en ? " B" : " Б");
+  const u = en ? ["KB", "MB", "GB", "TB"] : ["КБ", "МБ", "ГБ", "ТБ"];
   let i = -1, v = n;
   do { v /= 1024; i++; } while (v >= 1024 && i < u.length - 1);
   return (v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + " " + u[i];
 }
 function fmtNum(n) {
   if (n === null || n === undefined || isNaN(n)) return "—";
-  return new Intl.NumberFormat("ru-RU").format(n);
+  return new Intl.NumberFormat((window.I18N && I18N.lang === "en") ? "en-US" : "ru-RU").format(n);
 }
 function fmtDate(iso) {
-  if (!iso) return "никогда";
+  if (!iso) return (window.I18N && I18N.lang === "en") ? "never" : "никогда";
   const d = new Date(iso);
   if (isNaN(d)) return "—";
-  return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" }) + " " +
-         d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  const loc = (window.I18N && I18N.lang === "en") ? "en-US" : "ru-RU";
+  return d.toLocaleDateString(loc, { day: "2-digit", month: "short", year: "numeric" }) + " " +
+         d.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" });
 }
 function fmtRelative(iso) {
-  if (!iso) return "никогда";
+  const en = !!(window.I18N && I18N.lang === "en");
+  if (!iso) return en ? "never" : "никогда";
   const d = new Date(iso);
   if (isNaN(d)) return "—";
   const diff = Date.now() - d.getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "только что";
-  if (m < 60) return `${m} мин назад`;
+  if (m < 1) return en ? "just now" : "только что";
+  if (m < 60) return en ? `${m} min ago` : `${m} мин назад`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} ч назад`;
+  if (h < 24) return en ? `${h} h ago` : `${h} ч назад`;
   const dd = Math.floor(h / 24);
-  if (dd === 1) return "вчера";
-  if (dd < 30) return `${dd} дн. назад`;
+  if (dd === 1) return en ? "yesterday" : "вчера";
+  if (dd < 30) return en ? `${dd} d ago` : `${dd} дн. назад`;
   const mo = Math.floor(dd / 30);
-  if (mo < 12) return `${mo} мес. назад`;
-  return `${Math.floor(mo / 12)} г. назад`;
+  if (mo < 12) return en ? `${mo} mo ago` : `${mo} мес. назад`;
+  return en ? `${Math.floor(mo / 12)} y ago` : `${Math.floor(mo / 12)} г. назад`;
 }
 function fmtDuration(ms) {
+  const en = !!(window.I18N && I18N.lang === "en");
   if (!ms) return "—";
   const s = Math.floor(ms / 1000);
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h} ч ${m} мин`;
-  if (m > 0) return `${m} мин`;
-  return `${s} с`;
+  if (h > 0) return en ? `${h} h ${m} min` : `${h} ч ${m} мин`;
+  if (m > 0) return en ? `${m} min` : `${m} мин`;
+  return en ? `${s} s` : `${s} с`;
 }
-function fmtSpeed(bps) { return fmtBytes(bps) + "/с"; }
+function fmtSpeed(bps) {
+  return fmtBytes(bps) + ((window.I18N && I18N.lang === "en") ? "/s" : "/с");
+}
 function fmtEta(sec) {
+  const en = !!(window.I18N && I18N.lang === "en");
   if (!isFinite(sec) || sec <= 0) return "—";
-  if (sec < 60) return `${Math.round(sec)} с`;
-  if (sec < 3600) return `${Math.floor(sec / 60)} мин ${Math.round(sec % 60)} с`;
-  return `${Math.floor(sec / 3600)} ч ${Math.floor((sec % 3600) / 60)} мин`;
+  if (sec < 60) return en ? `${Math.round(sec)} s` : `${Math.round(sec)} с`;
+  if (sec < 3600) return en
+    ? `${Math.floor(sec / 60)} min ${Math.round(sec % 60)} s`
+    : `${Math.floor(sec / 60)} мин ${Math.round(sec % 60)} с`;
+  return en
+    ? `${Math.floor(sec / 3600)} h ${Math.floor((sec % 3600) / 60)} min`
+    : `${Math.floor(sec / 3600)} ч ${Math.floor((sec % 3600) / 60)} мин`;
 }
 function initials(name) {
   // "_Rvsty_", "Steve the Miner" → «R», «SM»: отбрасываем не-буквы/цифры по краям
@@ -581,6 +594,7 @@ function setupPalette() {
 /* ---------------- settings / appearance ---------------- */
 function applySettings(s) {
   App.settings = s || {};
+  if (window.I18N) I18N.setLang((s && s.language) || "ru");
   const r = document.documentElement;
   const theme = s.theme || "light";
   const resolved = theme === "system"
@@ -696,6 +710,7 @@ function setupDownloadsBar() {
     const name = (cur && (cur.title || cur.url)) || "файлов";
     const meta = [fmtBytes(got) + (total > 0 ? " / " + fmtBytes(total) : "")];
     if (speed > 0) meta.push(fmtSpeed(speed));
+    if (speed > 0 && total > got) meta.push("осталось ~" + fmtEta((total - got) / speed));
     textEl.textContent = (n > 1 ? `Скачивание: ${name} · ещё ${n - 1}` : `Скачивание: ${name}`) + " · " + meta.join(" · ");
 
     if (total > 0 && fill) {
@@ -730,7 +745,49 @@ async function boot() {
   });
 
   $$(".nav-item").forEach((n) => n.addEventListener("click", () => navigate(n.dataset.route)));
-  $("#account-chip").onclick = () => navigate("home");
+  /* чип аккаунта слева снизу: меню переключения/добавления аккаунта */
+  $("#account-chip").onclick = async (ev) => {
+    const r = ev.currentTarget.getBoundingClientRect();
+    let list = [];
+    try { list = (await api("accounts.list")) || []; } catch (e) { list = []; }
+    const current = (App.settings && App.settings.accountUuid && list.find((a) => a.uuid === App.settings.accountUuid)) ||
+      list.find((a) => a.default) || list[0];
+    const items = [{ label: "Аккаунты", header: true }];
+    if (!list.length) items.push({ label: "Аккаунтов нет — войдите, чтобы играть", disabled: true });
+    list.forEach((a) => {
+      items.push({
+        label: a.name + (a.default ? " · основной" : ""),
+        icon: current && a.uuid === current.uuid ? "check" : "user",
+        onClick: async () => {
+          if (current && a.uuid === current.uuid) return;
+          try {
+            await api("accounts.setDefault", { uuid: a.uuid });
+            await api("settings.set", { accountUuid: a.uuid });
+            updateAccountChip();
+            notify("success", "Аккаунт переключён", a.name);
+          } catch (e) { notify("error", "Не удалось переключить аккаунт", errText(e)); }
+        },
+      });
+    });
+    items.push("-");
+    items.push({ label: "Войти через Microsoft", icon: "user", onClick: () => AccUI.openMicrosoft({ onDone: updateAccountChip }) });
+    items.push({ label: "Офлайн-аккаунт", icon: "user", onClick: () => AccUI.openOffline({ onDone: updateAccountChip }) });
+    items.push({
+      label: "Гость", icon: "user",
+      onClick: async () => {
+        try {
+          await api("accounts.addGuest", { name: "Player" });
+          updateAccountChip();
+          notify("success", "Гостевой профиль добавлен", "");
+        } catch (e) { notify("error", "Не удалось создать гостевой профиль", errText(e)); }
+      },
+    });
+    contextMenu(Math.max(8, r.left), Math.max(8, r.top - 300), items);
+  };
+  const _gh = $("#link-github");
+  if (_gh) _gh.onclick = () => call("system.openUrl", { url: "https://github.com/rusty-prdc/NullLauncher" });
+  const _site = $("#link-site");
+  if (_site) _site.onclick = () => call("system.openUrl", { url: "https://nulllaucnher.xprodc.site/" });
 
   on("notify", (d) => notify(d.type || "info", d.title, d.message, d.actions));
   on("app.updateAvailable", (d) => {
@@ -744,6 +801,26 @@ async function boot() {
   on("instance.changed", () => {
     /* список сборок и главная зависят от состояния инстансов; страница сборки сама себя обновляет после действий */
     if (App.route === "instances" || App.route === "home") App.reload();
+  });
+  on("crash.detected", (d) => {
+    /* автоанализ сбоя из C#: показываем причину и подсказки, можно открыть отчёт */
+    const cause = d.cause || "Игра завершилась с ошибкой";
+    const sugg = (d.suggestions || []).slice(0, 5);
+    const msg = (d.summary ? d.summary + " " : "") +
+      (sugg.length ? "Подсказка: " + sugg[0] : "");
+    notify("error", "Сбой в «" + (d.instanceName || "сборке") + "»", cause + (msg ? " — " + msg : ""), [
+      { label: "Как исправить", primary: true, onClick: () => {
+          confirmDialog({
+            title: "Как исправить сбой",
+            messageHtml: true,
+            message: (d.summary ? "<p style='margin:0 0 10px;line-height:1.5'>" + esc(d.summary) + "</p>" : "") +
+              (sugg.length ? "<ul style='margin:0;padding-left:18px;line-height:1.7'>" + sugg.map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>" : ""),
+            okLabel: d.path ? "Открыть отчёт" : "Понятно",
+            cancelLabel: "Закрыть",
+          }).then((ok) => { if (ok && d.path) call("system.openPath", { path: d.path }); });
+        } },
+      { label: "Открыть отчёт", onClick: () => { if (d.path) call("system.openPath", { path: d.path }); } },
+    ], 16000);
   });
 
   try {

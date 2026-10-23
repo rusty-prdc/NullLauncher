@@ -1,0 +1,244 @@
+<style>
+/* ===== статистика — стили страницы (префикс st-) ===== */
+.st-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+@media (max-width: 900px) { .st-cards { grid-template-columns: repeat(2, 1fr); } }
+.st-card { padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); }
+.st-card .st-k { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); margin-bottom: 8px; }
+.st-card .st-v { font-size: 24px; font-weight: 750; letter-spacing: -0.5px; }
+.st-card .st-v small { font-size: 13px; font-weight: 600; color: var(--text-3); margin-left: 4px; }
+
+.st-row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 1000px) { .st-row { grid-template-columns: 1fr; } }
+
+.st-chart-wrap { position: relative; }
+.st-chart-wrap canvas { width: 100%; display: block; }
+.st-legend { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); margin-top: 8px; }
+
+.st-bars { display: flex; flex-direction: column; gap: 12px; }
+.st-bar-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+.st-bar-label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.st-dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.st-bar-track { grid-column: 1 / -1; height: 8px; border-radius: 999px; background: var(--bg-2); overflow: hidden; }
+.st-bar-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width var(--t); }
+.st-bar-val { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.st-bar-meta { font-size: 11px; color: var(--text-3); }
+
+.st-sess { display: flex; flex-direction: column; gap: 2px; }
+.st-sess-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.st-sess-row:last-child { border-bottom: none; }
+.st-sess-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-sess-dur { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.st-sess-when { color: var(--text-3); width: 96px; text-align: right; }
+.st-crash { color: var(--danger); }
+</style>
+
+<section class="page">
+  <div class="page-head">
+    <div class="grow">
+      <h1 class="page-title">Статистика игры</h1>
+      <div class="page-sub" id="st-sub">Сколько вы играете и в какие сборки</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-sm btn-ghost" id="st-refresh"><svg><use href="#i-refresh"/></svg> Обновить</button>
+    </div>
+  </div>
+  <div id="st-body"></div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
+  var S = { dead: false, unsubs: [], data: null };
+
+  function errBlock(e, onRetry) {
+    var d = ui.errDetail(e);
+    return '<div class="state error">' + ui.icon("alert") +
+      "<h3>Не удалось загрузить статистику</h3><p>" + ui.esc(ui.errText(e)) + "</p>" +
+      (d ? '<details><summary style="cursor:pointer;font-size:12px;color:var(--text-3)">Подробнее</summary><pre class="mono dim" style="white-space:pre-wrap;text-align:left">' + ui.esc(d) + "</pre></details>" : "") +
+      (onRetry ? '<div class="actions"><button class="btn" data-retry="1">' + ui.icon("refresh") + " Повторить</button></div>" : "") +
+      "</div>";
+  }
+
+  function fmtHours(ms) {
+    var h = ms / 3600000;
+    if (h >= 1) return { v: h.toFixed(h >= 10 ? 0 : 1), u: "ч" };
+    var m = ms / 60000;
+    if (m >= 1) return { v: Math.round(m), u: "мин" };
+    return { v: Math.round(ms / 1000), u: "сек" };
+  }
+
+  /* дневная шкала: zero-fill за 14 дней от since */
+  function parseDayUtc(s) {
+    /* since может быть "YYYY-MM-DD" или полной ISO-строкой — берём только дату, в UTC */
+    if (!s) { var t0 = new Date(); t0.setUTCHours(0, 0, 0, 0); return t0; }
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+    if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    var t = new Date(s);
+    if (isNaN(t.getTime())) { t = new Date(); }
+    t.setUTCHours(0, 0, 0, 0);
+    return t;
+  }
+  function buildDays(d) {
+    var map = {};
+    (d.daily || []).forEach(function (x) { map[x.date] = x; });
+    var out = [];
+    var day = parseDayUtc(d.since);
+    for (var i = 0; i < 14; i++) {
+      var key = day.toISOString().slice(0, 10);
+      var rec = map[key];
+      out.push({ date: key, ms: rec ? rec.ms : 0, launches: rec ? rec.launches : 0 });
+      day.setUTCDate(day.getUTCDate() + 1);
+    }
+    return out;
+  }
+
+  function drawChart(canvas, days) {
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = canvas.clientWidth || 520, cssH = 200;
+    canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+    canvas.style.height = cssH + "px";
+    var g = canvas.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, cssW, cssH);
+
+    var padL = 40, padB = 22, padT = 10, padR = 6;
+    var plotW = cssW - padL - padR, plotH = cssH - padT - padB;
+    var max = Math.max.apply(null, days.map(function (x) { return x.ms; }).concat([1]));
+
+    // горизонтальные линии + подписи Y (в часах)
+    g.strokeStyle = "rgba(255,255,255,0.06)"; g.fillStyle = "rgba(255,255,255,0.35)";
+    g.font = "10px Segoe UI, sans-serif"; g.textAlign = "right"; g.textBaseline = "middle";
+    for (var t = 0; t <= 3; t++) {
+      var val = max * t / 3, y = padT + plotH - (plotH * t / 3);
+      g.beginPath(); g.moveTo(padL, y); g.lineTo(cssW - padR, y); g.stroke();
+      g.fillText((val / 3600000).toFixed(val >= 3600000 ? 0 : 1) + "ч", padL - 6, y);
+    }
+
+    var n = days.length, gap = 6;
+    var bw = (plotW - gap * (n - 1)) / n;
+    var accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#3ecf8e";
+    days.forEach(function (d, i) {
+      var x = padL + i * (bw + gap);
+      var h = d.ms > 0 ? Math.max(3, (d.ms / max) * plotH) : 2;
+      var y = padT + plotH - h;
+      g.fillStyle = d.ms > 0 ? accent : "rgba(255,255,255,0.08)";
+      roundRect(g, x, y, bw, h, Math.min(4, bw / 2)); g.fill();
+      // подпись дня (каждый 2-й)
+      if (i % 2 === 0) {
+        g.fillStyle = "rgba(255,255,255,0.4)"; g.textAlign = "center"; g.textBaseline = "top";
+        g.fillText(d.date.slice(8) + "." + d.date.slice(5, 7), x + bw / 2, cssH - padB + 6);
+      }
+    });
+  }
+
+  function roundRect(g, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    g.beginPath();
+    g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+
+  function paint() {
+    var box = document.getElementById("st-body");
+    if (!box || S.dead) return;
+    var d = S.data;
+
+    if (!d || (!d.instances.length && !d.recent.length)) {
+      box.innerHTML = '<div class="card"><div class="state">' + ui.icon("gauge") +
+        "<h3>Пока нет статистики</h3><p>Запустите Minecraft хотя бы раз — здесь появится время по каждой сборке, дневной график и история сессий.</p></div></div>";
+      return;
+    }
+
+    var th = fmtHours(d.totals.playMs);
+    var ah = fmtHours(d.totals.avgSessionMs);
+    var days = buildDays(d);
+    var maxInst = Math.max.apply(null, d.instances.map(function (x) { return x.playMs; }).concat([1]));
+
+    box.innerHTML =
+      '<div class="st-cards">' +
+        stCard("clock", "Общее время", th.v, th.u) +
+        stCard("play", "Запусков", ui.fmtNum(d.totals.launches), "") +
+        stCard("grid", "Сборок", ui.fmtNum(d.totals.instances), "") +
+        stCard("gauge", "Средняя сессия", ah.v, ah.u) +
+      "</div>" +
+      '<div class="st-row">' +
+        '<div class="card">' +
+          '<div class="card-title">' + ui.icon("clock") + "Активность за 14 дней</div>" +
+          '<div class="st-chart-wrap"><canvas id="st-chart"></canvas></div>' +
+          '<div class="st-legend"><span>' + days[0].date.slice(8) + "." + days[0].date.slice(5, 7) + "</span><span>сегодня</span></div>" +
+        "</div>" +
+        '<div class="card">' +
+          '<div class="card-title">' + ui.icon("grid") + "По сборкам</div>" +
+          '<div class="st-bars">' + d.instances.map(function (x) {
+            var ih = fmtHours(x.playMs);
+            return '<div class="st-bar-row">' +
+              '<div class="st-bar-label"><span class="st-dot" style="background:' + ui.esc(x.color || "var(--accent)") + '"></span>' +
+                "<span>" + ui.esc(x.name) + '</span></div>' +
+              '<div class="st-bar-val">' + ih.v + " " + ih.u + "</div>" +
+              '<div class="st-bar-track"><div class="st-bar-fill" style="width:' + Math.round((x.playMs / maxInst) * 100) + "%;background:" + ui.esc(x.color || "var(--accent)") + '"></div></div>' +
+              '<div class="st-bar-meta" style="grid-column:1/-1">' + ui.fmtNum(x.launches) + " запусков · " + ui.esc(x.mcVersion || "") + (x.lastPlayedAt ? " · " + ui.fmtRelative(x.lastPlayedAt) : "") + "</div>" +
+            "</div>";
+          }).join("") + "</div>" +
+        "</div>" +
+      "</div>" +
+      (d.recent.length ? '<div class="card" style="margin-top:18px">' +
+        '<div class="card-title">' + ui.icon("list") + "Последние сессии</div>" +
+        '<div class="st-sess">' + d.recent.map(function (h) {
+          var dh = fmtHours(h.durationMs);
+          return '<div class="st-sess-row">' +
+            '<span class="st-dot" style="background:' + (h.crashed ? "var(--danger)" : "var(--accent)") + '"></span>' +
+            '<span class="st-sess-name">' + ui.esc(h.name) + (h.crashed ? ' <span class="st-crash">· ошибка ' + ui.esc(String(h.exitCode)) + "</span>" : "") + "</span>" +
+            '<span class="st-sess-dur">' + dh.v + " " + dh.u + "</span>" +
+            '<span class="st-sess-when">' + ui.fmtRelative(h.startedAt) + "</span>" +
+          "</div>";
+        }).join("") + "</div></div>" : "");
+
+    var cv = document.getElementById("st-chart");
+    if (cv) drawChart(cv, days);
+  }
+
+  function stCard(icon, k, v, u) {
+    return '<div class="st-card"><div class="st-k">' + ui.icon(icon) + ui.esc(k) + "</div>" +
+      '<div class="st-v">' + v + (u ? "<small>" + ui.esc(u) + "</small>" : "") + "</div></div>";
+  }
+
+  async function load(silent) {
+    if (S.dead) return;
+    var box = document.getElementById("st-body");
+    if (!silent && box) box.innerHTML = '<div class="card"><div class="skeleton" style="height:320px"></div></div>';
+    try {
+      S.data = await api("stats.overview");
+      if (S.dead) return;
+      paint();
+    } catch (e) {
+      if (S.dead || !box || !box.isConnected) return;
+      box.innerHTML = errBlock(e, true);
+      var rb = box.querySelector("[data-retry]");
+      if (rb) rb.onclick = function () { load(); };
+    }
+  }
+
+  Pages.register("stats", {
+    title: "Статистика",
+    async init() {
+      S.dead = false;
+      S.unsubs.push(on("instance.changed", function () { load(true); }));
+      var rf = document.getElementById("st-refresh");
+      if (rf) rf.onclick = function () { load(); };
+      window.addEventListener("resize", onResize);
+      await load();
+    },
+    dispose() {
+      S.dead = true;
+      window.removeEventListener("resize", onResize);
+      S.unsubs.forEach(function (u) { try { u(); } catch (e) {} });
+      S.unsubs = [];
+      S.data = null;
+    },
+  });
+
+  var rt;
+  function onResize() { clearTimeout(rt); rt = setTimeout(function () { if (!S.dead) paint(); }, 150); }
+})();
+</script>

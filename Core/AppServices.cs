@@ -23,6 +23,8 @@ public sealed class AppServices
     public Minecraft.FileProvisioner Provisioner { get; }
     public Minecraft.LaunchService Launch { get; }
     public Accounts.AccountService Accounts { get; }
+    public Skins.SkinService Skins { get; }
+    public DiscordPresenceService Discord { get; }
 
     public event Action<string, object?>? Notify;
 
@@ -59,9 +61,14 @@ public sealed class AppServices
         Provisioner = new Minecraft.FileProvisioner(Paths, Versions, Downloads);
         Launch = new Minecraft.LaunchService(this, Provisioner);
         Accounts = new Accounts.AccountService(this);
+        Skins = new Skins.SkinService(this);
+        Discord = new DiscordPresenceService(this);
 
         RegisterAll();
         Settings.Changed += (_, e) => Notify?.Invoke("settings.changed", e.Snapshot);
+
+        // Rich Presence: стартуем после регистрации IPC, чтобы видно было «В лаунчере»
+        Discord.Start();
     }
 
     private static LogLevel ParseLevel(string s) => s.ToLowerInvariant() switch
@@ -93,6 +100,8 @@ public sealed class AppServices
         NullLauncher.Servers.ServersIpc.Register(Router, this);
         NullLauncher.Logs.LogsIpc.Register(Router, this);
         NullLauncher.News.NewsIpc.Register(Router, this);
+        NullLauncher.Skins.SkinsIpc.Register(Router, this);
+        NullLauncher.Stats.StatsIpc.Register(Router, this);
     }
 
     /// <summary>Всплывающее уведомление в UI.</summary>

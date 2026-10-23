@@ -222,6 +222,7 @@ public sealed class AccountService
                 "slow_down" => new PollResult { Status = "pending" },
                 "expired_token" => new PollResult { Status = "expired", Message = "Код устарел, запросите новый" },
                 "authorization_declined" => new PollResult { Status = "expired", Message = "Вы отклонили запрос входа" },
+                "invalid_grant" => new PollResult { Status = "expired", Message = "Код уже использован или устарел — запросите новый" },
                 _ => new PollResult
                 {
                     Status = "error",
@@ -235,12 +236,27 @@ public sealed class AccountService
         if (msaToken is null)
             return new PollResult { Status = "error", Message = "Не удалось получить токен Microsoft" };
 
-        // полный обмен: XBL → XSTS → Minecraft
-        var session = await ExchangeToMinecraftAsync(http, msaToken, refreshToken, ct).ConfigureAwait(false);
-        var account = Upsert(session.session, session.refreshToken);
+        // device_code уже обменян на токен — убираем поток сразу, чтобы повторный опрос
+        // (гонка или рестарт) не стучался в Microsoft с уже использованным кодом.
         lock (_sync) _flows.Remove(deviceCode);
 
-        return new PollResult { Status = "done", Account = account, Message = $"Вы вошли как {account.Name}" };
+        // полный обмен: XBL → XSTS → Minecraft
+        try
+        {
+            var session = await ExchangeToMinecraftAsync(http, msaToken, refreshToken, ct).ConfigureAwait(false);
+            var account = Upsert(session.session, session.refreshToken);
+            return new PollResult { Status = "done", Account = account, Message = $"Вы вошли как {account.Name}" };
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (LauncherException ex)
+        {
+            return new PollResult { Status = "error", Message = ex.Message };
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Обмен токена Microsoft: {ex.Message}");
+            return new PollResult { Status = "error", Message = "Не удалось завершить вход: " + ex.Message };
+        }
     }
 
     private async Task<(AccountSession session, string msaToken, string refreshToken)> ExchangeToMinecraftAsync(

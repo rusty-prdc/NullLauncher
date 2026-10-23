@@ -2,6 +2,13 @@
    NullLauncher — design system
    ============================================================ */
 
+/* Шрифт Minecraft — нужен skinview3d для корректных неймтегов (typeface-minecraft) */
+@font-face {
+  font-family: "Minecraft";
+  src: url("vendor/skinview3d/minecraft.woff2") format("woff2");
+  font-display: swap;
+}
+
 :root {
   /* palette */
   --bg-0: #111315;
@@ -79,9 +86,7 @@ html[data-theme="light"] #shell { border-color: rgba(12, 17, 26, 0.06); box-shad
 html[data-theme="light"] .card { border-color: rgba(12, 17, 26, 0.06); box-shadow: 0 1px 3px rgba(23, 30, 44, 0.05); }
 html[data-theme="light"] .btn { border-radius: 999px; }
 html[data-theme="light"] .btn.play { box-shadow: 0 4px 14px rgba(62, 207, 142, 0.32); }
-html[data-theme="light"] .nav-item { border-radius: 999px; }
-html[data-theme="light"] .nav-item.active { background: var(--accent-soft); color: var(--text); }
-html[data-theme="light"] .nav-item.active::before { display: none; }
+html[data-theme="light"] .account-chip { background: var(--card); border: 1px solid rgba(12, 17, 26, 0.07); box-shadow: 0 1px 3px rgba(23, 30, 44, 0.06); }
 html[data-theme="light"] .chip { border-color: rgba(12, 17, 26, 0.07); }
 html[data-theme="light"] .tb-close:hover { background: #e0444e; color: #fff; }
 html[data-theme="light"] .skeleton {
@@ -134,6 +139,7 @@ body {
 ::selection { background: var(--accent-soft); }
 svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
 button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+[hidden] { display: none !important; }
 button { cursor: pointer; background: none; border: none; padding: 0; }
 a { color: inherit; text-decoration: none; cursor: pointer; }
 kbd {
@@ -165,12 +171,18 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1
   align-items: center;
   flex: 0 0 auto;
   gap: 8px;
+  position: relative;
 }
-.tb-drag { flex: 1; display: flex; align-items: center; gap: 14px; height: 100%; padding-left: 6px; min-width: 0; }
-.tb-brand { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: 0.2px; }
-.tb-logo { width: 17px; height: 17px; color: var(--accent); }
-.tb-title { color: var(--text-3); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tb-actions { display: flex; align-items: center; height: 100%; }
+.tb-drag { position: absolute; inset: 0; z-index: 0; }
+.tb-brand {
+  position: relative; z-index: 1; margin: 0 auto; pointer-events: none;
+  display: flex; align-items: center; gap: 9px;
+  font-weight: 800; font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase;
+}
+.tb-badge { width: 23px; height: 23px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; }
+.tb-badge svg { width: 15px; height: 15px; color: #fff; stroke-width: 1.8; }
+.tb-title { display: none; }
+.tb-actions { display: flex; align-items: center; height: 100%; position: relative; z-index: 1; }
 .tb-btn {
   width: 42px; height: 30px; display: grid; place-items: center; border-radius: var(--r-xs);
   color: var(--text-2); transition: background var(--t), color var(--t);
@@ -191,19 +203,21 @@ html[data-window-max="1"] .maximize-glyph::after { inset: 1px 3px 3px 1px; borde
   width: var(--sidebar-w); flex: 0 0 auto; display: flex; flex-direction: column;
   background: var(--bg-1); border-right: 1px solid var(--line); min-height: 0;
 }
-#nav { flex: 1; overflow-y: auto; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.sb-brand { display: flex; align-items: center; gap: 11px; padding: 14px 16px 8px; flex: 0 0 auto; }
+.sb-logo { width: 32px; height: 32px; color: var(--accent); stroke-width: 1.6; }
+.sb-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.sb-text strong { font-size: 14.5px; font-weight: 750; letter-spacing: 0.2px; }
+.sb-text span { font-size: 11px; color: var(--text-3); }
+#nav { flex: 1; overflow-y: auto; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 3px; }
 .nav-item {
-  display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: var(--r-sm);
-  color: var(--text-2); font-weight: 500; position: relative; transition: background var(--t), color var(--t);
+  display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 12px;
+  color: var(--text-2); font-weight: 550; position: relative; transition: background var(--t), color var(--t), box-shadow var(--t);
 }
 .nav-item svg { width: 17px; height: 17px; opacity: 0.85; }
 .nav-item:hover { background: var(--card-2); color: var(--text); }
-.nav-item.active { background: var(--accent-soft); color: var(--text); }
-.nav-item.active::before {
-  content: ""; position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
-  width: 3px; height: 18px; border-radius: 0 3px 3px 0; background: var(--accent);
-}
-.nav-item.active svg { color: var(--accent); opacity: 1; }
+.nav-item.active { background: var(--accent); color: var(--on-accent); box-shadow: 0 7px 18px rgba(0, 0, 0, 0.18); }
+.nav-item.active::before { display: none; }
+.nav-item.active svg { color: var(--on-accent); opacity: 1; }
 .nav-item span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nav-badge {
   font-style: normal; font-size: 11px; font-weight: 600; min-width: 18px; height: 18px; padding: 0 5px;
@@ -211,7 +225,7 @@ html[data-window-max="1"] .maximize-glyph::after { inset: 1px 3px 3px 1px; borde
 }
 .nav-sep { height: 1px; background: var(--line); margin: 10px 6px; }
 
-.nav-foot { border-top: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.nav-foot { border-top: 1px solid var(--line); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
 .account-chip {
   display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 8px; border-radius: var(--r-sm);
   transition: background var(--t); text-align: left;
@@ -224,8 +238,17 @@ html[data-window-max="1"] .maximize-glyph::after { inset: 1px 3px 3px 1px; borde
 .account-meta { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .account-meta strong { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .account-meta small { font-size: 11px; color: var(--text-3); }
-.version-chip { font-size: 11px; color: var(--text-3); padding: 0 8px 2px; }
+.version-chip { font-size: 11px; color: var(--text-3); padding: 0 8px 2px; flex: 1; min-width: 0; }
 .version-chip span { color: var(--text-2); }
+.sb-row { display: flex; align-items: center; gap: 6px; }
+.sb-links { display: flex; gap: 2px; flex: 0 0 auto; }
+.sb-link {
+  width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px;
+  color: var(--text-3); transition: background var(--t), color var(--t);
+}
+.sb-link:hover { background: var(--card-2); color: var(--text); }
+.sb-link svg { width: 15px; height: 15px; }
+.sb-note { font-size: 10.5px; line-height: 1.45; color: var(--text-3); padding: 0 6px 2px; }
 
 /* main / pages ---------------------------------------------------- */
 #main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg-0); }
@@ -771,3 +794,59 @@ html[data-theme="light"] .banner.ok { color: #146c47; }
   .settings-nav { position: static; flex-direction: row; overflow-x: auto; }
   .settings-nav button { white-space: nowrap; }
 }
+
+
+/* ============================================================
+   ???????? ?????? (skins page) � ??????? wdb-
+   ============================================================ */
+.wdb-layout { display: grid; grid-template-columns: 360px 1fr; gap: 18px; align-items: start; }
+@media (max-width: 980px) { .wdb-layout { grid-template-columns: 1fr; } }
+
+.wdb-stage {
+  position: relative; width: 100%; height: 460px; border-radius: var(--r-lg);
+  border: 1px solid var(--line); overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(62,207,142,0.10), transparent 60%),
+    linear-gradient(180deg, var(--card-2), var(--bg-1));
+}
+.wdb-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.wdb-stage canvas:active { cursor: grabbing; }
+.wdb-stage .wdb-empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--text-3); font-size: 13px; padding: 20px; gap: 6px; }
+.wdb-stage .wdb-floor {
+  position: absolute; left: 50%; bottom: 40px; width: 190px; height: 30px; transform: translateX(-50%);
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,0.35), transparent 70%); pointer-events: none; filter: blur(2px);
+}
+.wdb-nametag { position: absolute; left: 0; right: 0; top: 12px; text-align: center; font-family: "Minecraft", var(--mono); font-size: 15px; color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,0.55); pointer-events: none; letter-spacing: 0.5px; }
+
+.wdb-panel { display: flex; flex-direction: column; gap: 14px; }
+.wdb-name { font-weight: 700; font-size: 16px; }
+.wdb-sub { font-size: 12.5px; color: var(--text-3); }
+.wdb-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.wdb-hint { font-size: 12.5px; color: var(--text-3); line-height: 1.6; }
+.wdb-anim-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.wdb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
+.wdb-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 14px 12px 12px; background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-md); cursor: pointer; transition: border-color var(--t), transform var(--t), box-shadow var(--t);
+}
+.wdb-card:hover { border-color: var(--line-strong); transform: translateY(-2px); box-shadow: var(--shadow-1); }
+.wdb-card.active { border-color: var(--accent-line); box-shadow: 0 0 0 2px var(--accent-soft); }
+.wdb-thumb {
+  width: 100%; height: 150px; border-radius: var(--r-sm); overflow: hidden; position: relative;
+  background: linear-gradient(180deg, var(--card-2), var(--bg-2)); display: grid; place-items: center;
+}
+.wdb-thumb canvas { width: 100%; height: 100%; display: block; }
+.wdb-badge { position: absolute; top: 6px; left: 6px; font-size: 10px; padding: 2px 6px; border-radius: 999px; background: rgba(0,0,0,0.5); color: #fff; backdrop-filter: blur(4px); }
+.wdb-card-name { font-size: 13px; font-weight: 600; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wdb-card-actions { display: flex; gap: 6px; }
+.wdb-card-actions button { font-size: 11.5px; padding: 4px 8px; }
+.wdb-active-dot { position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.wdb-add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-height: 218px; border: 1.5px dashed var(--line-strong); border-radius: var(--r-md);
+  color: var(--text-3); font-size: 13px; cursor: pointer; transition: border-color var(--t), color var(--t), background var(--t);
+}
+.wdb-add:hover { border-color: var(--accent-line); color: var(--text-2); background: var(--accent-soft); }

@@ -10,8 +10,12 @@
     '<rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>' +
     '<rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>';
 
-  let poll = null;
-  function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
+  let poll = null;      /* id таймера опроса (setTimeout) */
+  let polling = false;  /* флаг: цикл опроса активен */
+  function stopPoll() {
+    polling = false;
+    if (poll) { clearTimeout(poll); clearInterval(poll); poll = null; }
+  }
 
   function host() {
     let h = document.getElementById("acc-host");
@@ -142,23 +146,41 @@
 
       const startPoll = () => {
         stopPoll();
-        poll = setInterval(async () => {
+        polling = true;
+        /* уважаем interval от сервера (обычно 5с), но не меньше 3с */
+        const gap = Math.max(3000, ((flow && flow.interval) || 5) * 1000);
+        let busy = false;
+        const tick = async () => {
+          if (!polling) return;
+          /* не допускаем параллельных опросов: setInterval со async-колбэком ставил бы
+             второй запрос, пока идёт медленный обмен XBL→XSTS→Minecraft, и Microsoft
+             отвечал бы «device_code already been used». Поэтому планируем следующий тик
+             только после завершения текущего. */
+          if (busy) { poll = setTimeout(tick, 1000); return; }
+          busy = true;
           try {
             const r = await api("accounts.pollMicrosoft", { uuid: flow.deviceCode });
-            if (!poll) return;
+            busy = false;
+            if (!polling) return;
             if (r && r.status === "done") {
               stopPoll();
               scr.close();
               if (opts.onDone) opts.onDone(r.account);
+              return;
             } else if (r && r.status === "expired") {
               fail("Код истёк — запросите новый");
               go.textContent = "Получить новый код";
               go.onclick = () => reopen(scr, build);
+              return;
             } else if (r && r.status === "error") {
               fail(r.message || "Не удалось завершить вход");
+              return;
             }
-          } catch (e) { /* кратковременные сбои опроса не прерываем */ }
-        }, 3000);
+            /* pending — планируем следующий опрос */
+          } catch (e) { busy = false; /* кратковременные сбои опроса не прерываем */ }
+          if (polling) poll = setTimeout(tick, gap);
+        };
+        poll = setTimeout(tick, 400);
       };
 
       go.onclick = () => {

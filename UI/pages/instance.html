@@ -3,9 +3,9 @@
 .p-inst-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .p-inst-toolbar .search-box { max-width: 300px; }
 .p-inst-chips { display: flex; gap: 7px; flex-wrap: wrap; }
-.p-inst-files { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); }
+.p-inst-files { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); }
 .p-inst-tile {
-  display: flex; align-items: center; gap: 10px; padding: 12px 14px; text-align: left;
+  display: flex; align-items: center; gap: 12px; padding: 15px 17px; text-align: left;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
   transition: border-color var(--t), background var(--t), transform var(--t);
 }
@@ -20,7 +20,8 @@
 .p-inst-world .wname { font-weight: 650; font-size: 14px; }
 .p-inst-world .wmeta { display: flex; gap: 6px; flex-wrap: wrap; }
 .p-inst-world .acts { display: flex; gap: 6px; flex-wrap: wrap; }
-.p-inst-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--pad); display: flex; flex-direction: column; gap: 13px; }
+#p-inst-body { display: flex; flex-direction: column; gap: 18px; }
+.p-inst-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
 .p-inst-card > h3 { margin: 0; font-size: 14.5px; font-weight: 650; }
 .p-inst-hero-name { cursor: pointer; }
 .p-inst-launch { display: flex; flex-direction: column; gap: 8px; }
@@ -30,12 +31,12 @@
 .p-inst-issue .t { font-weight: 600; font-size: 12.5px; }
 .p-inst-issue .m { font-size: 12px; color: var(--text-2); margin-top: 3px; line-height: 1.45; }
 .p-inst-rows { display: flex; flex-direction: column; }
-.p-inst-row { display: flex; align-items: center; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.p-inst-row { display: flex; align-items: center; gap: 20px; padding: 14px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .p-inst-row:last-child { border-bottom: none; }
 .p-inst-row .info { flex: 1; min-width: 190px; }
 .p-inst-row .t { font-weight: 600; font-size: 13.5px; }
 .p-inst-row .d { font-size: 12px; color: var(--text-2); margin-top: 3px; line-height: 1.45; }
-.p-inst-row .ctrl { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
+.p-inst-row .ctrl { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
 .p-inst-row .ctrl select, .p-inst-row .ctrl input[type="text"], .p-inst-row .ctrl input[type="number"] { min-width: 150px; width: auto; }
 .p-inst-srow { display: flex; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .p-inst-srow:last-child { border-bottom: none; }
@@ -94,7 +95,7 @@
 
   var S = {
     dead: false, id: null, tab: "content", inst: null, ctx: null, els: {},
-    unsubs: [], timers: [],
+    unsubs: [], timers: [], runTimer: null,
     contentKind: "mods", contentQuery: "", contentItems: [],
     logFile: "", logPath: "", logQuery: "", logLevel: "all", logLines: [],
     saveQueue: {}, saveTimer: null, lastToast: 0,
@@ -252,10 +253,26 @@
           .then(function () { App.reload(); });
       };
     }).catch(function () { /* noop */ });
+
+    /* самовосстановление: если игра завершилась/упала, а событие launch.state не доехало —
+       сверяемся с бэкендом и убираем застрявший прогресс запуска */
+    if (S.runTimer) { clearInterval(S.runTimer); S.runTimer = null; }
+    S.runTimer = setInterval(function () {
+      if (S.dead || !S.running) return;
+      api("launch.running").then(function (r) {
+        if (S.dead || !S.running) return;
+        var mine = r && (r.items || []).filter(function (x) { return x.instanceId === S.id; })[0];
+        if (mine) return;
+        setRunning(false);
+        setPlayLoading(false);
+        S.els.launch.hidden = true;
+      }).catch(function () { /* noop */ });
+    }, 5000);
   }
 
   function dispose() {
     S.dead = true;
+    if (S.runTimer) { clearInterval(S.runTimer); S.runTimer = null; }
     S.unsubs.forEach(function (u) { try { u(); } catch (e) { /* noop */ } });
     S.unsubs = [];
     S.timers.forEach(function (t) { clearTimeout(t); });
@@ -869,8 +886,10 @@
       }).join("") + "</div>" +
       '<div class="p-inst-card"><h3>Действия</h3><div class="p-inst-rows">' +
         row("Открыть папку сборки", "Корень сборки в Проводнике.", '<button class="btn" data-act="open">' + ic("folder") + " Открыть</button>") +
-        row("Проверить целостность", "Сверка файлов с манифестом версии.", '<button class="btn" data-act="verify">' + ic("shield") + " Проверить</button>") +
-        row("Изменить версию", "Версия Minecraft и загрузчик. Создаётся бэкап.", '<button class="btn btn-primary" data-act="ver">' + ic("refresh") + " Изменить</button>") +
+        row("Проверить целостность", "Сверка файлов с манифестом версии и докачка повреждённых.", '<button class="btn" data-act="verify">' + ic("shield") + " Проверить</button>") +
+        row("Изменить версию", "Версия Minecraft и загрузчик. Создаётся бэкап.", '<button class="btn" data-act="ver">' + ic("refresh") + " Изменить</button>") +
+        row("Экспорт сборки", "Полная копия .nlpkg для NullLauncher или модпак .mrpack для друзей.",
+          '<button class="btn" data-act="export">' + ic("upload") + " Экспорт…</button>") +
       "</div></div>";
 
     Array.prototype.forEach.call(S.els.body.querySelectorAll("[data-sub]"), function (t) {
@@ -884,6 +903,7 @@
     };
     S.els.body.querySelector('[data-act="verify"]').onclick = verifyDialog;
     S.els.body.querySelector('[data-act="ver"]').onclick = changeVersionDialog;
+    S.els.body.querySelector('[data-act="export"]').onclick = function () { exportDialog(false); };
   }
 
   function verifyDialog() {
@@ -1523,8 +1543,9 @@
           selectOf("p-inst-f-ld", LOADERS.map(function (l) { return [l, loaderLabel(l)]; }), S.ldPick)) +
         row("Версия загрузчика", "Загружается для выбранной версии и загрузчика.",
           '<select id="p-inst-f-lv"><option value="">' + esc(S.lvPick || "—") + "</option></select>") +
-        row("Применение", "Изменение создаёт бэкап и проверяет совместимость модов.",
-          '<button class="btn btn-primary" data-act="ver">' + ic("refresh") + " Изменить версию</button>") +
+        row("Применить", "Выбранная версия и загрузчик выше. Создаётся бэкап, проверяется совместимость модов.",
+          '<button class="btn btn-primary" data-act="ver">' + ic("refresh") + " Применить</button>" +
+          '<span class="dim small" id="p-inst-ver-hint"></span>') +
       "</div></div>" +
 
       '<div class="p-inst-card"><h3>Java</h3><div class="p-inst-rows">' +
@@ -1663,21 +1684,82 @@
   async function loadLoaderVersions() {
     var sel = ui.$("#p-inst-f-lv", S.els.body);
     if (!sel) return;
-    if (S.ldPick === "vanilla") { sel.innerHTML = '<option value="">—</option>'; return; }
+    if (S.ldPick === "vanilla") { sel.innerHTML = '<option value="">—</option>'; updateVerApplyState(); return; }
     sel.innerHTML = '<option value="">Загрузка…</option>';
     try {
       var all = (await api("versions.loaders", { mcVersion: S.mcPick })) || [];
       if (S.dead) return;
       var list = all.filter(function (x) { return String(x.loader || "").toLowerCase() === S.ldPick; });
-      if (!list.length) { sel.innerHTML = '<option value="">Нет версий</option>'; S.lvPick = ""; return; }
+      if (!list.length) { sel.innerHTML = '<option value="">Нет версий</option>'; S.lvPick = ""; updateVerApplyState(); return; }
       if (!list.some(function (x) { return x.version === S.lvPick; })) {
         S.lvPick = (list.find(function (x) { return x.stable; }) || list[0]).version;
       }
       sel.innerHTML = list.map(function (x) { return option(x.version, x.version + (x.stable ? "" : " (beta)"), S.lvPick); }).join("");
+      updateVerApplyState();
     } catch (e) {
       sel.innerHTML = '<option value="">Ошибка загрузки</option>';
       ui.notifyError(e, "Не удалось загрузить версии загрузчика");
     }
+  }
+
+  /* ---- изменение версии прямо из настроек: выбираешь в строках выше → жмёшь «Применить» ---- */
+  function verPicks() {
+    var i = S.inst;
+    var ld = S.ldPick || i.loader || "vanilla";
+    return {
+      mc: S.mcPick || i.mcVersion,
+      ld: ld,
+      lv: ld === "vanilla" ? "" : (S.lvPick || ""),
+    };
+  }
+  function verPicksChanged() {
+    var i = S.inst, p = verPicks();
+    if (!i) return false;
+    if (p.mc !== i.mcVersion) return true;
+    if (p.ld !== (i.loader || "vanilla")) return true;
+    if (p.ld !== "vanilla" && p.lv !== (i.loaderVersion || "")) return true;
+    return false;
+  }
+  function updateVerApplyState() {
+    if (!S.els || !S.els.body) return;
+    var b = S.els.body.querySelector('[data-act="ver"]');
+    if (!b) return;
+    var hint = ui.$("#p-inst-ver-hint", S.els.body);
+    var changed = verPicksChanged();
+    b.disabled = !changed;
+    if (!hint) return;
+    var i = S.inst, p = verPicks();
+    hint.textContent = changed
+      ? "Было: Minecraft " + i.mcVersion + " · " + loaderLabel(i.loader) + (i.loaderVersion && i.loader !== "vanilla" ? " " + i.loaderVersion : "") +
+        " → будет: Minecraft " + p.mc + " · " + loaderLabel(p.ld) + (p.lv ? " " + p.lv : "")
+      : "Это текущая версия — менять нечего";
+  }
+  async function applyPickedVersion() {
+    var i = S.inst;
+    if (!i) return;
+    var p = verPicks();
+    if (!p.mc) { ui.notifyWarn("Выберите версию Minecraft"); return; }
+    if (!verPicksChanged()) { ui.notifyInfo("Версия уже актуальна", "Minecraft " + i.mcVersion + " · " + loaderLabel(i.loader)); return; }
+    var ok = await ui.confirmDialog({
+      title: "Изменить версию?",
+      message: "Minecraft " + i.mcVersion + " · " + loaderLabel(i.loader) + (i.loaderVersion && i.loader !== "vanilla" ? " " + i.loaderVersion : "") +
+        " → Minecraft " + p.mc + " · " + loaderLabel(p.ld) + (p.lv ? " " + p.lv : "") +
+        ". Перед изменением будет создан бэкап; часть модов может оказаться несовместимой.",
+      okLabel: "Продолжить",
+    });
+    if (!ok) return;
+    var btn = S.els.body ? S.els.body.querySelector('[data-act="ver"]') : null;
+    if (btn) btn.classList.add("loading");
+    try {
+      var params = { id: S.id, mcVersion: p.mc, loader: p.ld };
+      if (p.ld !== "vanilla" && p.lv) params.loaderVersion = p.lv;
+      await api("instances.changeVersion", params);
+      S.mcPick = p.mc; S.ldPick = p.ld; S.lvPick = p.lv;
+      ui.notifySuccess("Версия обновлена", "Minecraft " + p.mc + " · " + loaderLabel(p.ld));
+      await reloadInstance();
+      if (!S.dead) updateVerApplyState();
+    } catch (e) { ui.notifyError(e, "Не удалось изменить версию"); }
+    finally { if (btn && btn.isConnected) btn.classList.remove("loading"); }
   }
 
   async function loadJavaHint() {
@@ -1788,16 +1870,17 @@
     };
 
     var verBtn = b.querySelector('[data-act="ver"]');
-    if (verBtn) verBtn.onclick = function () { changeVersionDialog(); };
+    if (verBtn) verBtn.onclick = applyPickedVersion;
 
     var mcq = el("#p-inst-f-mcq");
     if (mcq) mcq.oninput = ui.debounce(function () { fillMcVersions(mcq.value); }, 200);
     var mc = el("#p-inst-f-mc");
-    if (mc) mc.onchange = function () { S.mcPick = this.value; loadLoaderVersions(); };
+    if (mc) mc.onchange = function () { S.mcPick = this.value; loadLoaderVersions(); updateVerApplyState(); };
     var ld = el("#p-inst-f-ld");
-    if (ld) ld.onchange = function () { S.ldPick = this.value; S.lvPick = ""; loadLoaderVersions(); };
+    if (ld) ld.onchange = function () { S.ldPick = this.value; S.lvPick = ""; loadLoaderVersions(); updateVerApplyState(); };
     var lv = el("#p-inst-f-lv");
-    if (lv) lv.onchange = function () { S.lvPick = this.value; };
+    if (lv) lv.onchange = function () { S.lvPick = this.value; updateVerApplyState(); };
+    updateVerApplyState();
 
     var jm = el("#p-inst-f-jm");
     if (jm) jm.onchange = async function () {
@@ -1903,16 +1986,38 @@
       ["mods", "Моды"], ["resourcepacks", "Ресурс-паки"], ["shaders", "Шейдеры"],
       ["configs", "Конфиги"], ["worlds", "Миры"], ["options", "Настройки игры"], ["screenshots", "Скриншоты"],
     ];
+    var fmt = "nlpkg";
     var bodyEl = document.createElement("div");
     bodyEl.className = "col";
-    bodyEl.innerHTML = parts.map(function (p) {
-      return '<label class="p-inst-check"><input type="checkbox" value="' + p[0] + '" checked /> ' + esc(p[1]) + "</label>";
-    }).join("") +
-      '<div class="p-inst-note">В архив попадут файлы из .minecraft выбранной сборки.</div>';
+    bodyEl.innerHTML =
+      '<div class="field"><label>Формат</label>' +
+        '<div class="segmented" id="ex-fmt">' +
+          '<button data-f="nlpkg" class="active">' + ic("save") + " Полная копия (.nlpkg)</button>" +
+          '<button data-f="mrpack">' + ic("compass") + " Модпак Modrinth (.mrpack)</button>" +
+        "</div>" +
+        '<div class="hint" id="ex-fmt-hint">Архив сборки целиком: моды, конфиги, миры. Импортируется обратно в NullLauncher.</div>' +
+      "</div>" +
+      '<div id="ex-parts">' + parts.map(function (p) {
+        return '<label class="p-inst-check"><input type="checkbox" value="' + p[0] + '" checked /> ' + esc(p[1]) + "</label>";
+      }).join("") + "</div>" +
+      '<div class="p-inst-note" id="ex-note">В архив попадут файлы из .minecraft выбранной сборки.</div>';
+
+    var fmtBtns = bodyEl.querySelectorAll("#ex-fmt [data-f]");
+    Array.prototype.forEach.call(fmtBtns, function (b) {
+      b.onclick = function () {
+        fmt = b.dataset.f;
+        Array.prototype.forEach.call(fmtBtns, function (x) { x.classList.toggle("active", x === b); });
+        bodyEl.querySelector("#ex-parts").hidden = fmt === "mrpack";
+        bodyEl.querySelector("#ex-note").hidden = fmt === "mrpack";
+        bodyEl.querySelector("#ex-fmt-hint").textContent = fmt === "mrpack"
+          ? "Ссылки на моды с Modrinth + конфиги. Открывается в любом лаунчере с поддержкой .mrpack."
+          : "Архив сборки целиком: моды, конфиги, миры. Импортируется обратно в NullLauncher.";
+      };
+    });
 
     ui.openDialog({
       title: share ? "Поделиться файлом сборки" : "Экспорт сборки",
-      sub: share ? "Создадим архив и откроем его в Проводнике." : "Выберите компоненты и папку назначения.",
+      sub: share ? "Создадим архив и откроем его в Проводнике." : ".nlpkg — полная копия для NullLauncher, .mrpack — модпак для друзей.",
       icon: "upload",
       body: bodyEl,
       buttons: [
@@ -1921,19 +2026,32 @@
           label: share ? "Создать архив…" : "Экспорт…",
           role: "primary", keepOpen: true,
           onClick: async function (ctx) {
-            var include = {};
-            Array.prototype.forEach.call(bodyEl.querySelectorAll("input[type=checkbox]"), function (c) {
-              include[c.value] = c.checked;
-            });
-            if (!Object.keys(include).some(function (k) { return include[k]; })) {
-              ui.notifyWarn("Ничего не выбрано", "Отметьте хотя бы один компонент.");
-              return false;
-            }
             try {
-              var dir = await api("system.pickDirectory", { title: "Куда сохранить архив" });
+              var dir = await api("system.pickDirectory", { title: "Куда сохранить файл" });
               if (!dir || !dir.path) return false;
+
+              if (fmt === "mrpack") {
+                var mr = await api("instances.exportMrpack", {
+                  id: S.id, targetPath: dir.path,
+                  meta: { name: S.inst.name, description: S.inst.description, mcVersion: S.inst.mcVersion, loader: S.inst.loader },
+                });
+                if (S.dead) return false;
+                ui.notifySuccess("Модпак .mrpack создан", (mr && mr.path) || "");
+                if (share && mr && mr.path) await api("system.openPath", { path: mr.path, select: true });
+                ctx.close();
+                return false;
+              }
+
+              var include = {};
+              Array.prototype.forEach.call(bodyEl.querySelectorAll("#ex-parts input[type=checkbox]"), function (c) {
+                include[c.value] = c.checked;
+              });
+              if (!Object.keys(include).some(function (k) { return include[k]; })) {
+                ui.notifyWarn("Ничего не выбрано", "Отметьте хотя бы один компонент.");
+                return false;
+              }
               var safe = String(S.inst.name || "instance").replace(/[\\/:*?"<>|]/g, "_");
-              var target = String(dir.path).replace(/[\\/]+$/, "") + "\\" + safe + ".zip";
+              var target = String(dir.path).replace(/[\\/]+$/, "") + "\\" + safe + ".nlpkg";
               var res = await api("instances.export", { id: S.id, targetPath: target, include: include });
               if (S.dead) return false;
               if (res && res.cancelled) return false;

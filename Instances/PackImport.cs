@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Net;
 using System.Text.Json.Nodes;
@@ -14,7 +14,7 @@ namespace NullLauncher.Instances;
 /// </summary>
 public static class PackImport
 {
-    private enum Kind { Unknown, Instance, Mrpack, CurseForge, GameFolder }
+    private enum Kind { Unknown, Instance, Mrpack, CurseForge, GameFolder, MultiMC }
 
     /// <summary>
     /// Роутит архив по его содержимому в нужный импорт и возвращает готовую сборку.
@@ -36,8 +36,12 @@ public static class PackImport
                     sourceUrl!, downloaded, "Скачивание модпака", kind: "pack", ct: ct).ConfigureAwait(false);
                 sourcePath = downloaded;
             }
-            if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+            if (string.IsNullOrWhiteSpace(sourcePath) || (!File.Exists(sourcePath) && !Directory.Exists(sourcePath)))
                 throw new Core.LauncherException("Файл не найден", sourcePath ?? sourceUrl ?? "");
+
+            // папка: инстанс MultiMC/Prism (mmc-pack.json) либо готовая папка игры
+            if (Directory.Exists(sourcePath))
+                return await ImportFolderAsync(s, sourcePath, instanceName, ct).ConfigureAwait(false);
 
             return await ImportFileAsync(s, sourcePath, instanceName, ct).ConfigureAwait(false);
         }
@@ -275,6 +279,140 @@ public static class PackImport
             try { if (Directory.Exists(tmp)) Directory.Delete(tmp, true); }
             catch (Exception ex) { Log.Debug($"Не удалось удалить {tmp}: {ex.Message}"); }
         }
+    }
+
+    /* ------------------------------------------------------------ импорт папки (MultiMC/Prism, папка игры) */
+
+    /// <summary>
+    /// Импорт из папки: инстанс MultiMC/Prism/ATLauncher (есть mmc-pack.json) либо обычная
+    /// папка игры (.minecraft / mods+config). Аккуратно — папка не распаковывается, а читается напрямую.
+    /// </summary>
+    private static async Task<object?> ImportFolderAsync(
+        AppServices s, string dir, string? instanceName, CancellationToken ct)
+    {
+        if (File.Exists(Path.Combine(dir, "mmc-pack.json")))
+            return await ImportMultiMCAsync(s, dir, instanceName, ct).ConfigureAwait(false);
+
+        var gameDir = FindGameDir(dir) ?? (HasGameContent(dir) ? dir : null)
+            ?? throw new Core.LauncherException("Это не папка игры",
+                "Внутри нет .minecraft, mods/, config/ или versions/, а также нет mmc-pack.json (MultiMC/Prism).");
+
+        var ver = DetectGameVersion(gameDir)
+            ?? throw new Core.LauncherException("Не удалось определить версию Minecraft",
+                "В папке нет versions/, а по именам модов версию определить не удалось.");
+
+        var name = (instanceName ?? "").Trim();
+        if (name.Length == 0) name = Path.GetFileName(dir.TrimEnd(Path.DirectorySeparatorChar));
+        if (name.Length == 0) name = "Импортированная сборка";
+
+        var rec = s.Instances.Create(new CreateInstanceRequest(
+            Name: name,
+            Description: $"Импортировано из папки {Path.GetFileName(dir)}",
+            IconPath: FindImage(dir, "icon.png") ?? FindImage(gameDir, "icon.png"),
+            CoverPath: null, Color: null,
+            McVersion: ver.mc, Loader: ver.loader, LoaderVersion: ver.lv,
+            JavaMode: null, JavaMajor: null, JavaPath: null,
+            RamMinMb: 512, RamMaxMb: 4096,
+            Width: null, Height: null, Fullscreen: null, GroupIds: null));
+
+        MergeMove(gameDir, rec.GameDir, skipTopDir: "versions");
+        ct.ThrowIfCancellationRequested();
+
+        Log.Info($"Импорт папки игры → '{rec.Name}' ({ver.mc}/{ver.loader})");
+        s.Emit("instance.changed", new { id = rec.Id });
+        return s.Instances.Get(rec.Id) ?? rec;
+    }
+
+    /// <summary>Импорт инстанса MultiMC/Prism: mmc-pack.json (версия/загрузчик) + instance.cfg (имя, RAM) + папка minecraft/.</summary>
+    private static async Task<object?> ImportMultiMCAsync(
+        AppServices s, string instDir, string? instanceName, CancellationToken ct)
+    {
+        var pack = ParseMmcPack(Path.Combine(instDir, "mmc-pack.json"))
+            ?? throw new Core.LauncherException("Не удалось прочитать mmc-pack.json",
+                "В папке инстанса нет компонентов (net.minecraft и загрузчик).");
+
+        var cfg = ParseInstanceCfg(Path.Combine(instDir, "instance.cfg"));
+
+        var gameDir =
+            Directory.Exists(Path.Combine(instDir, "minecraft")) ? Path.Combine(instDir, "minecraft") :
+            Directory.Exists(Path.Combine(instDir, ".minecraft")) ? Path.Combine(instDir, ".minecraft") :
+            throw new Core.LauncherException("В инстансе нет папки minecraft", instDir);
+
+        var name = (instanceName ?? cfg.Name ?? "").Trim();
+        if (name.Length == 0) name = Path.GetFileName(instDir.TrimEnd(Path.DirectorySeparatorChar));
+        if (name.Length == 0) name = "Импортированный инстанс";
+
+        var rec = s.Instances.Create(new CreateInstanceRequest(
+            Name: name,
+            Description: "Импортировано из MultiMC / Prism",
+            IconPath: FindImage(instDir, "icon.png"),
+            CoverPath: null, Color: null,
+            McVersion: pack.mc, Loader: pack.loader, LoaderVersion: pack.lv,
+            JavaMode: null, JavaMajor: null, JavaPath: null,
+            RamMinMb: cfg.MinMem ?? 512, RamMaxMb: cfg.MaxMem ?? 4096,
+            Width: null, Height: null, Fullscreen: null, GroupIds: null));
+
+        MergeMove(gameDir, rec.GameDir, skipTopDir: "versions");
+        ct.ThrowIfCancellationRequested();
+
+        Log.Info($"Импорт MultiMC/Prism → '{rec.Name}' ({pack.mc}/{pack.loader}" +
+                 (pack.lv is null ? "" : $" {pack.lv}") + ")");
+        s.Emit("instance.changed", new { id = rec.Id });
+        return s.Instances.Get(rec.Id) ?? rec;
+    }
+
+    /// <summary>Читает mmc-pack.json: возвращает (mc, loader, loaderVersion).</summary>
+    private static (string mc, string loader, string? lv)? ParseMmcPack(string path)
+    {
+        try
+        {
+            var node = JsonNode.Parse(File.ReadAllText(path));
+            var comps = node?["components"]?.AsArray();
+            if (comps is null || comps.Count == 0) return null;
+
+            string? mc = null, loader = null, lv = null;
+            foreach (var c in comps)
+            {
+                var uid = c?["uid"]?.GetValue<string>() ?? "";
+                var ver = c?["version"]?.GetValue<string>();
+                if (uid == "net.minecraft") { mc = ver; continue; }
+                if (uid is "net.minecraftforge") { loader = "forge"; lv = ver; }
+                else if (uid is "net.fabricmc.fabric-loader") { loader = "fabric"; lv = ver; }
+                else if (uid is "org.quiltmc.quilt-loader") { loader = "quilt"; lv = ver; }
+                else if (uid is "net.neoforged") { loader = "neoforge"; lv = ver; }
+            }
+            if (string.IsNullOrWhiteSpace(mc)) return null;
+            return (mc!, loader ?? "vanilla", lv);
+        }
+        catch (Exception ex)
+        {
+            Log.Debug($"mmc-pack.json: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>Читает instance.cfg (формат key=value): имя и выделенную память.</summary>
+    private static (string? Name, int? MinMem, int? MaxMem) ParseInstanceCfg(string path)
+    {
+        string? name = null;
+        int? min = null, max = null;
+        try
+        {
+            foreach (var raw in File.ReadAllLines(path))
+            {
+                var line = raw.Trim();
+                if (line.Length == 0 || line.StartsWith('#')) continue;
+                var eq = line.IndexOf('=');
+                if (eq <= 0) continue;
+                var k = line[..eq].Trim();
+                var v = line[(eq + 1)..].Trim();
+                if (k == "name") name = v;
+                else if (k == "MinMemAlloc" && int.TryParse(v, out var a)) min = a;
+                else if (k == "MaxMemAlloc" && int.TryParse(v, out var b)) max = b;
+            }
+        }
+        catch (Exception ex) { Log.Debug($"instance.cfg: {ex.Message}"); }
+        return (name, min, max);
     }
 
     /// <summary>Ищет папку игры: .minecraft внутри (в т.ч. в обёртке) либо папка с mods+config/versions.</summary>

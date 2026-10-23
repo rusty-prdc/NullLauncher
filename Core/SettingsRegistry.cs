@@ -86,6 +86,8 @@ public static class SettingsRegistry
         ["modrinthPageSize"] = 20,
         ["modrinthOfflineCache"] = true,
         ["modrinthAutoUpdateCheck"] = true,
+        ["modrinthShowCats"] = false,
+        ["curseForgeApiKey"] = "",
 
         // уведомления
         ["notifyToasts"] = true,
@@ -102,6 +104,8 @@ public static class SettingsRegistry
 
         // конфиденциальность
         ["telemetry"] = false,
+        ["discordPresence"] = true,
+        ["discordClientId"] = "",
         ["saveTokenSecure"] = true,
 
         // производительность
@@ -177,6 +181,8 @@ public static class SettingsRegistry
         new("proxyPort", "Прокси — порт", "network", "Сеть", "Порт прокси-сервера."),
         new("modrinthPageSize", "Результатов на странице", "modrinth", "Modrinth", "Размер страницы поиска Modrinth."),
         new("modrinthOfflineCache", "Кэш Modrinth при офлайне", "modrinth", "Modrinth", "Показывать сохранённые данные, если API недоступен."),
+        new("modrinthShowCats", "Показывать категории", "modrinth", "Modrinth", "Галочка во вкладке Modrinth: показывать фильтр по категориям."),
+        new("curseForgeApiKey", "CurseForge API-ключ", "modrinth", "Modrinth", "Свой ключ с console.curseforge.com для каталога CurseForge. Пусто — используется общий ключ лаунчера."),
         new("notifyToasts", "Всплывающие уведомления", "notifications", "Уведомления", "Собственные уведомления лаунчера внутри окна."),
         new("notifyDownloadDone", "Уведомлять о загрузках", "notifications", "Уведомления", "Сообщать об окончании скачивания."),
         new("notifyLaunchDone", "Уведомлять о запуске", "notifications", "Уведомления", "Сообщать о завершении игры."),
@@ -184,6 +190,8 @@ public static class SettingsRegistry
         new("logRetentionDays", "Хранить логи (дней)", "logs", "Логи", "Старые файлы логов удаляются автоматически."),
         new("debugMode", "Отладочный режим", "advanced", "Расширенные", "Подробные логи запуска и сети."),
         new("telemetry", "Телеметрия", "privacy", "Конфиденциальность", "Анонимная статистика использования. По умолчанию выключена."),
+        new("discordPresence", "Discord Rich Presence", "privacy", "Конфиденциальность", "Показывает в Discord, что вы в лаунчере и во что играете. Нужен запущенный Discord."),
+        new("discordClientId", "Discord Application ID", "privacy", "Конфиденциальность", "ID приложения из Discord Developers Portal. Пусто — встроенный ID лаунчера."),
         new("saveTokenSecure", "Хранить токены безопасно", "privacy", "Конфиденциальность", "Токены аккаунтов шифруются через DPAPI (Windows Credential store)."),
         new("lowResourceMode", "Режим экономии", "performance", "Производительность", "Уменьшает фоновую активность лаунчера."),
         new("apiCacheMinutes", "Кэш API (минут)", "performance", "Производительность", "Время жизни кэша ответов Modrinth и манифестов."),
