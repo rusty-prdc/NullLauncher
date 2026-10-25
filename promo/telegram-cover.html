@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NullLauncher — XPRODC</title>
+<style>
+  :root { color-scheme: dark; --ink:#111713; --muted:#aab6ae; --green:#79e2a5; --lime:#d9f36a; --paper:#f4f7f1; --line:#36453a; }
+  * { box-sizing:border-box; }
+  html,body { width:100%;height:100%;margin:0;overflow:hidden;background:var(--ink); }
+  body { font-family:Arial,"Segoe UI",sans-serif;color:var(--paper); }
+  .canvas { position:relative;width:1280px;height:720px;margin:0 auto;overflow:hidden;background:linear-gradient(118deg,#111713 0%,#18231c 58%,#26362a 100%); }
+  .grid { position:absolute;inset:0;background-image:linear-gradient(rgba(229,248,231,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(229,248,231,.045) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(90deg,#000 0%,transparent 74%); }
+  .rail { position:absolute;left:0;top:0;width:12px;height:100%;background:var(--lime); }
+  .top { position:absolute;top:47px;left:72px;right:72px;display:flex;align-items:center;justify-content:space-between; }
+  .brand { display:flex;align-items:center;gap:14px;font-weight:800;font-size:20px;letter-spacing:.04em; }
+  .mark { width:38px;height:38px;display:grid;grid-template-columns:1fr 1fr;gap:3px;transform:rotate(-6deg); }
+  .mark i { display:block;background:var(--green); }
+  .mark i:nth-child(2),.mark i:nth-child(3) { background:var(--lime); }
+  .by { color:var(--muted);font-size:14px; }
+  .copy { position:absolute;left:78px;top:160px;width:490px; }
+  .eyebrow { display:inline-flex;align-items:center;gap:9px;border:1px solid #526451;border-radius:3px;padding:9px 12px;color:var(--lime);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.12em; }
+  .eyebrow:before { content:"";width:7px;height:7px;background:var(--lime); }
+  h1 { margin:25px 0 11px;font-size:64px;line-height:.98;letter-spacing:0;font-weight:800; }
+  h1 span { color:var(--green); }
+  .sub { margin:20px 0 0;color:#d7e1d8;font-size:24px;line-height:1.35;font-weight:500; }
+  .sub b { color:var(--lime);font-weight:700; }
+  .features { display:flex;gap:9px;flex-wrap:wrap;margin-top:35px; }
+  .tag { display:flex;align-items:center;gap:8px;border:1px solid #435349;background:rgba(14,21,16,.62);padding:10px 12px;color:#edf4e9;font-size:14px;font-weight:600; }
+  .tag svg { width:17px;height:17px;color:var(--green);flex:none; }
+  .url { position:absolute;left:80px;bottom:48px;display:flex;align-items:center;gap:12px;color:var(--muted);font-size:15px; }
+  .url:before { content:"";width:24px;height:2px;background:var(--lime); }
+  .url strong { color:var(--paper);font-weight:700; }
+  .product { position:absolute;right:55px;top:142px;width:610px; }
+  .window { border:1px solid #617060;background:#f0f4ef;padding:8px;box-shadow:0 28px 70px rgba(0,0,0,.4);transform:rotate(1deg); }
+  .bar { height:32px;margin:-1px -1px 7px;background:#e4eae3;display:flex;align-items:center;gap:6px;padding:0 10px;color:#566256;font-size:11px; }
+  .dot { width:7px;height:7px;border-radius:50%;background:#9aa99a; }
+  .bar span:last-child { margin-left:7px; }
+  .window img { display:block;width:100%;height:auto; }
+  .caption { margin-top:18px;text-align:right;color:#c4d0c3;font-size:12px;letter-spacing:.035em; }
+  .side { position:absolute;right:45px;bottom:39px;color:#87988a;font-size:12px;letter-spacing:.14em;text-transform:uppercase;writing-mode:vertical-rl; }
+</style>
+</head>
+<body>
+<main class="canvas" aria-label="Обложка NullLauncher от XPRODC">
+  <div class="grid" aria-hidden="true"></div><div class="rail" aria-hidden="true"></div>
+  <header class="top"><div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>XPRODC</span></div><div class="by">Независимый проект · открытый исходный код</div></header>
+  <section class="copy">
+    <div class="eyebrow">Лаунчер Minecraft</div>
+    <h1>Null<span>Launcher</span></h1>
+    <p class="sub">Сборки, моды и модпаки<br>в одном месте.<br><b>Теперь и на Android.</b></p>
+    <div class="features">
+      <div class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6M8 17h8"/></svg>Windows 10/11</div>
+      <div class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Android · ранний доступ</div>
+    </div>
+  </section>
+  <figure class="product">
+    <div class="window"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>NullLauncher · Мои сборки</span></div><img src="assets/launcher-home.png" alt="Главное окно NullLauncher"></div>
+    <figcaption class="caption">Скриншот Windows-версии</figcaption>
+  </figure>
+  <div class="url"><strong>nulllaucnher.xprodc.site</strong><span>· Windows и Android</span></div>
+  <div class="side">XPRODC / NULL LAUNCHER</div>
+</main>
+</body>
+</html>

@@ -475,6 +475,111 @@ function setupWindow() {
   on("window.maximized", (v) => document.documentElement.dataset.windowMax = v ? "1" : "0");
 }
 
+/* ---------------- media pill (SMTC: Spotify и другие плееры) ---------------- */
+const MediaLogos = {
+  Spotify: { svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path fill="none" stroke="#0a0a0a" stroke-width="1.9" stroke-linecap="round" d="M6.3 9.3c3.7-1.1 8.7-.7 11.9 1.3M7 12.5c3-.9 7.1-.5 9.8 1.2M7.7 15.5c2.5-.7 5.7-.4 7.9 1"/></svg>' },
+  Chrome: { color: "#4285F4" },
+  Firefox: { color: "#FF7139" },
+  Edge: { color: "#0C8CE9" },
+  VLC: { color: "#FF8800" },
+};
+
+function mediaLogoHtml(app) {
+  const m = MediaLogos[app];
+  if (m && m.svg) return m.svg;
+  const letter = ((app || "?").trim().charAt(0) || "?").toUpperCase();
+  return `<span class="tbp-ic" style="background:${(m && m.color) || "var(--accent)"}">${esc(letter)}</span>`;
+}
+
+function setupMediaPill() {
+  const box = $("#tb-media");
+  if (!box) return;
+  const pop = $("#tb-pop"), main = $("#tbm-main"), meta = $("#tbm-meta"), logo = $("#tbm-logo"), eq = $("#tbm-eq");
+  const btnPlay = $("#tbm-play"), btnNext = $("#tbm-next"), usePlay = $("#tbm-play-use");
+  const pArt = $("#tbp-art"), pArtFb = $("#tbp-artfb"), pTitle = $("#tbp-title"), pArtist = $("#tbp-artist"),
+        pAlbum = $("#tbp-album"), pApp = $("#tbp-app"), pCur = $("#tbp-cur"), pDur = $("#tbp-dur"),
+        pBar = $("#tbp-bar"), pFill = $("#tbp-fill"), pPlay = $("#tbp-play"), pUsePlay = $("#tbp-play-use"),
+        pPrev = $("#tbp-prev"), pNext = $("#tbp-next");
+  let st = { active: false, playing: false, positionMs: 0, durationMs: 0 };
+  let anchor = { pos: 0, at: Date.now() };
+
+  const fmtT = (ms) => {
+    if (!ms || ms < 0 || !isFinite(ms)) return "–:–";
+    const s = Math.floor(ms / 1000);
+    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  };
+
+  function applyState(n) {
+    st = Object.assign({ active: false, playing: false, positionMs: 0, durationMs: 0 }, n);
+    anchor = { pos: st.positionMs || 0, at: Date.now() };
+    box.hidden = !st.active;
+    if (!st.active) { pop.hidden = true; return; }
+
+    logo.innerHTML = mediaLogoHtml(st.app);
+    meta.innerHTML = st.title
+      ? `<b>${esc(st.title)}</b>${st.artist ? ` — <i>${esc(st.artist)}</i>` : ""}`
+      : `<i>${esc(st.app || "Сейчас играет")}</i>`;
+    meta.title = [st.title, st.artist, st.album].filter(Boolean).join(" · ") || st.app || "";
+    eq.classList.toggle("paused", !st.playing);
+
+    const ic = st.playing ? "#i-pause" : "#i-play";
+    usePlay.setAttribute("href", ic);
+    pUsePlay.setAttribute("href", ic);
+    btnPlay.title = pPlay.title = st.playing ? "Пауза" : "Играть";
+    btnNext.hidden = !st.canNext;
+    pNext.hidden = !st.canNext;
+    pPrev.hidden = !st.canPrev;
+
+    if (st.art) { if (pArt.getAttribute("src") !== st.art) pArt.src = st.art; pArt.hidden = false; pArtFb.hidden = true; }
+    else { pArt.hidden = true; pArt.removeAttribute("src"); pArtFb.hidden = false; }
+    pTitle.textContent = st.title || "";
+    pArtist.textContent = st.artist || "";
+    pAlbum.textContent = st.album || "";
+    pApp.innerHTML = mediaLogoHtml(st.app) + `<span>${esc(st.app || "")}</span>`;
+    pApp.hidden = !st.app;
+    pDur.textContent = fmtT(st.durationMs);
+    tickBar();
+  }
+
+  function tickBar() {
+    if (!st.active) return;
+    let pos = anchor.pos;
+    if (st.playing) pos += Math.min(Date.now() - anchor.at, 9000);
+    if (st.durationMs > 0) pos = Math.min(pos, st.durationMs);
+    pCur.textContent = fmtT(pos);
+    pFill.style.width = st.durationMs > 0 ? (Math.min(100, pos / st.durationMs * 100)).toFixed(2) + "%" : "0%";
+  }
+  setInterval(tickBar, 500);
+
+  async function ctrl(action, extra) {
+    try { await api("media.control", Object.assign({ action }, extra || {})); }
+    catch (e) { console.debug("media.control:", (e && e.message) || e); }
+    try { applyState(await api("media.state")); } catch (e) { /* старый хост */ }
+  }
+
+  btnPlay.onclick = (e) => { e.stopPropagation(); ctrl("playPause"); };
+  btnNext.onclick = (e) => { e.stopPropagation(); ctrl("next"); };
+  pPlay.onclick = () => ctrl("playPause");
+  pNext.onclick = () => ctrl("next");
+  pPrev.onclick = () => ctrl("prev");
+  main.onclick = () => { pop.hidden = !pop.hidden; if (!pop.hidden) tickBar(); };
+  pBar.onclick = (e) => {
+    if (st.durationMs <= 0) return;
+    const r = pBar.getBoundingClientRect();
+    const pct = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    ctrl("seek", { positionMs: Math.round(pct * st.durationMs) });
+  };
+  document.addEventListener("mousedown", (e) => {
+    if (!pop.hidden && !box.contains(e.target)) pop.hidden = true;
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") pop.hidden = true; });
+
+  on("media.changed", applyState);
+  api("media.state").then(applyState).catch(() => { box.hidden = true; });
+  /* страховка: даже если событие потерялось, состояние свежается само раз в 5 с */
+  setInterval(() => { api("media.state").then(applyState).catch(() => {}); }, 5000);
+}
+
 /* ---------------- hotkeys ---------------- */
 const DefaultHotkeys = {
   search: "Ctrl+K",
@@ -736,6 +841,7 @@ async function boot() {
   setupPalette();
   setupDrop();
   setupDownloadsBar();
+  setupMediaPill();
 
   document.addEventListener("keydown", (e) => {
     if (!$("#palette").hidden && e.key === "Escape") { closePalette(); return; }
@@ -797,6 +903,20 @@ async function boot() {
     ], 15000);
   });
   on("settings.changed", (s) => applySettings(s));
+  on("app.deepLink", (d) => {
+    if (!d || !d.ip) return;
+    var addr = d.ip + (d.port ? ":" + d.port : "");
+    confirmDialog({
+      title: "Подключиться к серверу",
+      message: addr + "\n Лаунчер откроет сборку и подключит вас к этому адресу.",
+      okLabel: "Играть",
+    }).then(function (ok) {
+      if (!ok) return;
+      api("servers.quickJoin", { ip: d.ip, port: d.port || null })
+        .then(function () { notifySuccess("Подключение", addr); })
+        .catch(function (e) { notifyError("Не удалось подключиться", (e && e.message) || String(e)); });
+    });
+  });
   on("accounts.changed", () => { updateAccountChip(); });
   on("instance.changed", () => {
     /* список сборок и главная зависят от состояния инстансов; страница сборки сама себя обновляет после действий */

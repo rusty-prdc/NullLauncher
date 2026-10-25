@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+.shot { width:1080px; height:1920px; background:#F4F7F5; color:#12211A;
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  position:relative; overflow:hidden; display:flex; flex-direction:column; }
+.status { height:88px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 56px; font-size:36px; font-weight:700; flex:none; }
+.sicons { display:flex; gap:20px; align-items:center; }
+.content { flex:1; padding:20px 44px 0; display:flex; flex-direction:column; gap:32px; overflow:hidden; }
+.nav { height:198px; background:rgba(255,255,255,.97); border-top:2px solid #E2E9E5;
+  display:flex; justify-content:space-around; align-items:center; flex:none; }
+.tab { display:flex; flex-direction:column; align-items:center; gap:8px;
+  color:#6B7C74; font-size:30px; font-weight:600; }
+.tab.on { color:#2FBF71; }
+.tab svg { width:64px; height:64px; }
+.card { background:#fff; border-radius:56px; padding:44px; box-shadow:0 8px 28px rgba(18,33,26,.05); }
+.btn { background:#2FBF71; color:#fff; border-radius:52px; height:150px; display:flex;
+  align-items:center; justify-content:center; gap:18px; font-size:51px; font-weight:700;
+  box-shadow:0 10px 26px rgba(47,191,113,.30); }
+.btn.ghost { background:#fff; color:#12211A; border:3px solid #E2E9E5; box-shadow:none; }
+.chip { background:#EDF2EF; color:#12211A; border-radius:100px; padding:16px 34px;
+  font-size:33px; font-weight:600; display:inline-flex; align-items:center; gap:12px; }
+.chip.on { background:#E3F7EC; color:#1FA35E; }
+.mute { color:#6B7C74; }
+.green { color:#1FA35E; }
+svg { display:block; }
+.hdr { font-size:57px; font-weight:800; letter-spacing:-1px; }
+.sub { font-size:33px; color:#6B7C74; }
+.hrow { display:flex; align-items:center; justify-content:space-between; }
+.icobtn { width:96px; height:96px; border-radius:32px; background:#EDF2EF; display:flex;
+  align-items:center; justify-content:center; color:#6B7C74; }
+.avatar { width:120px; height:120px; border-radius:40px; background:linear-gradient(135deg,#2FBF71,#1FA35E);
+  display:flex; align-items:center; justify-content:center; color:#fff; font-size:54px; font-weight:800;
+  box-shadow:0 8px 20px rgba(47,191,113,.28); }
+.inst { display:flex; align-items:center; gap:34px; background:#fff; border-radius:48px;
+  padding:34px; box-shadow:0 6px 22px rgba(18,33,26,.05); }
+.inst.act { background:#E3F7EC; box-shadow:none; }
+.instico { width:128px; height:128px; border-radius:38px; background:#EDF2EF; display:flex;
+  align-items:center; justify-content:center; font-size:56px; font-weight:800; color:#6B7C74; flex:none; }
+.inst.act .instico { background:#2FBF71; color:#fff; box-shadow:0 8px 20px rgba(47,191,113,.3); }
+.play { width:112px; height:112px; border-radius:50%; background:#E3F7EC; display:flex;
+  align-items:center; justify-content:center; color:#1FA35E; flex:none; }
+.play.solid { background:#2FBF71; color:#fff; box-shadow:0 8px 18px rgba(47,191,113,.3); }
+.progress { height:16px; border-radius:8px; background:#EDF2EF; overflow:hidden; }
+.progress i { display:block; height:100%; border-radius:8px; background:linear-gradient(90deg,#2FBF71,#1FA35E); }
+.slider { display:flex; align-items:center; gap:28px; }
+.strack { flex:1; height:12px; border-radius:6px; background:#EDF2EF; position:relative; }
+.strack i { position:absolute; left:0; top:0; height:100%; border-radius:6px; background:#2FBF71; }
+.strack b { position:absolute; top:50%; width:52px; height:52px; border-radius:50%; background:#fff;
+  border:4px solid #2FBF71; transform:translate(-50%,-50%); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+</style>
+</head>
+<body>
+
+<!-- ================= 1. Ð“Ð›ÐÐ’ÐÐÐ¯ ================= -->
+<div class="shot" id="s2">
+  <div class="status"><span>12:31</span>
+    <div class="sicons">
+      <svg width="42" height="36" viewBox="0 0 24 24" fill="#12211A"><path d="M2 20h3v-6H2zM8 20h3V9H8zM14 20h3V4h-3z"/></svg>
+      <svg width="42" height="36" viewBox="0 0 24 24" fill="none" stroke="#12211A" stroke-width="2.2" stroke-linecap="round"><path d="M4 10a12 12 0 0 1 16 0"/><path d="M7.5 13.5a7.5 7.5 0 0 1 9 0"/><path d="M11 17.2h2"/></svg>
+      <svg width="52" height="32" viewBox="0 0 30 16"><rect x="1" y="2" width="24" height="12" rx="4" fill="none" stroke="#12211A" stroke-width="2"/><rect x="4" y="5" width="16" height="6" rx="2" fill="#12211A"/><rect x="26" y="6" width="3" height="4" rx="1" fill="#12211A"/></svg>
+    </div>
+  </div>
+  <div class="content">
+    <div><div class="hdr">ÐšÐ°Ñ‚Ð°Ð»Ð¾Ð³</div><div class="sub">Ð¼Ð¾Ð´Ñ‹ Ð¸ Ð¼Ð¾Ð´Ð¿Ð°ÐºÐ¸ Â· Modrinth</div></div>
+    <div style="display:flex;gap:22px">
+      <div class="card" style="flex:1;padding:34px 40px;display:flex;align-items:center;gap:24px;border:3px solid #2FBF71">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6B7C74" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16"/></svg>
+        <span class="mute" style="font-size:38px">ÐŸÐ¾Ð¸ÑÐº Ð¼Ð¾Ð´Ð¾Ð²â€¦</span>
+      </div>
+      <div class="btn" style="width:230px;height:auto;font-size:40px">ÐÐ°Ð¹Ñ‚Ð¸</div>
+    </div>
+    <div class="card" style="padding:32px 40px">
+      <div class="mute" style="font-size:29px;font-weight:600">Ð£Ð¡Ð¢ÐÐÐžÐ’Ð˜Ð¢Ð¬ Ð’:</div>
+      <div class="hrow" style="margin-top:14px">
+        <span style="font-size:40px;font-weight:700">Ð’Ñ‹Ð¶Ð¸Ð²Ð°Ð½Ð¸Ðµ Â· 1.21.1 Â· Fabric</span>
+        <span class="mute" style="font-size:38px">â–¾</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:38px;display:flex;gap:34px;align-items:center">
+      <div class="instico" style="background:#E3F7EC;color:#1FA35E">S</div>
+      <div style="flex:1">
+        <div style="font-size:44px;font-weight:800">Sodium</div>
+        <div class="mute" style="font-size:31px;margin-top:4px">Ð£ÑÐºÐ¾Ñ€ÐµÐ½Ð¸Ðµ FPS Ð² Ñ€Ð°Ð·Ñ‹ Â· JellySquid</div>
+        <div class="mute" style="font-size:29px;margin-top:10px">â¬‡ 87,4 Ð¼Ð»Ð½ Ð·Ð°Ð³Ñ€ÑƒÐ·Ð¾Ðº Â· 0.6.13</div>
+      </div>
+      <div class="btn" style="width:250px;height:118px;font-size:36px;box-shadow:none">Ð£ÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ</div>
+    </div>
+    <div class="card" style="padding:38px;display:flex;gap:34px;align-items:center">
+      <div class="instico" style="background:#EDE7FB;color:#7C5CD6">I</div>
+      <div style="flex:1">
+        <div style="font-size:44px;font-weight:800">Iris Shaders</div>
+        <div class="mute" style="font-size:31px;margin-top:4px">Ð¨ÐµÐ¹Ð´ÐµÑ€Ñ‹ Ð´Ð»Ñ Fabric Â· coderbot</div>
+        <div class="mute" style="font-size:29px;margin-top:10px">â¬‡ 42,1 Ð¼Ð»Ð½ Ð·Ð°Ð³Ñ€ÑƒÐ·Ð¾Ðº Â· 1.8.1</div>
+      </div>
+      <div class="btn" style="width:250px;height:118px;font-size:36px;box-shadow:none">Ð£ÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ</div>
+    </div>
+    <div class="card" style="padding:38px;display:flex;gap:34px;align-items:center">
+      <div class="instico" style="background:#FBE9E9;color:#DE4D4D">J</div>
+      <div style="flex:1">
+        <div style="font-size:44px;font-weight:800">Jade</div>
+        <div class="mute" style="font-size:31px;margin-top:4px">ÐŸÐ¾Ð´ÑÐºÐ°Ð·ÐºÐ¸ Ð¾ Ð±Ð»Ð¾ÐºÐ°Ñ… Ð¸ Ð¼Ð¾Ð±Ð°Ñ… Â· Snownee</div>
+        <div class="mute" style="font-size:29px;margin-top:10px">â¬‡ 58,9 Ð¼Ð»Ð½ Ð·Ð°Ð³Ñ€ÑƒÐ·Ð¾Ðº Â· 15.3.4</div>
+      </div>
+      <div class="btn" style="width:250px;height:118px;font-size:36px;box-shadow:none">Ð£ÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ</div>
+    </div>
+    <div class="card" style="padding:38px;display:flex;gap:34px;align-items:center">
+      <div class="instico" style="background:#FDF0DC;color:#D9922B">C</div>
+      <div style="flex:1">
+        <div style="font-size:44px;font-weight:800">Create</div>
+        <div class="mute" style="font-size:31px;margin-top:4px">ÐœÐµÑ…Ð°Ð½Ð¸Ð·Ð¼Ñ‹, Ñ„Ð°Ð±Ñ€Ð¸ÐºÐ¸, Ð¿Ð¾ÐµÐ·Ð´Ð° Â· simibubi</div>
+        <div class="mute" style="font-size:29px;margin-top:10px">â¬‡ 63,7 Ð¼Ð»Ð½ Ð·Ð°Ð³Ñ€ÑƒÐ·Ð¾Ðº Â· 6.0.4</div>
+      </div>
+      <div class="btn" style="width:250px;height:118px;font-size:36px;box-shadow:none">Ð£ÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ</div>
+    </div>
+    <div class="btn ghost" style="height:130px;font-size:40px;margin-top:auto;margin-bottom:24px">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#12211A" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Ð¡Ð¾Ð·Ð´Ð°Ñ‚ÑŒ ÐºÐ¾Ð»Ð»ÐµÐºÑ†Ð¸ÑŽ
+    </div>
+  </div>
+  <div class="nav">
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/></svg>Ð“Ð»Ð°Ð²Ð½Ð°Ñ</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor" stroke="none"/></svg>Ð¡Ð±Ð¾Ñ€ÐºÐ¸</div>
+    <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="14" height="14" rx="2.5"/><path d="M17 10.5 21 8v8l-4-2.5"/><path d="M8.5 9.5l4.5 2.5-4.5 2.5z" fill="currentColor" stroke="none"/></svg>ÐšÐ°Ñ‚Ð°Ð»Ð¾Ð³</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M7.5 10 12 14.5 16.5 10"/><path d="M4.5 20.5h15"/></svg>Ð—Ð°Ð³Ñ€ÑƒÐ·ÐºÐ¸</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.5-4 4.2-6 7.5-6s6 2 7.5 6"/></svg>ÐŸÑ€Ð¾Ñ„Ð¸Ð»ÑŒ</div>
+  </div>
+</div>
+</body>
+</html>

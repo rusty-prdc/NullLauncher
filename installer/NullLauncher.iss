@@ -50,7 +50,10 @@ Root: HKA; Subkey: "Software\Classes\NullLauncher.mrpack"; ValueData: "Модп�
 Root: HKA; Subkey: "Software\Classes\NullLauncher.mrpack\shell\open\command"; ValueData: """{app}\{#AppExe}"" ""%1"""; Flags: uninsdeletekey; Tasks: associate
 Root: HKA; Subkey: "Software\Classes\.nlpkg"; ValueData: "NullLauncher.nlpkg"; Flags: uninsdeletevalue; Tasks: associate
 Root: HKA; Subkey: "Software\Classes\NullLauncher.nlpkg"; ValueData: "Сборка NullLauncher"; Flags: uninsdeletekey; Tasks: associate
-Root: HKA; Subkey: "Software\Classes\NullLauncher.nlpkg\shell\open\command"; ValueData: """{app}\{#AppExe}"" ""%1"""; Flags: uninsdeletekey; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\NullLauncher.nlpkg\shell\open\command"; ValueData: """{app}\{#AppExe}"" ""%1"""; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\nulllauncher"; ValueData: "URL:NullLauncher Protocol"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\nulllauncher"; ValueName: "URL Protocol"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\nulllauncher\shell\open\command"; ValueData: """{app}\{#AppExe}"" ""%1"""; Flags: uninsdeletekey; Tasks: associate
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent

@@ -16,6 +16,76 @@ public static class ServersIpc
         r.Register("servers.update", (p, _) => Task.FromResult<object?>(UpdateServer(s, p)));
         r.Register("servers.remove", (p, _) => Task.FromResult<object?>(RemoveServer(s, p)));
         r.Register("servers.connect", (p, _) => Connect(s, p));
+        r.Register("servers.ping", (p, ct) => Ping(s, p, ct));
+        r.Register("servers.quickJoin", (p, _) => QuickJoin(s, p));
+    }
+
+    /* ------------------------------------------------------------ быстрый вход (deep-link) */
+    /// <summary>Подключение по ip:port из deep-link: находит или создаёт сервер у сборки и подключается.
+    /// instanceId необязателен — берётся первая сборка, если не указана.</summary>
+    private static Task<object?> QuickJoin(AppServices s, JsonNode? p)
+    {
+        var (host, port) = ParseAddress(p?.Str("ip"), p?["port"] is null ? null : p!.Int("port", 25565));
+
+        var instId = p?.Str("instanceId");
+        InstanceRecord inst;
+        if (!string.IsNullOrWhiteSpace(instId))
+        {
+            inst = s.Instances.Require(instId!);
+        }
+        else
+        {
+            var all = s.Instances.List();
+            if (all.Count == 0) throw new LauncherException("Нет ни одной сборки",
+                "Создайте сборку, чтобы подключиться к серверу " + host);
+            inst = all[0];
+        }
+
+        // ищем существующий сервер по адресу — иначе создаём
+        var rows = Database.DatabaseService.Query<ServerRow>(SelectSql, new { i = inst.Id });
+        var srv = rows.FirstOrDefault(x => x.Ip.Equals(host, StringComparison.OrdinalIgnoreCase) && x.Port == port);
+        if (srv is null)
+        {
+            var newId = Guid.NewGuid().ToString("N");
+            var name = host + (port != 25565 ? ":" + port : "");
+            Database.DatabaseService.Execute(UpsertSql, new
+            {
+                InstanceId = inst.Id, Id = newId, Name = name, Ip = host, Port = port, Icon = (string?)null,
+            });
+            srv = new ServerRow { InstanceId = inst.Id, Id = newId, Name = name, Ip = host, Port = port };
+            Log.Info($"Deep-link: создан сервер '{name}' для '{inst.Name}'");
+        }
+
+        // повторяем логику Connect с найденным сервером
+        var connectParams = new JsonObject
+        {
+            ["instanceId"] = inst.Id,
+            ["serverId"] = srv.Id,
+        };
+        return Connect(s, connectParams);
+    }
+
+    /* ------------------------------------------------------------ пинг */
+    /// <summary>Пингует сервер по id (или по ip/port из параметра) и возвращает онлайн/версию/латентность.</summary>
+    private static async Task<object?> Ping(AppServices s, JsonNode? p, CancellationToken ct)
+    {
+        string host; int port;
+        if (p is not null && !string.IsNullOrWhiteSpace(p.Str("ip")))
+        {
+            (host, port) = ParseAddress(p.Str("ip"), p["port"] is null ? null : p.Int("port", 25565));
+        }
+        else
+        {
+            var inst = RequireInstance(s, p);
+            var serverId = RequireServerId(p);
+            var srv = Database.DatabaseService.QueryFirstOrDefault<ServerRow>(
+                "SELECT id, instance_id AS InstanceId, name, ip, port, icon FROM servers WHERE instance_id=@i AND id=@sid",
+                new { i = inst.Id, sid = serverId }) ?? throw new LauncherException("Сервер не найден", serverId);
+            host = srv.Ip; port = srv.Port;
+        }
+
+        var r = await ServerPing.PingAsync(host, port, ct).ConfigureAwait(false);
+        return new { online = r.OnlinePlayers, max = r.MaxPlayers, version = r.Version, ping = r.PingMs, error = r.Error };
     }
 
     /* ------------------------------------------------------------ общее */

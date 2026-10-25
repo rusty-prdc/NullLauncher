@@ -19,6 +19,10 @@
   <symbol id="i-hdd" viewBox="0 0 24 24"><rect x="3" y="12.5" width="18" height="7" rx="2"/><path d="M5.6 12.5 8 5.2h8l2.4 7.3"/><circle cx="7.4" cy="16" r="1"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7.5A1.5 1.5 0 0 0 6 5v14a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7.5z"/><path d="M14 3.5V7.5H18"/><path d="M9 12.5h6M9 16h4"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 4.9v14.2L19 12z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8.5 5.5v13M15.5 5.5v13" stroke-width="2.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M6 6.2v11.6L15 12z" fill="currentColor" stroke="none"/><rect x="16.4" y="6.2" width="2.2" height="11.6" rx="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><rect x="5.4" y="6.2" width="2.2" height="11.6" rx="1.1" fill="currentColor" stroke="none"/><path d="M18 6.2v11.6L9 12z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 17.5V6.4l9-1.9v11"/><circle cx="6.6" cy="17.7" r="2.4"/><circle cx="15.6" cy="15.7" r="2.4"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.7l5.4-.8z"/></symbol>
@@ -73,6 +77,38 @@
       <span>NullLauncher</span>
     </div>
     <div class="tb-title" id="tb-title">Главная</div>
+    <div class="tb-media" id="tb-media" hidden>
+      <button class="tbm-main" id="tbm-main" title="Сейчас играет — открыть плеер">
+        <span class="tbm-logo" id="tbm-logo" aria-hidden="true"><svg><use href="#i-note"/></svg></span>
+        <span class="tbm-eq" id="tbm-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span class="tbm-meta" id="tbm-meta"></span>
+      </button>
+      <button class="tbm-btn tbm-play" id="tbm-play" title="Пауза"><svg><use id="tbm-play-use" href="#i-pause"/></svg></button>
+      <button class="tbm-btn tbm-skip" id="tbm-next" title="Следующий трек"><svg><use href="#i-skip"/></svg></button>
+
+      <div class="tb-pop" id="tb-pop" hidden>
+        <div class="tbp-head">
+          <img class="tbp-art" id="tbp-art" alt="" hidden>
+          <span class="tbp-artfb" id="tbp-artfb" aria-hidden="true"><svg><use href="#i-note"/></svg></span>
+          <div class="tbp-t">
+            <b id="tbp-title"></b>
+            <i id="tbp-artist"></i>
+            <small id="tbp-album"></small>
+            <span class="tbp-app" id="tbp-app"></span>
+          </div>
+        </div>
+        <div class="tbp-prog">
+          <span class="tbp-time" id="tbp-cur">0:00</span>
+          <div class="tbp-bar" id="tbp-bar"><i id="tbp-fill"></i></div>
+          <span class="tbp-time" id="tbp-dur">–:–</span>
+        </div>
+        <div class="tbp-ctrls">
+          <button class="tbp-b" id="tbp-prev" title="Предыдущий"><svg><use href="#i-prev"/></svg></button>
+          <button class="tbp-b tbp-big" id="tbp-play" title="Пауза"><svg><use id="tbp-play-use" href="#i-pause"/></svg></button>
+          <button class="tbp-b" id="tbp-next" title="Следующий"><svg><use href="#i-skip"/></svg></button>
+        </div>
+      </div>
+    </div>
     <div class="tb-actions">
       <button class="tb-btn" id="tb-min" title="Свернуть"><svg><use href="#i-minus"/></svg><span class="minimize-glyph"></span></button>
       <button class="tb-btn" id="tb-max" title="Развернуть"><span class="maximize-glyph"></span></button>
@@ -89,7 +125,7 @@
       <nav id="nav">
         <a class="nav-item" data-route="home"><svg><use href="#i-home"/></svg><span>Главная</span></a>
         <a class="nav-item" data-route="instances"><svg><use href="#i-grid"/></svg><span>Мои сборки</span></a>
-        <a class="nav-item" data-route="discover"><svg><use href="#i-compass"/></svg><span>Modrinth</span></a>
+        <a class="nav-item" data-route="discover"><svg><use href="#i-compass"/></svg><span>Моды</span></a>
         <a class="nav-item" data-route="skins"><svg><use href="#i-shirt"/></svg><span>Скины</span></a>
         <a class="nav-item" data-route="stats"><svg><use href="#i-gauge"/></svg><span>Статистика</span></a>
         <a class="nav-item" data-route="downloads"><svg><use href="#i-download"/></svg><span>Загрузки</span><em class="nav-badge" id="nav-downloads-badge" hidden></em></a>

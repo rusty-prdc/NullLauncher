@@ -1233,6 +1233,7 @@
           '<div class="item-icon sm">' + esc(ui.initials(s.name)) + "</div>" +
           '<div class="grow"><div style="font-weight:600">' + esc(s.name) + "</div>" +
             '<div class="dim small">' + esc(s.ip) + ":" + esc(String(s.port || 25565)) + "</div></div>" +
+          '<span class="srv-ping dim small" data-ping></span>' +
           '<button class="btn btn-sm btn-primary" data-act="connect">Подключить</button>' +
           '<button class="btn btn-sm" data-act="edit">Изменить</button>' +
           '<button class="btn btn-sm btn-ghost" data-act="del">Удалить</button></div>';
@@ -1243,12 +1244,29 @@
         Array.prototype.forEach.call(rowEl.querySelectorAll("[data-act]"), function (btn) {
           btn.onclick = function () { serverAction(srv, btn.dataset.act); };
         });
+        loadServerPing(srv, rowEl.querySelector("[data-ping]"));
       });
     } catch (e) {
       if (S.dead) return;
       box.classList.add("list");
       box.innerHTML = errState(e, "Не удалось загрузить серверы");
       bindRetry(box);
+    }
+  }
+
+  /* пинг сервера: онлайн/макс + latency, обновляем бейдж без блокировки вкладки */
+  async function loadServerPing(srv, el) {
+    if (!el) return;
+    try {
+      var r = await api("servers.ping", { instanceId: S.id, serverId: srv.id });
+      if (S.dead || !el.isConnected) return;
+      if (r && r.error) { el.textContent = "офлайн"; el.style.color = "var(--danger,#e5484d)"; return; }
+      var color = r.ping < 80 ? "var(--ok,#30a46c)" : r.ping < 200 ? "var(--warn,#f5a623)" : "var(--danger,#e5484d)";
+      el.innerHTML = '<span style="color:' + color + '">&#9679;</span> ' +
+        esc(String(r.online)) + "/" + esc(String(r.max)) + " · " + esc(String(r.ping)) + " мс";
+    } catch (e) {
+      if (S.dead || !el.isConnected) return;
+      el.textContent = "—";
     }
   }
 

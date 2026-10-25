@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+.shot { width:1080px; height:1920px; background:#F4F7F5; color:#12211A;
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  position:relative; overflow:hidden; display:flex; flex-direction:column; }
+.status { height:88px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 56px; font-size:36px; font-weight:700; flex:none; }
+.sicons { display:flex; gap:20px; align-items:center; }
+.content { flex:1; padding:20px 44px 0; display:flex; flex-direction:column; gap:32px; overflow:hidden; }
+.nav { height:198px; background:rgba(255,255,255,.97); border-top:2px solid #E2E9E5;
+  display:flex; justify-content:space-around; align-items:center; flex:none; }
+.tab { display:flex; flex-direction:column; align-items:center; gap:8px;
+  color:#6B7C74; font-size:30px; font-weight:600; }
+.tab.on { color:#2FBF71; }
+.tab svg { width:64px; height:64px; }
+.card { background:#fff; border-radius:56px; padding:44px; box-shadow:0 8px 28px rgba(18,33,26,.05); }
+.btn { background:#2FBF71; color:#fff; border-radius:52px; height:150px; display:flex;
+  align-items:center; justify-content:center; gap:18px; font-size:51px; font-weight:700;
+  box-shadow:0 10px 26px rgba(47,191,113,.30); }
+.btn.ghost { background:#fff; color:#12211A; border:3px solid #E2E9E5; box-shadow:none; }
+.chip { background:#EDF2EF; color:#12211A; border-radius:100px; padding:16px 34px;
+  font-size:33px; font-weight:600; display:inline-flex; align-items:center; gap:12px; }
+.chip.on { background:#E3F7EC; color:#1FA35E; }
+.mute { color:#6B7C74; }
+.green { color:#1FA35E; }
+svg { display:block; }
+.hdr { font-size:57px; font-weight:800; letter-spacing:-1px; }
+.sub { font-size:33px; color:#6B7C74; }
+.hrow { display:flex; align-items:center; justify-content:space-between; }
+.icobtn { width:96px; height:96px; border-radius:32px; background:#EDF2EF; display:flex;
+  align-items:center; justify-content:center; color:#6B7C74; }
+.avatar { width:120px; height:120px; border-radius:40px; background:linear-gradient(135deg,#2FBF71,#1FA35E);
+  display:flex; align-items:center; justify-content:center; color:#fff; font-size:54px; font-weight:800;
+  box-shadow:0 8px 20px rgba(47,191,113,.28); }
+.inst { display:flex; align-items:center; gap:34px; background:#fff; border-radius:48px;
+  padding:34px; box-shadow:0 6px 22px rgba(18,33,26,.05); }
+.inst.act { background:#E3F7EC; box-shadow:none; }
+.instico { width:128px; height:128px; border-radius:38px; background:#EDF2EF; display:flex;
+  align-items:center; justify-content:center; font-size:56px; font-weight:800; color:#6B7C74; flex:none; }
+.inst.act .instico { background:#2FBF71; color:#fff; box-shadow:0 8px 20px rgba(47,191,113,.3); }
+.play { width:112px; height:112px; border-radius:50%; background:#E3F7EC; display:flex;
+  align-items:center; justify-content:center; color:#1FA35E; flex:none; }
+.play.solid { background:#2FBF71; color:#fff; box-shadow:0 8px 18px rgba(47,191,113,.3); }
+.progress { height:16px; border-radius:8px; background:#EDF2EF; overflow:hidden; }
+.progress i { display:block; height:100%; border-radius:8px; background:linear-gradient(90deg,#2FBF71,#1FA35E); }
+.slider { display:flex; align-items:center; gap:28px; }
+.strack { flex:1; height:12px; border-radius:6px; background:#EDF2EF; position:relative; }
+.strack i { position:absolute; left:0; top:0; height:100%; border-radius:6px; background:#2FBF71; }
+.strack b { position:absolute; top:50%; width:52px; height:52px; border-radius:50%; background:#fff;
+  border:4px solid #2FBF71; transform:translate(-50%,-50%); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+</style>
+</head>
+<body>
+
+<!-- ================= 1. Ð“Ð›ÐÐ’ÐÐÐ¯ ================= -->
+<div class="shot" id="s4">
+  <div class="status"><span>12:33</span>
+    <div class="sicons">
+      <svg width="42" height="36" viewBox="0 0 24 24" fill="#12211A"><path d="M2 20h3v-6H2zM8 20h3V9H8zM14 20h3V4h-3z"/></svg>
+      <svg width="42" height="36" viewBox="0 0 24 24" fill="none" stroke="#12211A" stroke-width="2.2" stroke-linecap="round"><path d="M4 10a12 12 0 0 1 16 0"/><path d="M7.5 13.5a7.5 7.5 0 0 1 9 0"/><path d="M11 17.2h2"/></svg>
+      <svg width="52" height="32" viewBox="0 0 30 16"><rect x="1" y="2" width="24" height="12" rx="4" fill="none" stroke="#12211A" stroke-width="2"/><rect x="4" y="5" width="16" height="6" rx="2" fill="#12211A"/><rect x="26" y="6" width="3" height="4" rx="1" fill="#12211A"/></svg>
+    </div>
+  </div>
+  <div class="content">
+    <div><div class="hdr">Ð£Ð¿Ñ€Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ</div><div class="sub">ÑÐ»ÐµÐ¼ÐµÐ½Ñ‚Ñ‹ Ð´Ð²Ð¸Ð³Ð°ÑŽÑ‚ÑÑ Ð¿Ð°Ð»ÑŒÑ†ÐµÐ¼ Â· Ð¿Ñ€Ð¾Ñ„Ð¸Ð»Ð¸ Ñ€Ð°ÑÐºÐ»Ð°Ð´ÐºÐ¸</div></div>
+    <div style="display:flex;gap:20px">
+      <span class="chip on">Ð¡Ñ‚Ð°Ð½Ð´Ð°Ñ€Ñ‚</span><span class="chip">Ð¡Ñ‚Ñ€Ð¾Ð¸Ñ‚ÐµÐ»ÑŒÑÑ‚Ð²Ð¾</span><span class="chip">PvP</span>
+    </div>
+    <div style="position:relative;height:1010px;border-radius:56px;overflow:hidden;
+        background:linear-gradient(#7EC3F5 0%,#A8D8F8 45%,#7DBB6A 46%,#5E9E4F 100%);box-shadow:0 10px 30px rgba(18,33,26,.12)">
+      <div style="position:absolute;top:60px;right:90px;width:110px;height:110px;border-radius:50%;background:#FFF6C9;box-shadow:0 0 60px 24px rgba(255,246,201,.8)"></div>
+      <div style="position:absolute;bottom:250px;left:0;right:0;height:40px;background:repeating-linear-gradient(90deg,#6DAA5C 0 60px,#5E9E4F 60px 120px)"></div>
+      <div style="position:absolute;left:50px;bottom:120px;width:340px;height:340px;opacity:.9">
+        <svg viewBox="0 0 120 120" width="340" height="340" fill="rgba(255,255,255,.85)" stroke="rgba(0,0,0,.15)" stroke-width="1.5">
+          <path d="M60 8 96 44H24z"/><rect x="48" y="44" width="24" height="66" rx="8"/><rect x="10" y="52" width="26" height="20" rx="9"/><rect x="84" y="52" width="26" height="20" rx="9"/>
+        </svg>
+      </div>
+      <div style="position:absolute;right:56px;bottom:130px;width:210px;height:210px;border-radius:50%;
+          background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#1FA35E;box-shadow:0 6px 18px rgba(0,0,0,.18)">ÐŸÐ Ð«Ð–ÐžÐš</div>
+      <div style="position:absolute;right:300px;bottom:210px;width:130px;height:130px;border-radius:34px;
+          background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#12211A;box-shadow:0 6px 18px rgba(0,0,0,.15)">PREC</div>
+      <div style="position:absolute;top:36px;left:36px;display:flex;gap:20px">
+        <div style="width:118px;height:88px;border-radius:24px;background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800">ESC</div>
+        <div style="width:118px;height:88px;border-radius:24px;background:rgba(47,191,113,.9);color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800">TCH</div>
+      </div>
+      <div style="position:absolute;bottom:34px;left:50%;transform:translateX(-50%);display:flex;gap:10px;
+          background:rgba(0,0,0,.35);padding:14px;border-radius:22px">
+        <div style="width:84px;height:84px;border-radius:14px;border:4px solid #fff;background:rgba(255,255,255,.25)"></div>
+        <div style="width:84px;height:84px;border-radius:14px;border:4px solid #FFD84D;background:rgba(255,216,77,.3)"></div>
+        <div style="width:84px;height:84px;border-radius:14px;border:3px solid rgba(255,255,255,.5)"></div>
+        <div style="width:84px;height:84px;border-radius:14px;border:3px solid rgba(255,255,255,.5)"></div>
+        <div style="width:84px;height:84px;border-radius:14px;border:3px solid rgba(255,255,255,.5)"></div>
+        <div style="width:84px;height:84px;border-radius:14px;border:3px solid rgba(255,255,255,.5)"></div>
+      </div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 0 0 3px rgba(0,0,0,.25)"></div>
+    </div>
+    <div class="card" style="padding:34px 40px;border:3px dashed #B9E8CF;background:#F7FDF9">
+      <span class="green" style="font-size:38px;font-weight:700">ï¼‹ Ð”Ð¾Ð±Ð°Ð²Ð¸Ñ‚ÑŒ ÐºÐ½Ð¾Ð¿ÐºÑƒ</span>
+    </div>
+    <div style="display:flex;gap:26px">
+      <div class="card" style="flex:1;padding:30px 36px">
+        <div class="mute" style="font-size:30px;font-weight:600;margin-bottom:18px">Ð Ð°Ð·Ð¼ÐµÑ€</div>
+        <div class="slider"><div class="strack"><i style="width:70%"></i><b style="left:70%"></b></div><span style="font-size:33px;font-weight:700;width:96px">110%</span></div>
+      </div>
+      <div class="card" style="flex:1;padding:30px 36px">
+        <div class="mute" style="font-size:30px;font-weight:600;margin-bottom:18px">ÐŸÑ€Ð¾Ð·Ñ€Ð°Ñ‡Ð½Ð¾ÑÑ‚ÑŒ</div>
+        <div class="slider"><div class="strack"><i style="width:55%"></i><b style="left:55%"></b></div><span style="font-size:33px;font-weight:700;width:96px">85%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

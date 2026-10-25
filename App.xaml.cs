@@ -38,6 +38,7 @@ public partial class App : System.Windows.Application
 
             Log.Info($"NullLauncher запущен (данные: {_services.Paths.DataRoot})");
             StartupChecks();
+            HandleDeepLink(e.Args);
         }
         catch (Exception ex)
         {
@@ -131,6 +132,63 @@ public partial class App : System.Windows.Application
             _services?.Emit("files.dropped", data);
     }
 
+    /// <summary>Разбирает deep-link вида nulllauncher://join?ip=play.example.com&port=25565,
+    /// переданный аргументом командной строки (регистрация протокола nulllauncher в инсталляторе).
+    /// После загрузки интерфейса шлёт событие app.deepLink — UI спросит и подключится.</summary>
+    private void HandleDeepLink(string[] args)
+    {
+        try
+        {
+            var url = args.FirstOrDefault(a => a.StartsWith("nulllauncher://", StringComparison.OrdinalIgnoreCase));
+            if (url is null) return;
+
+            var query = url[(url.IndexOf("://", StringComparison.Ordinal) + 3)..];
+            var action = query;
+            var qIdx = query.IndexOf('?');
+            string paramPart = "";
+            if (qIdx >= 0) { action = query[..qIdx]; paramPart = query[(qIdx + 1)..]; }
+            var slash = action.IndexOf('/');
+            if (slash >= 0) action = action[..slash];
+            action = action.TrimEnd('/');
+
+            if (!action.Equals("join", StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Info($"Deep-link: неизвестное действие '{action}' — пропуск");
+                return;
+            }
+
+            string? ip = null; int? port = null;
+            foreach (var pair in paramPart.Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var kv = pair.Split('=', 2);
+                if (kv.Length != 2) continue;
+                var key = Uri.UnescapeDataString(kv[0]).ToLowerInvariant();
+                var val = Uri.UnescapeDataString(kv[1]);
+                if (key == "ip") ip = val;
+                else if (key == "port" && int.TryParse(val, out var pp) && pp is > 0 and <= 65535) port = pp;
+            }
+
+            if (string.IsNullOrWhiteSpace(ip))
+            {
+                Log.Warn("Deep-link join без адреса сервера — пропуск");
+                return;
+            }
+
+            Log.Info($"Deep-link join: {ip}:{port?.ToString() ?? "25565"}");
+            // даём webview загрузиться, чтобы событие дошло до подписчика
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(1500).ConfigureAwait(false);
+                try { _services?.Emit("app.deepLink", new { ip, port }); }
+                catch (Exception ex) { Log.Warn($"Deep-link emit: {ex.Message}"); }
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Разбор deep-link: {ex.Message}");
+        }
+    }
+
     /// <summary>Фоновые проверки после запуска: целостность БД, обновления, восстановление метаданных.</summary>
     private async void StartupChecks()
     {
@@ -165,6 +223,7 @@ public partial class App : System.Windows.Application
     {
         // снимаем Rich Presence, чтобы статус «Играет в NullLauncher» не висел после закрытия
         try { _services?.Discord?.Dispose(); } catch { /* noop */ }
+        try { _services?.Media?.Dispose(); } catch { /* noop */ }
         Log.Info("NullLauncher завершён");
         base.OnExit(e);
     }

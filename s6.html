@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+.shot { width:1080px; height:1920px; background:#F4F7F5; color:#12211A;
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  position:relative; overflow:hidden; display:flex; flex-direction:column; }
+.status { height:88px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 56px; font-size:36px; font-weight:700; flex:none; }
+.sicons { display:flex; gap:20px; align-items:center; }
+.content { flex:1; padding:20px 44px 0; display:flex; flex-direction:column; gap:32px; overflow:hidden; }
+.nav { height:198px; background:rgba(255,255,255,.97); border-top:2px solid #E2E9E5;
+  display:flex; justify-content:space-around; align-items:center; flex:none; }
+.tab { display:flex; flex-direction:column; align-items:center; gap:8px;
+  color:#6B7C74; font-size:30px; font-weight:600; }
+.tab.on { color:#2FBF71; }
+.tab svg { width:64px; height:64px; }
+.card { background:#fff; border-radius:56px; padding:44px; box-shadow:0 8px 28px rgba(18,33,26,.05); }
+.btn { background:#2FBF71; color:#fff; border-radius:52px; height:150px; display:flex;
+  align-items:center; justify-content:center; gap:18px; font-size:51px; font-weight:700;
+  box-shadow:0 10px 26px rgba(47,191,113,.30); }
+.btn.ghost { background:#fff; color:#12211A; border:3px solid #E2E9E5; box-shadow:none; }
+.chip { background:#EDF2EF; color:#12211A; border-radius:100px; padding:16px 34px;
+  font-size:33px; font-weight:600; display:inline-flex; align-items:center; gap:12px; }
+.chip.on { background:#E3F7EC; color:#1FA35E; }
+.mute { color:#6B7C74; }
+.green { color:#1FA35E; }
+svg { display:block; }
+.hdr { font-size:57px; font-weight:800; letter-spacing:-1px; }
+.sub { font-size:33px; color:#6B7C74; }
+.hrow { display:flex; align-items:center; justify-content:space-between; }
+.icobtn { width:96px; height:96px; border-radius:32px; background:#EDF2EF; display:flex;
+  align-items:center; justify-content:center; color:#6B7C74; }
+.avatar { width:120px; height:120px; border-radius:40px; background:linear-gradient(135deg,#2FBF71,#1FA35E);
+  display:flex; align-items:center; justify-content:center; color:#fff; font-size:54px; font-weight:800;
+  box-shadow:0 8px 20px rgba(47,191,113,.28); }
+.inst { display:flex; align-items:center; gap:34px; background:#fff; border-radius:48px;
+  padding:34px; box-shadow:0 6px 22px rgba(18,33,26,.05); }
+.inst.act { background:#E3F7EC; box-shadow:none; }
+.instico { width:128px; height:128px; border-radius:38px; background:#EDF2EF; display:flex;
+  align-items:center; justify-content:center; font-size:56px; font-weight:800; color:#6B7C74; flex:none; }
+.inst.act .instico { background:#2FBF71; color:#fff; box-shadow:0 8px 20px rgba(47,191,113,.3); }
+.play { width:112px; height:112px; border-radius:50%; background:#E3F7EC; display:flex;
+  align-items:center; justify-content:center; color:#1FA35E; flex:none; }
+.play.solid { background:#2FBF71; color:#fff; box-shadow:0 8px 18px rgba(47,191,113,.3); }
+.progress { height:16px; border-radius:8px; background:#EDF2EF; overflow:hidden; }
+.progress i { display:block; height:100%; border-radius:8px; background:linear-gradient(90deg,#2FBF71,#1FA35E); }
+.slider { display:flex; align-items:center; gap:28px; }
+.strack { flex:1; height:12px; border-radius:6px; background:#EDF2EF; position:relative; }
+.strack i { position:absolute; left:0; top:0; height:100%; border-radius:6px; background:#2FBF71; }
+.strack b { position:absolute; top:50%; width:52px; height:52px; border-radius:50%; background:#fff;
+  border:4px solid #2FBF71; transform:translate(-50%,-50%); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+</style>
+</head>
+<body>
+
+<!-- ================= 1. Ð“Ð›ÐÐ’ÐÐÐ¯ ================= -->
+<div class="shot" id="s6">
+  <div class="status"><span>12:35</span>
+    <div class="sicons">
+      <svg width="42" height="36" viewBox="0 0 24 24" fill="#12211A"><path d="M2 20h3v-6H2zM8 20h3V9H8zM14 20h3V4h-3z"/></svg>
+      <svg width="42" height="36" viewBox="0 0 24 24" fill="none" stroke="#12211A" stroke-width="2.2" stroke-linecap="round"><path d="M4 10a12 12 0 0 1 16 0"/><path d="M7.5 13.5a7.5 7.5 0 0 1 9 0"/><path d="M11 17.2h2"/></svg>
+      <svg width="52" height="32" viewBox="0 0 30 16"><rect x="1" y="2" width="24" height="12" rx="4" fill="none" stroke="#12211A" stroke-width="2"/><rect x="4" y="5" width="16" height="6" rx="2" fill="#12211A"/><rect x="26" y="6" width="3" height="4" rx="1" fill="#12211A"/></svg>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:flex;align-items:center;gap:28px">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#12211A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12H5"/><path d="M11 5.5 4.5 12l6.5 6.5"/></svg>
+      <span style="font-size:52px;font-weight:800">ÐŸÑ€ÐµÐ¼Ð¸ÑƒÐ¼ Ð¿Ð¾Ð´Ð¿Ð¸ÑÐºÐ°</span>
+    </div>
+
+    <div style="border-radius:56px;padding:60px 48px;background:linear-gradient(135deg,#2FBF71,#128A50);color:#fff;
+        box-shadow:0 18px 44px rgba(31,163,94,.35);position:relative;overflow:hidden">
+      <div style="position:absolute;top:-60px;right:-40px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.10)"></div>
+      <div style="position:absolute;bottom:-90px;right:120px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.08)"></div>
+      <div style="width:120px;height:120px;border-radius:36px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center">
+        <svg width="66" height="66" viewBox="0 0 24 24" fill="#FFD84D"><path d="M3 8l4.5 4L12 4.5 16.5 12 21 8l-2 11H5z"/></svg>
+      </div>
+      <div style="font-size:58px;font-weight:800;margin-top:36px">nullLauncher Premium</div>
+      <div style="font-size:36px;margin-top:14px;opacity:.92;line-height:1.45">Ð‘ÐµÐ·Ð»Ð¸Ð¼Ð¸Ñ‚ ÑÐ±Ð¾Ñ€Ð¾Ðº, Ð¾Ð±Ð»Ð°Ñ‡Ð½Ñ‹Ðµ Ð±ÑÐºÐ°Ð¿Ñ‹<br>Ð¸ Ð˜Ð˜-Ð¿Ð¾Ð¼Ð¾Ñ‰Ð½Ð¸Ðº Ð² Ð¸Ð³Ñ€Ðµ</div>
+    </div>
+
+    <div class="card" style="padding:44px">
+      <div style="font-size:44px;font-weight:800;margin-bottom:32px">Ð§Ñ‚Ð¾ Ð´Ð°Ñ‘Ñ‚ Ð¿Ð¾Ð´Ð¿Ð¸ÑÐºÐ°</div>
+      <div style="display:flex;gap:28px;padding:24px 0;border-top:2px solid #EDF2EF">
+        <div style="width:64px;height:64px;border-radius:50%;background:#E3F7EC;display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1FA35E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 9.5 17.5 19.5 7"/></svg></div>
+        <div><div style="font-size:40px;font-weight:700">Ð‘ÐµÐ·Ð»Ð¸Ð¼Ð¸Ñ‚ ÑÐ±Ð¾Ñ€Ð¾Ðº</div>
+        <div class="mute" style="font-size:30px;margin-top:4px">Ð’ Ð±ÐµÑÐ¿Ð»Ð°Ñ‚Ð½Ð¾Ð¹ Ð²ÐµÑ€ÑÐ¸Ð¸ â€” Ð´Ð¾ 3</div></div>
+      </div>
+      <div style="display:flex;gap:28px;padding:24px 0;border-top:2px solid #EDF2EF">
+        <div style="width:64px;height:64px;border-radius:50%;background:#E3F7EC;display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1FA35E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 9.5 17.5 19.5 7"/></svg></div>
+        <div><div style="font-size:40px;font-weight:700">ÐžÐ±Ð»Ð°Ñ‡Ð½Ñ‹Ðµ Ð±ÑÐºÐ°Ð¿Ñ‹</div>
+        <div class="mute" style="font-size:30px;margin-top:4px">ÐœÐ¸Ñ€Ñ‹ Ð¸ Ð½Ð°ÑÑ‚Ñ€Ð¾Ð¹ÐºÐ¸ Ð½Ð° Ð¯Ð½Ð´ÐµÐºÑ Ð”Ð¸ÑÐºÐµ</div></div>
+      </div>
+      <div style="display:flex;gap:28px;padding:24px 0;border-top:2px solid #EDF2EF">
+        <div style="width:64px;height:64px;border-radius:50%;background:#E3F7EC;display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1FA35E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 9.5 17.5 19.5 7"/></svg></div>
+        <div><div style="font-size:40px;font-weight:700">Ð˜Ð˜-Ð¿Ð¾Ð¼Ð¾Ñ‰Ð½Ð¸Ðº</div>
+        <div class="mute" style="font-size:30px;margin-top:4px">Ð§Ð°Ñ‚ Ð¸ Ñ€Ð°Ð·Ð±Ð¾Ñ€ Ð²Ñ‹Ð»ÐµÑ‚Ð¾Ð² Ð¿Ñ€ÑÐ¼Ð¾ Ð² Ð¸Ð³Ñ€Ðµ</div></div>
+      </div>
+      <div style="display:flex;gap:28px;padding:24px 0;border-top:2px solid #EDF2EF">
+        <div style="width:64px;height:64px;border-radius:50%;background:#E3F7EC;display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1FA35E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 9.5 17.5 19.5 7"/></svg></div>
+        <div><div style="font-size:40px;font-weight:700">ÐŸÐ¾Ð´Ð´ÐµÑ€Ð¶ÐºÐ° Ñ€Ð°Ð·Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ¸</div>
+        <div class="mute" style="font-size:30px;margin-top:4px">Ð Ð°Ð·Ð²Ð¸Ñ‚Ð¸Ðµ Ð»Ð°ÑƒÐ½Ñ‡ÐµÑ€Ð° Ð¸ Ð±Ñ‹ÑÑ‚Ñ€Ñ‹Ðµ Ð¾Ñ‚Ð²ÐµÑ‚Ñ‹</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:38px 44px;display:flex;align-items:center;justify-content:space-between;background:#F2FBF6;box-shadow:none;border:2px solid #CDEEDC">
+      <div><div style="font-size:52px;font-weight:800;color:#1FA35E">149 â‚½ / Ð¼ÐµÑ</div>
+      <div class="mute" style="font-size:30px;margin-top:2px">ÐžÑ‚Ð¼ÐµÐ½Ð° Ð² Ð»ÑŽÐ±Ð¾Ð¹ Ð¼Ð¾Ð¼ÐµÐ½Ñ‚</div></div>
+      <svg width="60" height="60" viewBox="0 0 24 24" fill="#1FA35E"><path d="M3 8l4.5 4L12 4.5 16.5 12 21 8l-2 11H5z"/></svg>
+    </div>
+
+    <div class="btn" style="margin-top:auto;margin-bottom:20px">ÐžÑ„Ð¾Ñ€Ð¼Ð¸Ñ‚ÑŒ Ð¿Ð¾Ð´Ð¿Ð¸ÑÐºÑƒ</div>
+    <div class="mute" style="text-align:center;font-size:33px;margin-bottom:26px">Ð£ÑÐ»Ð¾Ð²Ð¸Ñ Ð¿Ð¾Ð´Ð¿Ð¸ÑÐºÐ¸ Ð¾Ð¿Ð¸ÑÐ°Ð½Ñ‹ Ð´Ð¾ Ð¾Ð¿Ð»Ð°Ñ‚Ñ‹</div>
+  </div>
+</div>
+</body>
+</html>

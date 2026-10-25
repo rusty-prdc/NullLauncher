@@ -229,6 +229,15 @@ Seeded with the two default Mojang skins (Steve, Alex) on first use. Emits `skin
 `search.global {query}` → `{ instances:[], mods:[], settings:[], worlds:[], versions:[], modrinth:[] }`
 `hotkeys.get` / `hotkeys.set {map}` (also via settings)
 
+### media (плашка «сейчас играет», SMTC)
+| method | params | result |
+|---|---|---|
+| `media.state` | – | `{ active, title?, artist?, album?, app?, playing, art? (data URL), canPlayPause, canNext, canPrev, positionMs, durationMs }` |
+| `media.control` | `{ action: "playPause"\|"next"\|"prev"\|"seek", positionMs? }` | `{ ok, reason? }` |
+
+Источник — системные сессии медиа Windows (SMTC): Spotify и любой другой плеер, который показывает
+трек в медиа-панели Windows. API-ключи не нужны. Изменения дублируются событием `media.changed`.
+
 ### events (host → frontend)
 - `notify {type:"success"|"error"|"warn"|"info", title, message, actions?:[{id,label}]}`
 - `downloads.progress {…}` (batched list snapshot)
@@ -237,6 +246,7 @@ Seeded with the two default Mojang skins (Steve, Alex) on first use. Emits `skin
 - `skins.changed {action:"added"|"renamed"|"removed"|"applied", id}`
 - `instance.changed {id}` – content modified externally
 - `settings.changed {…}`
+- `media.changed {…}` – смена трека/паузы/медиа-сессии (плашка «сейчас играет»)
 - `app.updateAvailable {…}`
 - `modrinth.status {offline:boolean}`
 
