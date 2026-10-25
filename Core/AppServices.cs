@@ -26,6 +26,7 @@ public sealed class AppServices
     public Skins.SkinService Skins { get; }
     public DiscordPresenceService Discord { get; }
     public NullLauncher.Media.MediaService Media { get; }
+    public NullLauncher.Auth.AuthService Auth { get; }
 
     public event Action<string, object?>? Notify;
 
@@ -65,6 +66,7 @@ public sealed class AppServices
         Skins = new Skins.SkinService(this);
         Discord = new DiscordPresenceService(this);
         Media = new NullLauncher.Media.MediaService();
+        Auth = new NullLauncher.Auth.AuthService(this);
 
         RegisterAll();
         Settings.Changed += (_, e) => Notify?.Invoke("settings.changed", e.Snapshot);
@@ -105,6 +107,7 @@ public sealed class AppServices
         NullLauncher.Skins.SkinsIpc.Register(Router, this);
         NullLauncher.Stats.StatsIpc.Register(Router, this);
         NullLauncher.Media.MediaIpc.Register(Router, this);
+        NullLauncher.Auth.AuthIpc.Register(Router, this);
     }
 
     /// <summary>Всплывающее уведомление в UI.</summary>

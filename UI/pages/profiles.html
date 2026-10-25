@@ -1,0 +1,225 @@
+<style>
+.pf-top { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 16px; align-items: stretch; }
+@media (max-width: 1000px) { .pf-top { grid-template-columns: 1fr; } }
+.pf-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+@media (max-width: 1000px) { .pf-bottom { grid-template-columns: 1fr; } }
+.pf-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: 20px; }
+.pf-k { font-size: 11.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.pf-k svg { width: 14px; height: 14px; }
+
+.pf-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+.pf-ava { width: 108px; height: 108px; border-radius: 26px; background: linear-gradient(160deg, var(--accent-soft, rgba(62,207,142,.18)), var(--bg-2)); border: 1px solid var(--line); display: grid; place-items: center; font-size: 44px; font-weight: 800; color: var(--accent); }
+.pf-nick { font-size: 21px; font-weight: 800; letter-spacing: -0.3px; }
+.pf-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-3); }
+.pf-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok, #3ecf8e); }
+.pf-status.off .dot { background: var(--text-3); }
+.pf-hero-actions { display: flex; gap: 10px; width: 100%; margin-top: 4px; }
+.pf-hero-actions .btn { flex: 1; }
+
+.pf-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pf-tile { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; position: relative; min-height: 86px; }
+.pf-tile .pt-ic { position: absolute; right: 12px; top: 12px; width: 30px; height: 30px; border-radius: 9px; background: var(--card); border: 1px solid var(--line); display: grid; place-items: center; color: var(--text-3); }
+.pf-tile .pt-ic svg { width: 15px; height: 15px; }
+.pf-tile .pt-v { font-size: 24px; font-weight: 800; letter-spacing: -0.6px; }
+.pf-tile .pt-v small { font-size: 12.5px; font-weight: 650; color: var(--text-3); margin-left: 3px; }
+.pf-tile .pt-k { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+.pf-tile .pt-bonus { position: absolute; right: 10px; bottom: 10px; }
+
+.pf-rows { margin-top: 4px; }
+.pf-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.pf-row:last-child { border-bottom: none; }
+.pf-acc { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pf-av { width: 34px; height: 34px; border-radius: 50%; background: var(--bg-2); display: grid; place-items: center; font-weight: 700; flex: none; }
+.pf-mut { color: var(--text-3); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; }
+.pf-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+.pf-coming { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 22px 14px; color: var(--text-2); }
+.pf-coming svg { width: 34px; height: 34px; color: var(--text-3); }
+.pf-coming b { font-size: 14.5px; }
+.pf-coming p { margin: 0; font-size: 12.5px; color: var(--text-3); line-height: 1.55; }
+</style>
+
+<section class="page">
+  <div class="page-head">
+    <div class="grow">
+      <h1 class="page-title">Профили</h1>
+      <div class="page-sub">Аккаунт NullLauncher, статистика и Minecraft-аккаунты</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-sm btn-ghost" id="pf-refresh"><svg><use href="#i-refresh"/></svg> Обновить</button>
+    </div>
+  </div>
+  <div id="pf-body"></div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (r, d) { Pages[r] = d; };
+  var S = { dead: false, nav: null };
+
+  function errHtml(e) {
+    var d = ui.errDetail ? ui.errDetail(e) : "";
+    return '<div class="state error">' + ui.icon("alert") +
+      "<h3>Не удалось загрузить профили</h3><p>" + ui.esc(ui.errText(e)) + "</p>" +
+      (d ? '<details><summary style="cursor:pointer;font-size:12px">Подробнее</summary><pre class="mono dim" style="white-space:pre-wrap;text-align:left">' + ui.esc(d) + "</pre></details>" : "") +
+      '<div class="actions"><button class="btn" data-act="reload">' + ui.icon("refresh") + " Повторить</button></div></div>";
+  }
+
+  function leftCard(auth) {
+    if (!auth || !auth.authed) {
+      return '<div class="pf-card"><div class="pf-k">' + ui.icon("user") + " Профиль NullLauncher</div>" +
+        '<div class="pf-hero">' +
+        '<div class="pf-ava">?</div><div class="pf-nick">Гость</div>' +
+        '<div class="pf-status off"><span class="dot"></span> аккаунт не подключён</div>' +
+        '<p class="pf-mut" style="line-height:1.55;margin:2px 0 0">Войди, чтобы профиль, скины, монеты и часы переезжали с тобой на любой компьютер.</p>' +
+        '<div class="pf-hero-actions">' +
+        '<button class="btn btn-primary" data-act="login">Войти</button>' +
+        '<button class="btn" data-act="register">Регистрация</button>' +
+        "</div></div></div>";
+    }
+    var offline = auth.offline ? '<span class="pf-status off"><span class="dot"></span> офлайн-данные</span>'
+      : '<span class="pf-status"><span class="dot"></span> аккаунт подключён</span>';
+    return '<div class="pf-card"><div class="pf-k">' + ui.icon("user") + " Профиль NullLauncher</div>" +
+      '<div class="pf-hero">' +
+      '<div class="pf-ava">' + ui.esc((auth.name || "?").charAt(0).toUpperCase()) + "</div>" +
+      '<div class="pf-nick">' + ui.esc(auth.name) + "</div>" + offline +
+      '<div class="pf-mut">' + ui.esc(auth.email || "") + "</div>" +
+      '<div class="pf-hero-actions">' +
+      '<button class="btn" data-act="wardrobe">' + ui.icon("shirt") + " Гардероб</button>" +
+      '<button class="btn btn-ghost" data-act="logout">Выйти</button>' +
+      "</div></div></div>";
+  }
+
+  function tiles(stats, auth) {
+    var t = (stats && stats.totals) || {};
+    var h = (t.playMs || 0) / 3600000;
+    var hv = h >= 1 ? (h >= 100 ? Math.round(h) : h.toFixed(1)) : (Math.round((t.playMs || 0) / 60000) || 0);
+    var hu = h >= 1 ? "ч" : "мин";
+    var bonus = auth && auth.authed && auth.dailyAvailable
+      ? '<button class="btn btn-sm btn-primary pt-bonus" data-act="daily">Бонус дня +10</button>' : "";
+    return '<div class="pf-tiles">' +
+      '<div class="pf-tile"><div class="pt-ic">' + ui.icon("clock") + '</div><div class="pt-v">' + hv + "<small>" + hu + '</small></div><div class="pt-k">часов в игре</div></div>' +
+      '<div class="pf-tile"><div class="pt-ic">' + ui.icon("play") + '</div><div class="pt-v">' + (t.launches || 0) + '</div><div class="pt-k">сессий</div></div>' +
+      '<div class="pf-tile"><div class="pt-ic">' + ui.icon("coin") + '</div><div class="pt-v">' + (auth && auth.authed ? auth.coins : "—") + '</div><div class="pt-k">NullCoin' + bonus + "</div></div>" +
+      '<div class="pf-tile"><div class="pt-ic">' + ui.icon("grid") + '</div><div class="pt-v">' + (t.instances || 0) + '</div><div class="pt-k">сборок</div></div>' +
+      "</div>";
+  }
+
+  function mcCard(list) {
+    var rows = (list || []).map(function (acc) {
+      return '<div class="pf-row"><div class="pf-acc"><div class="pf-av">' + ui.esc((acc.name || "?").charAt(0).toUpperCase()) + "</div>" +
+        "<div><b>" + ui.esc(acc.name) + "</b>" +
+        '<div class="pf-mut">' + (acc.type === "microsoft" ? "лицензия" : acc.type === "guest" ? "гость" : "оффлайн") +
+        (acc.default ? " · активный" : "") + "</div></div></div>" +
+        (acc.default ? ui.icon("check") :
+          '<button class="btn btn-sm btn-ghost" data-act="setdef" data-uuid="' + ui.esc(acc.uuid) + '">Активный</button>') +
+        "</div>";
+    }).join("");
+    return '<div class="pf-card"><div class="pf-k">' + ui.icon("grid") + " Minecraft-аккаунты</div>" +
+      '<div class="pf-rows">' + (rows || '<div class="pf-mut">Аккаунтов нет — войдите через Microsoft или добавьте гостевой.</div>') + "</div>" +
+      '<div class="pf-actions">' +
+      '<button class="btn btn-sm" data-act="addms">+ Microsoft</button>' +
+      '<button class="btn btn-sm btn-ghost" data-act="addoff">Оффлайн</button>' +
+      '<button class="btn btn-sm btn-ghost" data-act="addguest">Гость</button>' +
+      "</div></div>";
+  }
+
+  function friendsCard(f) {
+    if (f && f.status === "development") {
+      return '<div class="pf-card"><div class="pf-k">' + ui.icon("friends") + " Друзья</div>" +
+        '<div class="pf-coming">' + ui.icon("friends") +
+        "<b>В разработке</b><p>Друзья, их профили и статус «в игре» появятся в отдельной вкладке — аккаунт уже готов.</p>" +
+        '<button class="btn btn-sm" data-act="friends">Открыть вкладку</button></div></div>';
+    }
+    if (f && f.status === "unavailable") {
+      return '<div class="pf-card"><div class="pf-k">' + ui.icon("friends") + " Друзья</div>" +
+        '<div class="state error">' + ui.icon("alert") + "<h3>Сервис недоступен</h3><p>" +
+        ui.esc(f.message || "Нет подключения") + "</p></div></div>";
+    }
+    return "";
+  }
+
+  function proCard() {
+    return '<div class="pf-card"><div class="pf-k">' + ui.icon("star") + " NullLauncher Pro</div>" +
+      '<div class="pf-coming">' + ui.icon("star") +
+      "<b>149 ₽/мес · с 30 октября 2026</b>" +
+      "<p>Облачные сохранения, расширенные бэкапы, ранний доступ и приоритетная поддержка. " +
+      "В разработке — база остаётся бесплатной.</p>" +
+      '<button class="btn btn-sm" data-act="pro">Подробнее</button></div></div>';
+  }
+
+  async function load(root) {
+    if (S.dead) return;
+    var body = root.querySelector("#pf-body");
+    body.innerHTML = '<div class="state"><p>Загрузка…</p></div>';
+    try {
+      var auth = await api("auth.state");
+      var stats = null, mc = [], friends = { status: "development" };
+      try { stats = await api("stats.overview"); } catch (e) { stats = null; }
+      try { mc = (await api("accounts.list")) || []; } catch (e) { mc = []; }
+      try { friends = (await api("auth.friends")) || friends; } catch (e) { /* development */ }
+      if (S.dead) return;
+
+      body.innerHTML =
+        '<div class="pf-top">' + leftCard(auth) + '<div class="pf-card"><div class="pf-k">' +
+          ui.icon("gauge") + " Статистика</div>" + tiles(stats, auth) + "</div></div>" +
+        '<div class="pf-bottom">' + mcCard(mc) + friendsCard(friends) + proCard() + "</div>";
+
+      /* часы: локальное общее время → дельтой на сервер */
+      if (auth && auth.authed && stats)
+        api("auth.syncPlaytime", { totalMs: stats.totals.playMs }).catch(function () {});
+
+      body.querySelectorAll("[data-act]").forEach(function (el) {
+        el.onclick = async function () {
+          var act = el.dataset.act;
+          try {
+            if (act === "reload") return load(root);
+            if (act === "login") return S.nav("auth");
+            if (act === "register") return S.nav("auth", { mode: "register" });
+            if (act === "friends") return S.nav("friends");
+            if (act === "pro") return call("system.openUrl", { url: "https://nulllaucnher.xprodc.site/pro.html" });
+            if (act === "wardrobe") return S.nav("skins");
+            if (act === "logout") {
+              var ok = await confirmDialog({ title: "Выйти из аккаунта", message: "Токен будет удалён с этого компьютера. Сборки и настройки останутся.", okLabel: "Выйти" });
+              if (!ok) return;
+              await api("auth.logout");
+              emit("auth.changed", { authed: false });
+              return load(root);
+            }
+            if (act === "daily") {
+              var r = await api("auth.daily");
+              notifySuccess("Бонус получен", "+" + r.claimed + " NullCoin · баланс " + r.coins);
+              return load(root);
+            }
+            if (act === "setdef") {
+              await api("accounts.setDefault", { uuid: el.dataset.uuid });
+              return load(root);
+            }
+            if (act === "addms") return AccUI.openMicrosoft({ onDone: function () { load(root); } });
+            if (act === "addoff") return AccUI.openOffline({ onDone: function () { load(root); } });
+            if (act === "addguest") {
+              await api("accounts.addGuest", { name: "Player" });
+              return load(root);
+            }
+          } catch (e) { notifyError("Не получилось", ui.errText(e)); }
+        };
+      });
+    } catch (e) {
+      body.innerHTML = errHtml(e);
+      var rb = body.querySelector("[data-act=reload]");
+      if (rb) rb.onclick = function () { load(root); };
+    }
+  }
+
+  Pages.register("profiles", {
+    title: "Профили",
+    init: function (ctx) {
+      S.dead = false;
+      S.nav = ctx.navigate;
+      ctx.root.querySelector("#pf-refresh").onclick = function () { load(ctx.root); };
+      load(ctx.root);
+    },
+    dispose: function () { S.dead = true; }
+  });
+})();
+</script>

@@ -1,0 +1,85 @@
+<style>
+.fr-coming { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+  padding: 46px 20px; background: var(--card); border: 1px dashed var(--line); border-radius: var(--r-md); }
+.fr-coming svg { width: 52px; height: 52px; color: var(--text-3); }
+.fr-coming b { font-size: 17px; }
+.fr-coming p { margin: 0; font-size: 13.5px; color: var(--text-3); max-width: 460px; line-height: 1.6; }
+.fr-list { display: flex; flex-direction: column; gap: 8px; }
+.fr-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; font-size: 13.5px; }
+</style>
+
+<section class="page">
+  <div class="page-head">
+    <div class="grow">
+      <h1 class="page-title">Друзья</h1>
+      <div class="page-sub">Список друзей, их профили и статус «в игре»</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-sm btn-ghost" id="fr-refresh"><svg><use href="#i-refresh"/></svg> Обновить</button>
+    </div>
+  </div>
+  <div id="fr-body"></div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (r, d) { Pages[r] = d; };
+  var S = { dead: false };
+
+  async function load(root) {
+    if (S.dead) return;
+    var body = root.querySelector("#fr-body");
+    body.innerHTML = '<div class="state"><div class="spin"></div><p>Загрузка…</p></div>';
+    var f;
+    try { f = await api("auth.friends"); }
+    catch (e) {
+      body.innerHTML = '<div class="state error">' + ui.icon("alert") +
+        "<h3>Сервис друзей недоступен</h3><p>" + ui.esc(ui.errText(e)) + "</p>" +
+        '<div class="actions"><button class="btn" id="fr-retry">' + ui.icon("refresh") + " Повторить</button></div></div>";
+      var rb = body.querySelector("#fr-retry");
+      if (rb) rb.onclick = function () { load(root); };
+      return;
+    }
+    if (S.dead) return;
+
+    if (f.status === "development") {
+      body.innerHTML =
+        '<div class="fr-coming">' + ui.icon("friends") +
+        "<b>Друзья — в разработке</b>" +
+        "<p>Здесь появятся друзья из аккаунта NullLauncher: их профили, скины, часы и статус «в игре» — " +
+        "чтобы за пару кликов собираться вместе. Аккаунт уже создан, осталось додать само общение.</p>" +
+        '<div class="pf-mut" style="font-size:12.5px">Сервис: <code>в разработке</code> · ' +
+        "друзей пока нет</div></div>";
+      return;
+    }
+    if (f.status === "unavailable") {
+      body.innerHTML = '<div class="state error">' + ui.icon("alert") +
+        "<h3>Сервис друзей недоступен</h3><p>" + ui.esc(f.message || "Нет подключения") + "</p>" +
+        '<div class="actions"><button class="btn" id="fr-retry">' + ui.icon("refresh") + " Повторить</button></div></div>";
+      var rb2 = body.querySelector("#fr-retry");
+      if (rb2) rb2.onclick = function () { load(root); };
+      return;
+    }
+
+    var list = f.friends || [];
+    if (!list.length) {
+      body.innerHTML = '<div class="fr-coming">' + ui.icon("friends") +
+        "<b>Пока пусто</b><p>Как только функция запустится, друзья появятся здесь автоматически — аккаунт уже привязан.</p></div>";
+      return;
+    }
+    body.innerHTML = '<div class="fr-list">' + list.map(function (x) {
+      return '<div class="fr-row">' + ui.icon("user") + "<b>" + ui.esc(x.name || x) + "</b></div>";
+    }).join("") + "</div>";
+  }
+
+  Pages.register("friends", {
+    title: "Друзья",
+    init: function (ctx) {
+      S.dead = false;
+      ctx.root.querySelector("#fr-refresh").onclick = function () { load(ctx.root); };
+      load(ctx.root);
+    },
+    dispose: function () { S.dead = true; }
+  });
+})();
+</script>

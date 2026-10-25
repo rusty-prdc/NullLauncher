@@ -1,0 +1,191 @@
+<style>
+.au-page { padding-top: 6px; }
+.au-split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: stretch; min-height: calc(100vh - 150px); }
+@media (max-width: 980px) { .au-split { grid-template-columns: 1fr; } .au-art { min-height: 240px; } }
+
+.au-art { position: relative; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--line); background: #0d2444; }
+.au-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.au-art .sh { position: absolute; inset: 0; background: linear-gradient(200deg, rgba(4,10,24,0) 30%, rgba(4,10,24,.82) 100%); }
+.au-art .body { position: absolute; left: 30px; right: 30px; bottom: 28px; color: #fff; }
+.au-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; letter-spacing: .4px; margin-bottom: 16px; }
+.au-brand .lg { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); display: grid; place-items: center; }
+.au-brand .lg svg { width: 19px; height: 19px; color: #fff; }
+.au-art h1 { margin: 0 0 10px; font-size: clamp(26px, 3vw, 40px); line-height: 1.1; letter-spacing: -0.6px; text-shadow: 0 2px 16px rgba(0,0,0,.5); }
+.au-art p { margin: 0; font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,.86); max-width: 460px; text-shadow: 0 1px 8px rgba(0,0,0,.55); }
+
+.au-form { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 30px 28px; display: flex; flex-direction: column; justify-content: center; }
+.au-form h2 { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.4px; }
+.au-sub { font-size: 13px; color: var(--text-3); margin-bottom: 20px; }
+.au-form .field { margin-bottom: 13px; }
+.au-form .field label { display: block; font-size: 12.5px; color: var(--text-2); margin-bottom: 6px; }
+.au-form .field input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: var(--text); font-size: 14px; box-sizing: border-box; transition: border-color .15s; }
+.au-form .field input:focus { outline: none; border-color: var(--accent); }
+.au-err { color: var(--danger, #e0444e); font-size: 12.5px; min-height: 17px; margin-bottom: 6px; }
+.au-main-btn { width: 100%; padding: 12px; font-size: 15px; border-radius: 12px; }
+.au-or { display: flex; align-items: center; gap: 12px; color: var(--text-3); font-size: 12px; margin: 16px 0; }
+.au-or::before, .au-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.au-alt { display: flex; flex-direction: column; gap: 10px; }
+.au-altbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); color: var(--text); font-size: 13.5px; font-weight: 600; cursor: pointer; transition: border-color .15s, background .15s; }
+.au-altbtn:hover { border-color: var(--accent-line); background: var(--card-3); }
+.au-altbtn svg, .au-altbtn img { width: 17px; height: 17px; }
+.au-switch { text-align: center; font-size: 13px; color: var(--text-3); margin-top: 18px; }
+.au-switch a { color: var(--accent); cursor: pointer; font-weight: 600; }
+.au-note { font-size: 11.5px; color: var(--text-3); margin-top: 14px; line-height: 1.5; text-align: center; }
+</style>
+
+<section class="page au-page">
+  <div class="au-split">
+    <!-- левая половина: арт + логотип + текст -->
+    <div class="au-art">
+      <img src="assets/login-art.jpg" alt="" onerror="this.style.display='none'">
+      <div class="sh"></div>
+      <div class="body">
+        <div class="au-brand">
+          <span class="lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.2 20 7.6v8.8L12 20.8 4 16.4V7.6z"/><path d="M9 9.6v4.8M15 9.6v4.8" stroke-linecap="round"/></svg></span>
+          NullLauncher
+        </div>
+        <h1>Лаунчер Minecraft,<br>который просто работает</h1>
+        <p>Вход, сборки, моды и обновления — в одном окне.
+           Без рекламы, трекеров и чужих серверов: только твой Minecraft.</p>
+      </div>
+    </div>
+
+    <!-- правая половина: вход нашим аккаунтом + Microsoft + гость -->
+    <div class="au-form">
+      <h2 id="au-title">С возвращением</h2>
+      <div class="au-sub" id="au-sub">Войди, чтобы забрать свои сборки, скины и монеты</div>
+
+      <form id="au-form" autocomplete="on">
+        <div class="field" id="au-nick-f" hidden>
+          <label for="au-nick">Ник</label>
+          <input id="au-nick" type="text" maxlength="16" spellcheck="false" placeholder="Steve" autocomplete="username">
+        </div>
+        <div class="field" id="au-login-f">
+          <label for="au-login">Ник или почта</label>
+          <input id="au-login" type="text" spellcheck="false" placeholder="steve" autocomplete="username">
+        </div>
+        <div class="field" id="au-email-f" hidden>
+          <label for="au-email">Email</label>
+          <input id="au-email" type="email" spellcheck="false" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="au-pass">Пароль</label>
+          <input id="au-pass" type="password" placeholder="минимум 8 символов" autocomplete="current-password">
+        </div>
+        <div class="au-err" id="au-err"></div>
+        <button class="btn btn-primary au-main-btn" id="au-submit" type="submit">Войти</button>
+      </form>
+
+      <div class="au-or">или</div>
+
+      <div class="au-alt">
+        <button class="au-altbtn" id="au-ms" type="button">
+          <svg viewBox="0 0 23 23" aria-hidden="true"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
+          Войти через Microsoft
+        </button>
+        <button class="au-altbtn" id="au-guest" type="button">
+          <svg><use href="#i-user"/></svg>
+          Играть как гость
+        </button>
+        <button class="au-altbtn" id="au-skip" type="button">
+          <svg><use href="#i-play"/></svg>
+          Продолжить без аккаунта
+        </button>
+      </div>
+
+      <div class="au-switch" id="au-switch">Нет аккаунта? <a id="au-switch-a">Зарегистрируйся</a></div>
+      <div class="au-note">Вход принимает ник или почту. Пароль — минимум 8 символов; мы храним только его хеш,
+        на компьютере остаётся зашифрованный токен.</div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  if (!Pages.register) Pages.register = function (r, d) { Pages[r] = d; };
+  var mode = "login";
+
+  Pages.register("auth", {
+    title: "Вход",
+    init: function (ctx) {
+      var root = ctx.root;
+      if (ctx.params && ctx.params.mode === "register") mode = "register";
+
+      function labels() {
+        var reg = mode === "register";
+        root.querySelector("#au-nick-f").hidden = !reg;
+        root.querySelector("#au-login-f").hidden = reg;
+        root.querySelector("#au-email-f").hidden = !reg;
+        root.querySelector("#au-title").textContent = reg ? "Создай аккаунт" : "С возвращением";
+        root.querySelector("#au-sub").textContent = reg
+          ? "Один ник — и профиль, скины и монеты поедут с тобой куда угодно"
+          : "Войди, чтобы забрать свои сборки, скины и монеты";
+        root.querySelector("#au-submit").textContent = reg ? "Зарегистрироваться" : "Войти";
+        root.querySelector("#au-switch").innerHTML = reg
+          ? 'Уже есть аккаунт? <a id="au-switch-a">Войди</a>'
+          : 'Нет аккаунта? <a id="au-switch-a">Зарегистрируйся</a>';
+        root.querySelector("#au-switch-a").onclick = function () {
+          mode = reg ? "login" : "register";
+          root.querySelector("#au-err").textContent = "";
+          labels();
+        };
+        root.querySelector("#au-pass").setAttribute("autocomplete", reg ? "new-password" : "current-password");
+        root.querySelector("#au-err").textContent = "";
+      }
+
+      root.querySelector("#au-form").onsubmit = async function (e) {
+        e.preventDefault();
+        var err = root.querySelector("#au-err");
+        var pass = root.querySelector("#au-pass").value;
+        var reg = mode === "register";
+        err.textContent = "";
+
+        var body;
+        if (reg) {
+          var nick = root.querySelector("#au-nick").value.trim();
+          var email = root.querySelector("#au-email").value.trim();
+          if (!/^[A-Za-z0-9_]{3,16}$/.test(nick)) { err.textContent = "Ник: 3–16 символов, латиница/цифры/_"; return; }
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err.textContent = "Некорректный email"; return; }
+          if (pass.length < 8) { err.textContent = "Пароль — минимум 8 символов"; return; }
+          body = { name: nick, email: email, password: pass };
+        } else {
+          var login = root.querySelector("#au-login").value.trim();
+          if (!login) { err.textContent = "Укажи ник или почту"; return; }
+          if (pass.length < 8) { err.textContent = "Пароль — минимум 8 символов"; return; }
+          body = { email: login, password: pass };
+        }
+
+        var btn = root.querySelector("#au-submit");
+        btn.disabled = true;
+        btn.textContent = reg ? "Создаю…" : "Вхожу…";
+        try {
+          var user = await api(reg ? "auth.register" : "auth.login", body);
+          emit("auth.changed", user);
+          notifySuccess(reg ? "Аккаунт создан" : "С возвращением!", user.name + " · баланс " + user.coins + " NullCoin");
+          ctx.navigate("home");
+        } catch (ex) {
+          err.textContent = (ex && ex.message) ? ex.message : "Не удалось выполнить запрос";
+        } finally {
+          btn.disabled = false;
+          btn.textContent = reg ? "Зарегистрироваться" : "Войти";
+        }
+      };
+
+      root.querySelector("#au-ms").onclick = function () {
+        AccUI.openMicrosoft({ onDone: function () { ctx.navigate("home"); } });
+      };
+      root.querySelector("#au-guest").onclick = async function () {
+        try {
+          await api("accounts.addGuest", { name: "Player" });
+          notifySuccess("Гостевой профиль", "Можно играть — без входа и паролей");
+          ctx.navigate("home");
+        } catch (ex) { notifyError("Не удалось создать гостевой профиль", ui.errText(ex)); }
+      };
+      root.querySelector("#au-skip").onclick = function () { ctx.navigate("home"); };
+
+      labels();
+    },
+    dispose: function () {}
+  });
+})();
+</script>

@@ -475,6 +475,92 @@ function setupWindow() {
   on("window.maximized", (v) => document.documentElement.dataset.windowMax = v ? "1" : "0");
 }
 
+/* ---------------- ежедневная награда ---------------- */
+async function maybeShowDaily() {
+  var st;
+  try { st = await api("auth.dailyState"); } catch (e) { return; }
+  if (!st || st.claimedToday) return;
+  openDaily(st);
+}
+
+function openDaily(st) {
+  if (document.getElementById("daily-host")) return;
+  var host = document.createElement("div");
+  host.id = "daily-host";
+  document.body.appendChild(host);
+  var claimed = null;
+
+  function escClose(e) { if (e.key === "Escape") close(); }
+  function close() {
+    document.removeEventListener("keydown", escClose);
+    if (host.parentNode) host.parentNode.removeChild(host);
+  }
+
+  function render() {
+    var doneUpTo = 0;
+    var target = st.nextSlot || 1;
+    if (claimed) { doneUpTo = claimed.slot; target = 0; }
+    else if (st.continues) { doneUpTo = target - 1; }
+
+    var tiles = "";
+    for (var day = 1; day <= 7; day++) {
+      var cls = day <= doneUpTo ? "done" : (day === target ? "now" : "");
+      tiles += '<div class="dly-t ' + cls + '"><div class="d">День ' + day + '</div>' +
+        '<div class="n"><svg><use href="#i-coin"/></svg> +' + st.rewards[day - 1] + "</div></div>";
+    }
+
+    var series = claimed ? claimed.streak : (st.continues ? st.streak : 0);
+    var best = Math.max(st.bestStreak || 0, series || 0);
+    var now = new Date();
+    var hours = Math.max(1, Math.round(
+      (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) - now.getTime()) / 3600000));
+
+    var bottom;
+    if (claimed) {
+      bottom = '<div class="dly-got"><svg><use href="#i-coin"/></svg> Получено +' + claimed.claimed + " · день " + claimed.slot + "</div>" +
+        '<div class="dly-foot">Следующая награда +' + st.rewards[claimed.slot % 7] + " — примерно через " + hours + " ч</div>";
+    } else {
+      bottom = '<div class="dly-claim"><button class="btn btn-primary" id="dly-go">Забрать +' + (st.nextReward || 3) + "</button>" +
+        '<span class="dly-foot">Сегодня день ' + target + "</span></div>";
+    }
+
+    host.innerHTML =
+      '<div class="dly" role="dialog" aria-modal="true">' +
+        '<div class="dly-head">' +
+          '<div class="dly-ic"><svg><use href="#i-pixgift"/></svg></div>' +
+          '<div><div class="dly-title">Ежедневная награда</div>' +
+          '<div class="dly-sub">Награда растёт с каждым днём подряд — пропустишь день, начнёшь заново.</div></div>' +
+          '<button class="dly-x" id="dly-x" title="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
+        "</div>" +
+        '<div class="dly-meta"><span class="dly-fire">Серия: ' + series + " дн.</span>" +
+          '<span class="dly-rec">Рекорд: ' + best + " дн.</span></div>" +
+        '<div class="dly-grid">' + tiles + "</div>" +
+        bottom +
+      "</div>";
+
+    host.querySelector("#dly-x").onclick = close;
+    var go = host.querySelector("#dly-go");
+    if (go) go.onclick = async function () {
+      go.disabled = true;
+      go.textContent = "Забираю…";
+      try {
+        var r = await api("auth.daily");
+        claimed = { slot: r.slot, claimed: r.claimed, streak: r.streak };
+        notifySuccess("Награда получена", "+" + r.claimed + " NullCoin · баланс " + r.coins);
+        render();
+      } catch (e) {
+        notifyError("Не удалось получить награду", ui.errText(e));
+        go.disabled = false;
+        go.textContent = "Забрать";
+      }
+    };
+    host.onclick = function (e) { if (e.target === host) close(); };
+  }
+
+  render();
+  document.addEventListener("keydown", escClose);
+}
+
 /* ---------------- media pill (SMTC: Spotify и другие плееры) ---------------- */
 const MediaLogos = {
   Spotify: { svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path fill="none" stroke="#0a0a0a" stroke-width="1.9" stroke-linecap="round" d="M6.3 9.3c3.7-1.1 8.7-.7 11.9 1.3M7 12.5c3-.9 7.1-.5 9.8 1.2M7.7 15.5c2.5-.7 5.7-.4 7.9 1"/></svg>' },
@@ -876,6 +962,8 @@ async function boot() {
       });
     });
     items.push("-");
+    items.push({ label: App.auth && App.auth.authed ? "NullLauncher: " + App.auth.name : "Войти в NullLauncher", icon: "user", onClick: () => navigate("profiles") });
+    items.push("-");
     items.push({ label: "Войти через Microsoft", icon: "user", onClick: () => AccUI.openMicrosoft({ onDone: updateAccountChip }) });
     items.push({ label: "Офлайн-аккаунт", icon: "user", onClick: () => AccUI.openOffline({ onDone: updateAccountChip }) });
     items.push({
@@ -895,6 +983,9 @@ async function boot() {
   const _site = $("#link-site");
   if (_site) _site.onclick = () => call("system.openUrl", { url: "https://nulllaucnher.xprodc.site/" });
 
+  App.auth = { authed: false };
+  on("auth.changed", (s) => { App.auth = s || { authed: false }; });
+  api("auth.state").then((s) => { App.auth = s || { authed: false }; emit("auth.changed", App.auth); if (s && s.authed && s.dailyAvailable) maybeShowDaily(); }).catch(() => {});
   on("notify", (d) => notify(d.type || "info", d.title, d.message, d.actions));
   on("app.updateAvailable", (d) => {
     notify("info", "Доступно обновление NullLauncher", `${d.current} → ${d.latest}`, [

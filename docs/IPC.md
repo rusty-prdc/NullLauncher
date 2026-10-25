@@ -229,6 +229,22 @@ Seeded with the two default Mojang skins (Steve, Alex) on first use. Emits `skin
 `search.global {query}` → `{ instances:[], mods:[], settings:[], worlds:[], versions:[], modrinth:[] }`
 `hotkeys.get` / `hotkeys.set {map}` (also via settings)
 
+### auth (аккаунт NullLauncher)
+| method | params | result |
+|---|---|---|
+| `auth.state` | – | `{ authed, id?, name?, email?, coins?, playtimeMs?, bio?, dailyAvailable?, offline? }` |
+| `auth.register` | `{ name, email, password }` | профиль (токен сохраняется, DPAPI) |
+| `auth.login` | `{ email, password }` | профиль |
+| `auth.logout` | – | `{ ok:true }` |
+| `auth.me` | – | профиль (свежий с сервера) |
+| `auth.daily` | – | `{ claimed, coins, user? }` — ежедневный бонус +10 NullCoin |
+| `auth.setBio` | `{ bio }` | профиль |
+| `auth.syncPlaytime` | `{ totalMs }` | `{ pushed, addMs?, playtimeMs? }` (дельта к серверу, ≤24 ч за вызов) |
+| `auth.friends` | – | `{ status: "development"\|"unavailable"\|…, friends: [] }` |
+
+Бэкенд: собственный API `api.nulllaucnher.xprodc.site` (переопределяется kv `accountApi`).
+Пароли не хранятся, только HMAC-токен (90 дней) под ключом DPAPI CurrentUser. Событие `auth.changed {…профиль}`.
+
 ### media (плашка «сейчас играет», SMTC)
 | method | params | result |
 |---|---|---|

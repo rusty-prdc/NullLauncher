@@ -1,7 +1,7 @@
 <style>
 /* ===== home — главный экран: только герой, как на эталонном макете ===== */
-.hero { position: relative; overflow: visible; border-radius: var(--r-lg); min-height: clamp(400px, calc(100vh - 205px), 640px); display: flex; flex-direction: column; justify-content: flex-end; }
-#home-hero { margin-bottom: 30px; }
+.hero { position: relative; overflow: visible; border-radius: var(--r-lg); min-height: clamp(480px, calc(100vh - 132px), 940px); display: flex; flex-direction: column; justify-content: flex-end; }
+#home-hero { margin-bottom: 16px; }
 .hero-clip { position: absolute; inset: 0; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--line); background: #241a14; animation: home-rise .55s cubic-bezier(.22, .9, .3, 1) both; }
 @keyframes home-rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .hero-clip, .hero-body, .hero-dock { animation: none; } }
@@ -60,6 +60,7 @@
   var S = {
     unsubs: [], activeId: null, playBtn: null, dead: false,
     running: [], runningLimit: 1, runTimer: null, list: [],
+    coverUrl: null,
   };
 
   /* логотипы загрузчиков и компаний (настоящие файлы в UI/assets/logos) */
@@ -93,6 +94,27 @@
     if (b) b.onclick = fn;
   }
 
+  /* ---------- обложка с сервера (меняется без обновлений лаунчера) ---------- */
+  function applyCover(box) {
+    if (!S.coverUrl || !box) return;
+    var busted = S.coverUrl + (S.coverUrl.indexOf("?") < 0 ? "?" : "&") + "t=" + Date.now();
+    box.querySelectorAll(".hero-bg").forEach(function (el) { el.style.backgroundImage = 'url("' + busted + '")'; });
+  }
+  function loadCover(box) {
+    if (S.coverUrl !== null) { applyCover(box); return; }
+    api("auth.cover").then(function (r) {
+      var url = r && r.url;
+      if (!url) { S.coverUrl = ""; return; }
+      var probe = new Image();
+      probe.onload = function () {
+        S.coverUrl = url;
+        if (!S.dead) applyCover(document.getElementById("home-hero"));
+      };
+      probe.onerror = function () { S.coverUrl = ""; };
+      probe.src = url;
+    }).catch(function () { S.coverUrl = ""; });
+  }
+
   /* ---------- hero: выбрать активную сборку ---------- */
   function pickActive(list) {
     if (!list.length) return null;
@@ -119,6 +141,7 @@
       "</div>";
     box.querySelector('[data-act="create"]').onclick = function () { navigate("instances", { create: 1 }); };
     box.querySelector('[data-act="import"]').onclick = importInstance;
+    loadCover(box);
   }
 
   async function importInstance() {
@@ -189,6 +212,7 @@
       iconBox.innerHTML = '<img src="' + url + '" alt="" />';
     }).catch(function () { /* без картинки — остаётся буквенная плитка */ });
     applyRunningUI();
+    loadCover(box);
   }
 
   function openVersionMenu(anchor, currentId) {
@@ -394,6 +418,7 @@
       renderHero(hero, pickActive(list));
 
       // состояние запуска показываем сразу и поддерживаем в актуальном виде
+      loadCover(hero);
       refreshRunning();
       if (S.runTimer) clearInterval(S.runTimer);
       S.runTimer = setInterval(function () { if (!S.dead) refreshRunning(); }, 5000);
