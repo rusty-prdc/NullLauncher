@@ -152,6 +152,62 @@ public sealed class AuthService
         return new { ok = true };
     }
 
+    /* ================= вход через Ely.by ================= */
+
+    /// <summary>Открывает страницу входа Ely.by в системном браузере
+    /// (сервер выдаёт URL со своим state; возврат идёт по deep-link nulllauncher://auth?token=…).</summary>
+    public async Task<object> ElyStartAsync()
+    {
+        var node = await ReqAsync("GET", "/api/ely/start?redirect=launcher", null, auth: false);
+        var url = Str(node, "url");
+        if (string.IsNullOrEmpty(url))
+            throw new LauncherException(Str(node, "message") is { Length: > 0 } m ? m : "Сервис Ely.by недоступен");
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            throw new LauncherException("Не удалось открыть браузер", ex.Message, ex);
+        }
+        Log.Info("Аккаунт: открыт вход через Ely.by");
+        return new { ok = true, opened = true };
+    }
+
+    /// <summary>Приём токена из deep-link: сохраняет его и подтягивает профиль (событие auth.changed).</summary>
+    public async Task<object> ApplyExternalTokenAsync(string token)
+    {
+        token = (token ?? "").Trim();
+        if (token.Length < 10) throw new LauncherException("Пустой токен входа Ely.by");
+        SaveToken(token);
+        Log.Info("Аккаунт: вход через Ely.by (токен из deep-link)");
+        try
+        {
+            var dto = await MeCoreAsync(emit: true);
+            _s.Emit("auth.elyDone", dto);
+            return dto;
+        }
+        catch (Exception ex)
+        {
+            // сеть может подвести сразу после входа — токен уже сохранён, профиль подтянется при следующем запросе
+            Log.Warn("Ely.by: профиль не загрузился сразу: " + ex.Message);
+            var cached = _s.Settings.Get("authUser", "");
+            if (!string.IsNullOrEmpty(cached))
+            {
+                try
+                {
+                    var off = Dto(JsonNode.Parse(cached)!);
+                    _s.Emit("auth.elyDone", off);
+                    return off;
+                }
+                catch { /* битый кэш */ }
+            }
+            _s.Emit("auth.changed", new { authed = true });
+            _s.Emit("auth.elyDone", new { authed = true });
+            return new { authed = true };
+        }
+    }
+
     public async Task<object> SetBioAsync(string bio)
     {
         var node = await ReqAsync("PATCH", "/api/me", new { bio });

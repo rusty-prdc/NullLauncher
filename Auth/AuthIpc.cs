@@ -21,6 +21,7 @@ public static class AuthIpc
         r.Register("auth.friends", async (_, _) => await s.Auth.FriendsAsync());
         r.Register("auth.dailyState", async (_, _) => await s.Auth.DailyStateAsync());
         r.Register("auth.cover", async (_, _) => await s.Auth.CoverAsync());
+        r.Register("auth.elyStart", async (_, _) => await s.Auth.ElyStartAsync());
     }
 
     private static long Num(JsonNode? p, string k)

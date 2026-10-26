@@ -79,6 +79,10 @@
       <div class="au-or">или</div>
 
       <div class="au-alt">
+        <button class="au-altbtn" id="au-ely" type="button">
+          <img src="https://ely.by/favicon.ico" width="17" height="17" alt="" style="border-radius:4px" onerror="this.style.display='none'">
+          Войти через Ely.by
+        </button>
         <button class="au-altbtn" id="au-ms" type="button">
           <svg viewBox="0 0 23 23" aria-hidden="true"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
           Войти через Microsoft
@@ -173,6 +177,19 @@
 
       root.querySelector("#au-ms").onclick = function () {
         AccUI.openMicrosoft({ onDone: function () { ctx.navigate("home"); } });
+      };
+      root.querySelector("#au-ely").onclick = async function () {
+        var b = this, err = root.querySelector("#au-err");
+        err.textContent = "";
+        b.disabled = true;
+        try {
+          await api("auth.elyStart", {});
+          notifyInfo("Вход через Ely.by", "Открылся браузер — войди там и вернись в лаунчер");
+        } catch (ex) {
+          err.textContent = (ex && ex.message) ? ex.message : "Не удалось открыть Ely.by";
+        } finally {
+          setTimeout(function () { b.disabled = false; }, 4000);
+        }
       };
       root.querySelector("#au-guest").onclick = async function () {
         try {

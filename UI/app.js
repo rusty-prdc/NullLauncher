@@ -985,6 +985,7 @@ async function boot() {
 
   App.auth = { authed: false };
   on("auth.changed", (s) => { App.auth = s || { authed: false }; });
+  on("auth.elyDone", () => { if (App.route === "auth") render("home", {}); });
   api("auth.state").then((s) => { App.auth = s || { authed: false }; emit("auth.changed", App.auth); if (s && s.authed && s.dailyAvailable) maybeShowDaily(); }).catch(() => {});
   on("notify", (d) => notify(d.type || "info", d.title, d.message, d.actions));
   on("app.updateAvailable", (d) => {

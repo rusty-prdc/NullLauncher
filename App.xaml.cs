@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Pipes;
 using System.Windows;
 using System.Windows.Threading;
 using NullLauncher.Core;
@@ -9,10 +10,22 @@ public partial class App : System.Windows.Application
 {
     private AppServices? _services;
     private MainWindow? _window;
+    private Mutex? _singleInstance;
+    private const string PipeName = "NullLauncher.deeplink";
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // один экземпляр: второй (например, приход через nulllauncher://auth?token=…)
+        // передаёт deep-link работающему окну и завершается
+        _singleInstance = new Mutex(true, @"Local\NullLauncherSingle", out var isNew);
+        if (!isNew)
+        {
+            ForwardArgsToRunningInstance(e.Args);
+            Shutdown(0);
+            return;
+        }
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -39,6 +52,7 @@ public partial class App : System.Windows.Application
             Log.Info($"NullLauncher запущен (данные: {_services.Paths.DataRoot})");
             StartupChecks();
             HandleDeepLink(e.Args);
+            _ = Task.Run(ListenDeepLinks);
         }
         catch (Exception ex)
         {
@@ -151,6 +165,32 @@ public partial class App : System.Windows.Application
             if (slash >= 0) action = action[..slash];
             action = action.TrimEnd('/');
 
+            if (action.Equals("auth", StringComparison.OrdinalIgnoreCase))
+            {
+                // вход через Ely.by: nulllauncher://auth?token=…
+                string? authToken = null;
+                foreach (var pair in paramPart.Split('&', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var kv = pair.Split('=', 2);
+                    if (kv.Length == 2 &&
+                        Uri.UnescapeDataString(kv[0]).Equals("token", StringComparison.OrdinalIgnoreCase))
+                        authToken = Uri.UnescapeDataString(kv[1]);
+                }
+                if (string.IsNullOrWhiteSpace(authToken))
+                {
+                    Log.Warn("Deep-link auth без токена — пропуск");
+                    return;
+                }
+                Log.Info("Deep-link: вход через Ely.by — применяю токен");
+                var svc = _services;
+                _ = Task.Run(async () =>
+                {
+                    try { if (svc is not null) await svc.Auth.ApplyExternalTokenAsync(authToken); }
+                    catch (Exception ex) { Log.Error("Ely.by: не удалось применить токен", ex); }
+                });
+                return;
+            }
+
             if (!action.Equals("join", StringComparison.OrdinalIgnoreCase))
             {
                 Log.Info($"Deep-link: неизвестное действие '{action}' — пропуск");
@@ -186,6 +226,43 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             Log.Warn($"Разбор deep-link: {ex.Message}");
+        }
+    }
+
+    /// <summary>Вторая копия лаунчера шлёт свои аргументы (deep-link) работающему окну через именованный канал.</summary>
+    private static void ForwardArgsToRunningInstance(string[] args)
+    {
+        try
+        {
+            using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
+            client.Connect(1000);
+            using var w = new StreamWriter(client);
+            w.Write(string.Join("\n", args));
+            w.Flush();
+        }
+        catch (Exception ex) { Log.Warn($"Передача deep-link работающему окну: {ex.Message}"); }
+    }
+
+    /// <summary>Слушает именованный канал: сюда приходят deep-link'и от вторых копий (nulllauncher://auth?…).</summary>
+    private void ListenDeepLinks()
+    {
+        while (true)
+        {
+            try
+            {
+                using var server = new NamedPipeServerStream(PipeName, PipeDirection.In, 1,
+                    PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+                server.WaitForConnection();
+                using var r = new StreamReader(server);
+                var payload = r.ReadToEnd();
+                var args = payload.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                if (args.Length > 0) HandleDeepLink(args);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn($"Deep-link канал: {ex.Message}");
+                Thread.Sleep(1000);
+            }
         }
     }
 
