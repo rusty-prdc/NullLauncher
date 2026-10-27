@@ -135,7 +135,6 @@
     <div class="disco-fchips" id="disco-types">
       <button class="chip active" data-t="">Все</button>
       <button class="chip" data-t="mod">Моды</button>
-      <button class="chip" data-t="plugin">Плагины</button>
       <button class="chip" data-t="modpack">Модпаки</button>
       <button class="chip" data-t="resourcepack">Ресурс-паки</button>
       <button class="chip" data-t="shader">Шейдеры</button>
@@ -174,13 +173,12 @@
 (function () {
   if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
 
-  var TYPE_LABELS = { mod: "Мод", plugin: "Плагин", modpack: "Модпак", resourcepack: "Ресурс-пак", shader: "Шейдер", datapack: "Датапак" };
+  var TYPE_LABELS = { mod: "Мод", modpack: "Модпак", resourcepack: "Ресурс-пак", shader: "Шейдер", datapack: "Датапак" };
   var KIND_BY_TYPE = { mod: "mods", resourcepack: "resourcepacks", shader: "shaderpacks", datapack: "datapacks" };
   /* описания разделов каталога */
   var TYPE_DESC = {
-    "": "Поиск модов, плагинов, модпаков, ресурс-паков, датапаков и шейдеров",
+    "": "Поиск модов, модпаков, ресурс-паков, датапаков и шейдеров",
     mod: "Геймплей, оптимизация, техника и магия",
-    plugin: "Расширения для серверов: Paper, Spigot, Bukkit",
     modpack: "Готовые сборки модов в один клик",
     resourcepack: "Текстуры, звуки и модели",
     shader: "Освещение и графика: Iris, OptiFine",
@@ -568,7 +566,7 @@
   function loadTypeCounts() {
     if (S.typeCountsLoaded) return;
     S.typeCountsLoaded = true;
-    ["mod", "plugin", "modpack", "resourcepack", "shader", "datapack"].forEach(function (t) {
+    ["mod", "modpack", "resourcepack", "shader", "datapack"].forEach(function (t) {
       api("modrinth.search", { type: t, limit: 1 }).then(function (res) {
         if (S.dead || !res || !res.total || !S.els.types) return;
         var b = S.els.types.querySelector('[data-t="' + t + '"]');
@@ -884,7 +882,6 @@
 
   /* таблица версий — общая для вкладки «Версии» и превью на «О проекте» */
   function versionsTableHTML(list) {
-    var noInstall = (S.detailType || "") === "plugin";
     var html = '<div class="table-wrap"><table class="table disco-ver"><thead><tr>' +
       "<th>Версия</th><th>Дата</th><th>Minecraft</th><th>Loader</th><th class=\"num\">Размер</th><th class=\"num\">Загрузки</th><th>Канал</th><th></th>" +
       "</tr></thead><tbody>";
@@ -904,10 +901,8 @@
         '<td class="num tnum">' + ui.fmtNum(v.downloads || 0) + "</td>" +
         "<td>" + channelBadge(v) + "</td>" +
         '<td><div class="row" style="gap:6px;justify-content:flex-end">' +
-        (noInstall
-          ? (file && file.url ? '<button class="btn btn-sm btn-primary" data-url="' + ui.esc(file.url) + '">' + ui.icon("download") + " Скачать</button>" : "")
-          : '<button class="btn btn-sm btn-primary" data-inst="' + ui.esc(v.id || "") + '">Установить</button>' +
-            (file && file.url ? '<button class="btn btn-sm btn-ghost" data-url="' + ui.esc(file.url) + '" title="Скачать файл отдельно">' + ui.icon("download") + "</button>" : "")) +
+        '<button class="btn btn-sm btn-primary" data-inst="' + ui.esc(v.id || "") + '">Установить</button>' +
+        (file && file.url ? '<button class="btn btn-sm btn-ghost" data-url="' + ui.esc(file.url) + '" title="Скачать файл отдельно">' + ui.icon("download") + "</button>" : "") +
         "</div></td></tr>";
     });
     html += "</tbody></table></div>";
@@ -1171,17 +1166,12 @@
     if (p.license) meta += '<span class="chip">' + ui.esc(normalizeValue(p.license)) + "</span>";
 
     var isModpack = (S.detailType || p.projectType) === "modpack";
-    var isPlugin = (S.detailType || p.projectType) === "plugin";
     var actions = "";
     if (isModpack) {
       actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
       actions += '<button class="btn" data-act="download-latest">' + ui.icon("download") + " Скачать</button>";
       actions += '<button class="btn" data-act="open-mr">' + ui.icon("external") +
         (isCfProject() ? " На CurseForge" : " На Modrinth") + "</button>";
-    } else if (isPlugin) {
-      // плагины ставить в лаунчере некуда — сразу скачиваем файл
-      actions += '<button class="btn btn-primary" data-act="download-latest">' + ui.icon("download") + " Скачать</button>";
-      actions += '<button class="btn" data-act="versions">' + ui.icon("package") + " Версии</button>";
     } else {
       actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
       actions += '<button class="btn" data-act="download-latest">' + ui.icon("download") + " Скачать</button>";
