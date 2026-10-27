@@ -129,11 +129,13 @@
         <option value="downloads">По загрузкам</option>
         <option value="follows"> По подписчикам</option>
         <option value="updated">По обновлению</option>
+        <option value="newest">Новейшие</option>
       </select>
     </div>
     <div class="disco-fchips" id="disco-types">
       <button class="chip active" data-t="">Все</button>
       <button class="chip" data-t="mod">Моды</button>
+      <button class="chip" data-t="plugin">Плагины</button>
       <button class="chip" data-t="modpack">Модпаки</button>
       <button class="chip" data-t="resourcepack">Ресурс-паки</button>
       <button class="chip" data-t="shader">Шейдеры</button>
@@ -172,15 +174,48 @@
 (function () {
   if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
 
-  var TYPE_LABELS = { mod: "Мод", modpack: "Модпак", resourcepack: "Ресурс-пак", shader: "Шейдер", datapack: "Датапак" };
+  var TYPE_LABELS = { mod: "Мод", plugin: "Плагин", modpack: "Модпак", resourcepack: "Ресурс-пак", shader: "Шейдер", datapack: "Датапак" };
   var KIND_BY_TYPE = { mod: "mods", resourcepack: "resourcepacks", shader: "shaderpacks", datapack: "datapacks" };
+  /* описания разделов каталога */
+  var TYPE_DESC = {
+    "": "Поиск модов, плагинов, модпаков, ресурс-паков, датапаков и шейдеров",
+    mod: "Геймплей, оптимизация, техника и магия",
+    plugin: "Расширения для серверов: Paper, Spigot, Bukkit",
+    modpack: "Готовые сборки модов в один клик",
+    resourcepack: "Текстуры, звуки и модели",
+    shader: "Освещение и графика: Iris, OptiFine",
+    datapack: "Механика и данные без модов",
+  };
   var LINK_LABELS = { source: "Источник", homepage: "Сайт", wiki: "Вики", discord: "Discord", donation: "Донат", support: "Поддержка" };
 
   /* ядра (загрузчики): популярные — с логотипами; неизвестные названия приводятся к виду «Bta Babric» */
   var LD_LABELS = {
     vanilla: "Ванилла", fabric: "Fabric", forge: "Forge", neoforge: "NeoForge", quilt: "Quilt",
-    liteloader: "LiteLoader", rift: "Rift", modloader: "ModLoader", optifine: "OptiFine", bukkit: "Bukkit",
+    liteloader: "LiteLoader", rift: "Rift", modloader: "ModLoader", optifine: "OptiFine",
+    /* серверные ядра и прокси */
+    bukkit: "Bukkit", spigot: "Spigot", paper: "Paper", purpur: "Purpur", folia: "Folia",
+    sponge: "Sponge", arclight: "Arclight", canary: "Canary", velocity: "Velocity",
+    waterfall: "Waterfall", bungeecord: "BungeeCord", iris: "Iris", universal: "Универсальный",
   };
+  /* русские названия категорий Modrinth */
+  var CATEGORY_RU = {
+    adventure: "Приключения", optimization: "Оптимизация", automation: "Автоматизация",
+    magic: "Магия", storage: "Хранение", social: "Общение", utility: "Утилиты",
+    decoration: "Декор", management: "Управление", equipment: "Снаряжение", food: "Еда",
+    machinery: "Механизмы", library: "Библиотеки", worldgen: "Генерация мира", mobs: "Мобы",
+    blocks: "Блоки", items: "Предметы", transportation: "Транспорт", gameplay: "Геймплей",
+    "game-mechanics": "Механики игры", minigame: "Мини-игры", cursed: "Проклятые",
+    technology: "Технологии", misc: "Разное", building: "Строительство",
+    admin: "Администрирование", anticheat: "Античит", chat: "Чат", economy: "Экономика",
+    games: "Игры", fun: "Развлечения", protection: "Защита", "grief-prevention": "Антигрифер",
+    worldmanagement: "Управление миром",
+    realistic: "Реалистичные", medieval: "Средневековые", fantasy: "Фэнтези", cartoon: "Мультяшные",
+    minimalistic: "Минималистичные", modern: "Современные", funny: "Забавные",
+    historical: "Исторические", nature: "Природа", urban: "Городские", colorful: "Яркие",
+    dark: "Тёмные", "high-resolution": "Высокое разрешение", "low-resolution": "Низкое разрешение",
+    "medium-resolution": "Среднее разрешение",
+  };
+  function catLabel(c) { return CATEGORY_RU[c] || c; }
   var LD_POPULAR = ["vanilla", "fabric", "neoforge", "forge", "quilt"];
   var LD_LOGOS = {
     vanilla: "assets/logos/mojang.png", fabric: "assets/logos/fabric.png",
@@ -311,7 +346,7 @@
       /* категории — по галочке «показывать категории» */
       catSel.hidden = !S.showCats;
       catSel.innerHTML = '<option value="">Все категории</option>' + cats.map(function (c) {
-        return '<option value="' + ui.esc(c) + '"' + (S.cat === c ? " selected" : "") + ">" + ui.esc(c) + "</option>";
+        return '<option value="' + ui.esc(c) + '"' + (S.cat === c ? " selected" : "") + ">" + ui.esc(catLabel(c)) + "</option>";
       }).join("");
 
       /* все релизные версии Minecraft — без снапшотов, пререлизов и кандидатов */
@@ -498,7 +533,15 @@
     });
   }
 
+  function updateSub() {
+    if (!S.els.sub) return;
+    S.els.sub.textContent = (S.hits && S.total)
+      ? "Найдено проектов: " + ui.fmtNum(S.total) + (S.offline ? " · офлайн-данные" : "")
+      : (TYPE_DESC[S.type] || TYPE_DESC[""]);
+  }
+
   function renderPager() {
+    updateSub();
     var pager = S.els.pager;
     if (!pager) return;
     if (S.view !== "list" || !S.hits || !S.hits.length) { pager.hidden = true; return; }
@@ -510,11 +553,6 @@
     S.els.page.textContent = (Math.floor(S.offset / Math.max(1, S.limit)) + 1) + " стр.";
     S.els.prev.disabled = S.offset <= 0;
     S.els.next.disabled = S.offset + S.hits.length >= S.total;
-    if (S.els.sub) {
-      S.els.sub.textContent = S.total
-        ? "Найдено проектов: " + ui.fmtNum(S.total) + (S.offline ? " · офлайн-данные" : "")
-        : "Поиск модов, модпаков, ресурс-паков и шейдеров";
-    }
   }
 
   function resetFilters() {
@@ -524,6 +562,27 @@
     S.els.types.querySelectorAll("[data-t]").forEach(function (b) { b.classList.toggle("active", b.dataset.t === ""); });
     renderFilters();
     doSearch();
+  }
+
+  /* счётчики разделов: сколько проектов каждого типа в Modrinth (один раз за сессию страницы) */
+  function loadTypeCounts() {
+    if (S.typeCountsLoaded) return;
+    S.typeCountsLoaded = true;
+    ["mod", "plugin", "modpack", "resourcepack", "shader", "datapack"].forEach(function (t) {
+      api("modrinth.search", { type: t, limit: 1 }).then(function (res) {
+        if (S.dead || !res || !res.total || !S.els.types) return;
+        var b = S.els.types.querySelector('[data-t="' + t + '"]');
+        if (!b) return;
+        var span = b.querySelector(".tcount");
+        if (!span) {
+          span = document.createElement("span");
+          span.className = "tcount dim small tnum";
+          span.style.marginLeft = "5px";
+          b.appendChild(span);
+        }
+        span.textContent = ui.fmtNum(res.total);
+      }).catch(function () { /* счётчик не критичен */ });
+    });
   }
 
   /* ---------- выбор сборки ---------- */
@@ -747,6 +806,8 @@
     if (toolbar) toolbar.hidden = true;
     if (pager) pager.hidden = true;
     renderBody();
+    // версии грузим сразу фоном — нужны для превью «Последние версии» и подписи кнопок
+    if (!isCfProject()) loadVersions();
     try {
       var p = await api("modrinth.project", { id: id });
       if (S.dead) return;
@@ -779,18 +840,29 @@
     var p = {};
     if (S.loader) p.loaders = [S.loader];
     if (S.mcs.length) p.gameVersions = S.mcs.slice();
+    var myId = S.detailId;
     try {
-      var list = await api("modrinth.versions", Object.assign({ id: S.detailId }, p));
-      if (S.dead) return;
+      var list = await api("modrinth.versions", Object.assign({ id: myId }, p));
+      if (S.dead || S.detailId !== myId) return;   // проект уже сменился — ответ не берём
       S.versions = list || [];
       S.verLoading = false;
+      updateDetailBtns();
     } catch (e) {
-      if (S.dead) return;
+      if (S.dead || S.detailId !== myId) return;
       S.versions = [];
       S.verLoading = false;
       S.verError = e;
     }
-    renderTab();
+    if (S.detailId === myId) renderTab();
+  }
+
+  /* подписи в шапке проекта: «Версии (N)» и «Скачать vX.Y» после загрузки версий */
+  function updateDetailBtns() {
+    if (!S.versions) return;
+    if (S.els.verBtn) S.els.verBtn.innerHTML = ui.icon("package") + " Версии (" + S.versions.length + ")";
+    var v = S.versions[0];
+    if (S.els.dlBtn && v && v.versionNumber)
+      S.els.dlBtn.innerHTML = ui.icon("download") + " Скачать " + ui.esc(v.versionNumber);
   }
 
   function channelBadge(v) {
@@ -810,6 +882,38 @@
     return f.join(" · ");
   }
 
+  /* таблица версий — общая для вкладки «Версии» и превью на «О проекте» */
+  function versionsTableHTML(list) {
+    var noInstall = (S.detailType || "") === "plugin";
+    var html = '<div class="table-wrap"><table class="table disco-ver"><thead><tr>' +
+      "<th>Версия</th><th>Дата</th><th>Minecraft</th><th>Loader</th><th class=\"num\">Размер</th><th class=\"num\">Загрузки</th><th>Канал</th><th></th>" +
+      "</tr></thead><tbody>";
+    list.forEach(function (v) {
+      var file = (v.files || []).find(function (f) { return f.primary; }) || (v.files || [])[0] || null;
+      var loaders = ldLabelsText(v.loaders);
+      var gi = S.versions ? S.versions.indexOf(v) : -1;
+      html += "<tr>" +
+        '<td><div style="font-weight:600">' + ui.esc(v.name || v.id || "—") + "</div>" +
+        (v.versionNumber ? '<div class="small dim mono">' + ui.esc(v.versionNumber) + "</div>" : "") +
+        (v.changelog && gi >= 0 ? '<button class="btn btn-sm btn-ghost" data-chg="' + gi + '" style="margin-top:5px">Что нового</button>' : "") +
+        "</td>" +
+        '<td class="dim small nowrap">' + ui.esc(ui.fmtDate(v.datePublished)) + "</td>" +
+        "<td>" + ui.esc(normalizeValue(v.gameVersions) || "—") + "</td>" +
+        "<td>" + ui.esc(loaders) + "</td>" +
+        '<td class="num tnum">' + (file && file.size ? ui.esc(ui.fmtBytes(file.size)) : "—") + "</td>" +
+        '<td class="num tnum">' + ui.fmtNum(v.downloads || 0) + "</td>" +
+        "<td>" + channelBadge(v) + "</td>" +
+        '<td><div class="row" style="gap:6px;justify-content:flex-end">' +
+        (noInstall
+          ? (file && file.url ? '<button class="btn btn-sm btn-primary" data-url="' + ui.esc(file.url) + '">' + ui.icon("download") + " Скачать</button>" : "")
+          : '<button class="btn btn-sm btn-primary" data-inst="' + ui.esc(v.id || "") + '">Установить</button>' +
+            (file && file.url ? '<button class="btn btn-sm btn-ghost" data-url="' + ui.esc(file.url) + '" title="Скачать файл отдельно">' + ui.icon("download") + "</button>" : "")) +
+        "</div></td></tr>";
+    });
+    html += "</tbody></table></div>";
+    return html;
+  }
+
   function renderVersionsTab() {
     if (S.verLoading) {
       var sk = "";
@@ -827,27 +931,7 @@
       '<span class="small dim">Версий: ' + S.versions.length + (note ? " · фильтры — " + ui.esc(note) : "") + "</span>" +
       (note ? '<button class="btn btn-sm" data-show-all="1">Показать все версии</button>' : "") +
       "</div>";
-    var html = head + '<div class="table-wrap"><table class="table disco-ver"><thead><tr>' +
-      "<th>Версия</th><th>Дата</th><th>Minecraft</th><th>Loader</th><th class=\"num\">Размер</th><th>Канал</th><th></th>" +
-      "</tr></thead><tbody>";
-    S.versions.forEach(function (v, idx) {
-      var file = (v.files || []).find(function (f) { return f.primary; }) || (v.files || [])[0] || null;
-      var loaders = ldLabelsText(v.loaders);
-      html += "<tr>" +
-        '<td><div style="font-weight:600">' + ui.esc(v.name || v.id || "—") + "</div>" +
-        (v.versionNumber ? '<div class="small dim mono">' + ui.esc(v.versionNumber) + "</div>" : "") + "</td>" +
-        '<td class="dim small nowrap">' + ui.esc(ui.fmtDate(v.datePublished)) + "</td>" +
-        "<td>" + ui.esc(normalizeValue(v.gameVersions) || "—") + "</td>" +
-        "<td>" + ui.esc(loaders) + "</td>" +
-        '<td class="num tnum">' + (file && file.size ? ui.esc(ui.fmtBytes(file.size)) : "—") + "</td>" +
-        "<td>" + channelBadge(v) + "</td>" +
-        '<td><div class="row" style="gap:6px;justify-content:flex-end">' +
-        '<button class="btn btn-sm btn-primary" data-inst="' + ui.esc(v.id || "") + '">Установить</button>' +
-        (file && file.url ? '<button class="btn btn-sm btn-ghost" data-url="' + ui.esc(file.url) + '" title="Скачать файл отдельно">' + ui.icon("download") + "</button>" : "") +
-        "</div></td></tr>";
-    });
-    html += "</tbody></table></div>";
-    return html;
+    return head + versionsTableHTML(S.versions);
   }
 
   /* ---------- markdown (описания Modrinth) ---------- */
@@ -937,19 +1021,32 @@
       html += '<div class="card"><div class="card-title">Галерея</div><div class="disco-gallery">';
       p.gallery.forEach(function (g, i) {
         var url = typeof g === "string" ? g : (g.url || g.thumbnail || g.thumbnail_url || g.src || "");
-        if (url) html += '<img src="' + ui.esc(url) + '" data-g="' + i + '" alt="" loading="lazy" />';
+        if (url) html += '<img src="' + ui.esc(url) + '" data-g="' + i + '" alt="' + ui.esc(typeof g === "object" ? (g.title || "") : "") + '" loading="lazy" />';
       });
       html += "</div></div>";
+    }
+
+    /* превью последних версий — как на странице проекта каталога */
+    if (S.verLoading) {
+      var skv = "";
+      for (var i = 0; i < 3; i++) skv += '<div class="skeleton" style="height:38px;margin-bottom:8px"></div>';
+      html += '<div class="card"><div class="card-title">Последние версии</div>' + skv + "</div>";
+    } else if (Array.isArray(S.versions) && S.versions.length) {
+      html += '<div class="card"><div class="card-title">Последние версии · ' +
+        '<button class="btn btn-sm" data-act="tab-versions" style="vertical-align:middle">Все версии (' + S.versions.length + ")</button></div>" +
+        versionsTableHTML(S.versions.slice(0, 5)) + "</div>";
     }
 
     var facts = [];
     facts.push(["Загрузки", ui.fmtNum(p.downloads || 0)]);
     if (p.follows) facts.push(["Подписчики", ui.fmtNum(p.follows)]);
     if (p.author || p.owner) facts.push(["Автор", normalizeValue(p.author || p.owner)]);
+    facts.push(["Тип", typeLabel(S.detailType || p.projectType)]);
+    if (Array.isArray(S.versions)) facts.push(["Версий", ui.fmtNum(S.versions.length)]);
     if (p.license) facts.push(["Лицензия", normalizeValue(p.license)]);
     if (p.datePublished) facts.push(["Опубликован", ui.fmtDate(p.datePublished)]);
     if (p.dateModified) facts.push(["Обновлён", ui.fmtDate(p.dateModified)]);
-    if (Array.isArray(p.categories) && p.categories.length) facts.push(["Категории", p.categories.map(function (c) { return normalizeValue(c); }).filter(Boolean).join(", ")]);
+    if (Array.isArray(p.categories) && p.categories.length) facts.push(["Категории", p.categories.map(function (c) { return catLabel(normalizeValue(c)); }).filter(Boolean).join(", ")]);
     if (Array.isArray(p.loaders) && p.loaders.length) facts.push(["Загрузчики", p.loaders.map(function (c) { return ldLabel(normalizeValue(c)); }).filter(Boolean).join(", ")]);
     if (Array.isArray(p.gameVersions) && p.gameVersions.length) facts.push(["Версии MC", p.gameVersions.slice(0, 8).join(", ") + (p.gameVersions.length > 8 ? " +" + (p.gameVersions.length - 8) : "")]);
 
@@ -975,6 +1072,44 @@
     return html;
   }
 
+  /* общая привязка кнопок таблицы версий — для вкладки и превью на «О проекте» */
+  function bindVersionActions(box) {
+    box.querySelectorAll("[data-inst]").forEach(function (b) {
+      b.onclick = function () {
+        b.classList.add("loading");
+        var id = b.dataset.inst;
+        installVersion(id).then(function () { b.classList.remove("loading"); }, function () { b.classList.remove("loading"); });
+      };
+    });
+    box.querySelectorAll("[data-url]").forEach(function (b) {
+      b.onclick = function () { api("system.openUrl", { url: b.dataset.url }).catch(function (e) { ui.notifyError(e); }); };
+    });
+    box.querySelectorAll("[data-chg]").forEach(function (b) {
+      b.onclick = function () {
+        var v = (S.versions || [])[+b.dataset.chg];
+        if (!v || !v.changelog) return;
+        ui.openDialog({
+          title: "Что нового · " + (v.versionNumber || v.name || ""),
+          icon: "package", width: "wide",
+          body: '<div class="disco-md">' + sanitizeHtml(renderMd(v.changelog)) + "</div>",
+          buttons: [{ label: "Закрыть", role: "cancel" }],
+        });
+      };
+    });
+    var rb = box.querySelector("[data-retry]");
+    if (rb) rb.onclick = function () { S.versions = null; loadVersions(); };
+    box.querySelectorAll("[data-show-all]").forEach(function (b) {
+      b.onclick = function () {
+        // сбрасываем фильтры загрузчика и версии Minecraft — показываем весь список версий проекта
+        S.loader = "";
+        S.mcs = [];
+        renderFilters();
+        S.versions = null;
+        loadVersions();
+      };
+    });
+  }
+
   function renderTab() {
     var box = S.els.tab;
     if (!box) return;
@@ -986,34 +1121,16 @@
     }
     if (S.tab === "versions") {
       box.innerHTML = renderVersionsTab();
-      box.querySelectorAll("[data-inst]").forEach(function (b) {
-        b.onclick = function () {
-          b.classList.add("loading");
-          var id = b.dataset.inst;
-          installVersion(id).then(function () { b.classList.remove("loading"); }, function () { b.classList.remove("loading"); });
-        };
-      });
-      box.querySelectorAll("[data-url]").forEach(function (b) {
-        b.onclick = function () { api("system.openUrl", { url: b.dataset.url }).catch(function (e) { ui.notifyError(e); }); };
-      });
-      var rb = box.querySelector("[data-retry]");
-      if (rb) rb.onclick = function () { S.versions = null; loadVersions(); };
-      box.querySelectorAll("[data-show-all]").forEach(function (b) {
-        b.onclick = function () {
-          // сбрасываем фильтры загрузчика и версии Minecraft — показываем весь список версий проекта
-          S.loader = "";
-          S.mcs = [];
-          renderFilters();
-          S.versions = null;
-          loadVersions();
-        };
-      });
+      bindVersionActions(box);
       return;
     }
     box.innerHTML = renderAboutTab();
     box.querySelectorAll("[data-link]").forEach(function (b) {
       b.onclick = function () { api("system.openUrl", { url: b.dataset.link }).catch(function (e) { ui.notifyError(e); }); };
     });
+    var tv = box.querySelector('[data-act="tab-versions"]');
+    if (tv) tv.onclick = function () { S.tab = "versions"; renderTab(); loadVersions(); };
+    bindVersionActions(box);
     box.querySelectorAll(".disco-gallery img").forEach(function (img) {
       img.onclick = function () {
         ui.openDialog({
@@ -1054,13 +1171,20 @@
     if (p.license) meta += '<span class="chip">' + ui.esc(normalizeValue(p.license)) + "</span>";
 
     var isModpack = (S.detailType || p.projectType) === "modpack";
+    var isPlugin = (S.detailType || p.projectType) === "plugin";
     var actions = "";
     if (isModpack) {
       actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
+      actions += '<button class="btn" data-act="download-latest">' + ui.icon("download") + " Скачать</button>";
       actions += '<button class="btn" data-act="open-mr">' + ui.icon("external") +
         (isCfProject() ? " На CurseForge" : " На Modrinth") + "</button>";
+    } else if (isPlugin) {
+      // плагины ставить в лаунчере некуда — сразу скачиваем файл
+      actions += '<button class="btn btn-primary" data-act="download-latest">' + ui.icon("download") + " Скачать</button>";
+      actions += '<button class="btn" data-act="versions">' + ui.icon("package") + " Версии</button>";
     } else {
       actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
+      actions += '<button class="btn" data-act="download-latest">' + ui.icon("download") + " Скачать</button>";
       actions += '<button class="btn" data-act="versions">' + ui.icon("package") + " Версии</button>";
     }
     actions += '<button class="btn btn-ghost" data-act="back">' + ui.icon("back") + " Назад</button>";
@@ -1093,7 +1217,27 @@
     var openMr = box.querySelector('[data-act="open-mr"]');
     if (openMr) openMr.onclick = function () { api("system.openUrl", { url: projectUrl() }).catch(function (e) { ui.notifyError(e); }); };
     var vers = box.querySelector('[data-act="versions"]');
+    S.els.verBtn = vers;
     if (vers) vers.onclick = function () { S.tab = "versions"; renderTab(); loadVersions(); };
+    var dl = box.querySelector('[data-act="download-latest"]');
+    S.els.dlBtn = dl;
+    if (dl) {
+      dl.onclick = async function () {
+        dl.classList.add("loading");
+        try {
+          if (!S.versions) await loadVersions();
+          if (S.dead) return;
+          var v = S.versions && S.versions[0];
+          var f = v && ((v.files || []).filter(function (x) { return x.primary; })[0] || (v.files || [])[0]);
+          if (!f || !f.url) { ui.notifyWarn("Нет файла", "Файл для скачивания не найден."); return; }
+          await api("system.openUrl", { url: f.url });
+        } catch (e) {
+          ui.notifyError(e);
+        } finally {
+          if (!S.dead) dl.classList.remove("loading");
+        }
+      };
+    }
     var inst = box.querySelector('[data-act="install-latest"]');
     if (inst) {
       inst.onclick = async function () {
@@ -1113,6 +1257,7 @@
         }
       };
     }
+    if (S.versions) updateDetailBtns();   // версии успели загрузиться раньше проекта
     renderTab();
     if (S.tab === "versions") loadVersions();
   }
@@ -1199,6 +1344,7 @@
 
       renderFilters();
       renderBanner();
+      loadTypeCounts();
 
       if (ctx.params.project) {
         await openDetail(String(ctx.params.project), S.type);

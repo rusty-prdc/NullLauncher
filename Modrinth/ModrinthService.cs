@@ -190,6 +190,7 @@ internal sealed class ModrinthService
                     loaders = Lst(v, "loaders"),
                     files,
                     downloads = v.Long("downloads", 0),
+                    changelog = Txt(v, "changelog"),
                     versionType = vt,
                     channels = new[] { vt },
                     status = Txt(v, "status"),
