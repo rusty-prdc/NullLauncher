@@ -43,11 +43,6 @@
 .disco-pop-card .pp-sub { display: flex; gap: 4px; align-items: center; font-size: 11px; color: var(--text-3); margin-top: 3px; }
 .disco-pop-card .pp-sub svg { width: 11px; height: 11px; }
 
-.disco-hero { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
-.disco-hero .grow { flex: 1; min-width: 220px; }
-.disco-hero h2 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -0.2px; }
-.disco-hero .meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
-.disco-hero .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 13px; }
 .disco-facts { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .disco-facts .f { display: flex; gap: 10px; align-items: baseline; }
 .disco-facts .k { color: var(--text-3); width: 150px; flex: 0 0 auto; font-size: 12.5px; }
@@ -105,6 +100,35 @@
 .disco-toggle input { width: 14px; height: 14px; accent-color: var(--accent); }
 .chip .chip-logo { width: 14px; height: 14px; object-fit: contain; }
 #disco-cat[hidden] { display: none; }
+
+/* ===== страница проекта: шапка + две колонки (контент слева, инфо справа) ===== */
+.disco-p-head { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.disco-p-head .grow { flex: 1; min-width: 240px; }
+.disco-p-head .item-icon.lg { width: 92px; height: 92px; font-size: 34px; }
+.disco-p-head h2 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.2px; }
+.disco-p-head .lead { margin: 7px 0 0; font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.disco-p-meta { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-top: 11px; font-size: 12.5px; color: var(--text-3); }
+.disco-p-meta span { display: inline-flex; gap: 5px; align-items: center; }
+.disco-p-meta svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.disco-p-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; margin-left: auto; }
+.disco-p-chips {
+  display: flex; gap: 7px; flex-wrap: wrap; align-items: center;
+  margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line);
+}
+.disco-p-grid {
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px; align-items: start; margin-top: 18px;
+}
+.disco-p-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.disco-p-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.disco-p-side .disco-facts .k { width: 118px; }
+.disco-gallery.g2 { grid-template-columns: repeat(2, 1fr); }
+.disco-gallery.g2 img { height: 150px; }
+.disco-p-verhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+@media (max-width: 900px) {
+  .disco-p-grid { grid-template-columns: minmax(0, 1fr); }
+  .disco-p-actions { margin-left: 0; }
+}
 </style>
 
 <section class="page">
@@ -854,13 +878,17 @@
     if (S.detailId === myId) renderTab();
   }
 
-  /* подписи в шапке проекта: «Версии (N)» и «Скачать vX.Y» после загрузки версий */
+  /* подписи в шапке проекта: «Все версии (N)» и «Скачать vX.Y» после загрузки версий */
   function updateDetailBtns() {
     if (!S.versions) return;
-    if (S.els.verBtn) S.els.verBtn.innerHTML = ui.icon("package") + " Версии (" + S.versions.length + ")";
+    if (S.els.verBtn) S.els.verBtn.innerHTML = ui.icon("package") + " Все версии (" + S.versions.length + ")";
     var v = S.versions[0];
     if (S.els.dlBtn && v && v.versionNumber)
       S.els.dlBtn.innerHTML = ui.icon("download") + " Скачать " + ui.esc(v.versionNumber);
+    if (S.els.side) {
+      var vc = S.els.side.querySelector("#disco-vercount");
+      if (vc) vc.textContent = ui.fmtNum(S.versions.length);
+    }
   }
 
   function channelBadge(v) {
@@ -1005,50 +1033,85 @@
     return out.join("\n");
   }
 
+  /* левая колонка страницы проекта: описание → галерея → последние версии */
   function renderAboutTab() {
     var p = S.project || {};
     var html = "";
 
     var desc = p.body || p.description || "";
-    if (desc) html += '<div class="card"><div class="card-title">Описание</div><div class="disco-md">' + sanitizeHtml(renderMd(desc)) + "</div></div>";
+    html += '<div class="card"><div class="card-title">Описание</div>' +
+      (desc ? '<div class="disco-md">' + sanitizeHtml(renderMd(desc)) + "</div>"
+            : '<div class="small dim">Автор не добавил описание.</div>') + "</div>";
 
-    if (Array.isArray(p.gallery) && p.gallery.length) {
-      html += '<div class="card"><div class="card-title">Галерея</div><div class="disco-gallery">';
-      p.gallery.forEach(function (g, i) {
+    var gal = Array.isArray(p.gallery) ? p.gallery.filter(function (g) {
+      return !!(typeof g === "string" ? g : (g && (g.url || g.thumbnail || g.thumbnail_url || g.src)));
+    }) : [];
+    if (gal.length) {
+      html += '<div class="card"><div class="card-title">Галерея</div><div class="disco-gallery g2">';
+      gal.slice(0, 4).forEach(function (g, i) {
         var url = typeof g === "string" ? g : (g.url || g.thumbnail || g.thumbnail_url || g.src || "");
-        if (url) html += '<img src="' + ui.esc(url) + '" data-g="' + i + '" alt="' + ui.esc(typeof g === "object" ? (g.title || "") : "") + '" loading="lazy" />';
+        html += '<img src="' + ui.esc(url) + '" data-g="' + i + '" alt="' + ui.esc(typeof g === "object" ? (g.title || "") : "") + '" loading="lazy" />';
       });
       html += "</div></div>";
     }
 
-    /* превью последних версий — как на странице проекта каталога */
+    /* последние версии — превью со ссылкой на полный список */
     if (S.verLoading) {
       var skv = "";
-      for (var i = 0; i < 3; i++) skv += '<div class="skeleton" style="height:38px;margin-bottom:8px"></div>';
+      for (var i = 0; i < 4; i++) skv += '<div class="skeleton" style="height:38px;margin-bottom:8px"></div>';
       html += '<div class="card"><div class="card-title">Последние версии</div>' + skv + "</div>";
     } else if (Array.isArray(S.versions) && S.versions.length) {
-      html += '<div class="card"><div class="card-title">Последние версии · ' +
-        '<button class="btn btn-sm" data-act="tab-versions" style="vertical-align:middle">Все версии (' + S.versions.length + ")</button></div>" +
-        versionsTableHTML(S.versions.slice(0, 5)) + "</div>";
+      html += '<div class="card"><div class="card-title">Последние версии</div>' +
+        '<div class="disco-p-verhead"><span class="small dim">Показаны ' +
+        Math.min(10, S.versions.length) + " из " + S.versions.length + "</span>" +
+        '<button class="btn btn-sm" data-act="tab-versions">Все версии (' + S.versions.length + ") →</button></div>" +
+        versionsTableHTML(S.versions.slice(0, 10)) + "</div>";
     }
 
-    var facts = [];
-    facts.push(["Загрузки", ui.fmtNum(p.downloads || 0)]);
-    if (p.follows) facts.push(["Подписчики", ui.fmtNum(p.follows)]);
-    if (p.author || p.owner) facts.push(["Автор", normalizeValue(p.author || p.owner)]);
-    facts.push(["Тип", typeLabel(S.detailType || p.projectType)]);
-    if (Array.isArray(S.versions)) facts.push(["Версий", ui.fmtNum(S.versions.length)]);
-    if (p.license) facts.push(["Лицензия", normalizeValue(p.license)]);
-    if (p.datePublished) facts.push(["Опубликован", ui.fmtDate(p.datePublished)]);
-    if (p.dateModified) facts.push(["Обновлён", ui.fmtDate(p.dateModified)]);
-    if (Array.isArray(p.categories) && p.categories.length) facts.push(["Категории", p.categories.map(function (c) { return catLabel(normalizeValue(c)); }).filter(Boolean).join(", ")]);
-    if (Array.isArray(p.loaders) && p.loaders.length) facts.push(["Загрузчики", p.loaders.map(function (c) { return ldLabel(normalizeValue(c)); }).filter(Boolean).join(", ")]);
-    if (Array.isArray(p.gameVersions) && p.gameVersions.length) facts.push(["Версии MC", p.gameVersions.slice(0, 8).join(", ") + (p.gameVersions.length > 8 ? " +" + (p.gameVersions.length - 8) : "")]);
+    return html;
+  }
 
-    html += '<div class="card"><div class="card-title">Информация</div><div class="disco-facts">' +
-      facts.map(function (f) {
-        return '<div class="f"><span class="k">' + ui.esc(f[0]) + '</span><span class="v">' + ui.esc(f[1]) + "</span></div>";
+  /* правый сайдбар: статистика → загрузчики → версии Minecraft → ссылки */
+  function renderSidebar() {
+    var p = S.project || {};
+    var html = "";
+
+    var stats = [];
+    stats.push(["Загрузки", ui.fmtNum(p.downloads || 0)]);
+    if (p.follows) stats.push(["Подписчики", ui.fmtNum(p.follows)]);
+    stats.push(["Тип", typeLabel(S.detailType || p.projectType)]);
+    stats.push(["Версий", Array.isArray(S.versions) ? ui.fmtNum(S.versions.length) : "…", "disco-vercount"]);
+    if (p.author || p.owner) stats.push(["Автор", normalizeValue(p.author || p.owner)]);
+    if (p.datePublished) stats.push(["Опубликован", ui.fmtDate(p.datePublished)]);
+    if (p.dateModified) stats.push(["Обновлён", ui.fmtDate(p.dateModified)]);
+    if (p.license) stats.push(["Лицензия", normalizeValue(p.license)]);
+    if (Array.isArray(p.categories) && p.categories.length)
+      stats.push(["Категории", p.categories.map(function (c) { return catLabel(normalizeValue(c)); }).filter(Boolean).join(", ")]);
+
+    html += '<div class="card"><div class="card-title">Статистика</div><div class="disco-facts">' +
+      stats.map(function (f) {
+        return '<div class="f"><span class="k">' + ui.esc(f[0]) + '</span><span class="v"' +
+          (f[2] ? ' id="' + f[2] + '"' : "") + ">" + ui.esc(f[1]) + "</span></div>";
       }).join("") + "</div></div>";
+
+    var ld = Array.isArray(p.loaders) ? p.loaders.map(normalizeValue).filter(Boolean) : [];
+    if (ld.length) {
+      html += '<div class="card"><div class="card-title">Загрузчики</div><div class="disco-fchips">' +
+        ld.map(function (l) {
+          var logo = LD_LOGOS[l];
+          return '<span class="chip">' + (logo ? '<img class="chip-logo" src="' + ui.esc(logo) + '" alt="" />' : "") +
+            ui.esc(ldLabel(l)) + "</span>";
+        }).join("") + "</div></div>";
+    }
+
+    var gv = Array.isArray(p.gameVersions) ? p.gameVersions.slice() : [];
+    if (gv.length) {
+      var shown = gv.slice(0, 12);
+      html += '<div class="card"><div class="card-title">Версии Minecraft</div><div class="disco-fchips">' +
+        shown.map(function (v) { return '<span class="chip">' + ui.esc(v) + "</span>"; }).join("") +
+        (gv.length > shown.length ? '<span class="chip info">+' + (gv.length - shown.length) + "</span>" : "") +
+        "</div></div>";
+    }
 
     var links = p.links && typeof p.links === "object" ? p.links : null;
     var linkBtns = "";
@@ -1062,7 +1125,7 @@
     }
     linkBtns += '<button class="btn btn-sm" data-link="' + ui.esc(projectUrl()) + '">' + ui.icon("compass") +
       (isCfProject() ? " Открыть на CurseForge" : " Открыть на Modrinth") + "</button>";
-    html += '<div class="card"><div class="card-title">Ссылки</div><div class="disco-links">' + linkBtns + "</div></div>";
+    html += '<div class="card"><div class="card-title">Ссылки</div><div class="disco-links" style="flex-direction:column">' + linkBtns + "</div></div>";
 
     return html;
   }
@@ -1108,14 +1171,14 @@
   function renderTab() {
     var box = S.els.tab;
     if (!box) return;
-    var tabs = S.els.tabs;
-    if (tabs) {
-      tabs.querySelectorAll("[data-tab]").forEach(function (b) {
-        b.classList.toggle("active", b.dataset.tab === S.tab);
-      });
-    }
     if (S.tab === "versions") {
-      box.innerHTML = renderVersionsTab();
+      box.innerHTML =
+        '<div class="card"><div class="disco-p-verhead">' +
+          '<button class="btn btn-sm btn-ghost" data-act="back-about">' + ui.icon("back") + " К проекту</button>" +
+          '<span class="small dim">' + (S.verLoading ? "Загрузка…" :
+            "Версий: " + (Array.isArray(S.versions) ? S.versions.length : 0)) + "</span>" +
+        "</div>" + renderVersionsTab() + "</div>";
+      box.querySelector('[data-act="back-about"]').onclick = function () { S.tab = "about"; renderTab(); };
       bindVersionActions(box);
       return;
     }
@@ -1158,12 +1221,18 @@
       ? '<div class="item-icon lg" style="background-image:url(&quot;' + ui.esc(p.iconUrl) + '&quot;)">' + letter + "</div>"
       : '<div class="item-icon lg">' + letter + "</div>";
 
-    var meta = '<span class="chip">' + ui.icon("download") + ui.fmtNum(p.downloads || 0) + "</span>";
-    if (p.follows) meta += '<span class="chip">' + ui.icon("star") + ui.fmtNum(p.follows) + "</span>";
-    meta += '<span class="chip info">' + ui.esc(typeLabel(S.detailType || p.projectType)) + "</span>";
-    var pLoaders = Array.isArray(p.loaders) ? p.loaders.map(normalizeValue).filter(Boolean) : [];
-    if (pLoaders.length) meta += '<span class="chip">' + ui.esc(pLoaders.join(", ")) + "</span>";
-    if (p.license) meta += '<span class="chip">' + ui.esc(normalizeValue(p.license)) + "</span>";
+    var meta = "";
+    if (p.author || p.owner) meta += "<span>" + ui.icon("user") + ui.esc(normalizeValue(p.author || p.owner)) + "</span>";
+    meta += "<span>" + ui.icon("download") + ui.fmtNum(p.downloads || 0) + "</span>";
+    if (p.follows) meta += "<span>" + ui.icon("star") + ui.fmtNum(p.follows) + "</span>";
+    if (p.dateModified) meta += "<span>" + ui.icon("clock") + "обновлён " + ui.esc(ui.fmtDate(p.dateModified)) + "</span>";
+
+    var chips = '<span class="chip info">' + ui.esc(typeLabel(S.detailType || p.projectType)) + "</span>";
+    if (Array.isArray(p.categories)) {
+      p.categories.map(normalizeValue).filter(Boolean).forEach(function (c) {
+        chips += '<span class="chip">' + ui.esc(catLabel(c)) + "</span>";
+      });
+    }
 
     var isModpack = (S.detailType || p.projectType) === "modpack";
     var actions = "";
@@ -1175,33 +1244,33 @@
     } else {
       actions += '<button class="btn btn-primary" data-act="install-latest">' + ui.icon("download") + " Установить</button>";
       actions += '<button class="btn" data-act="download-latest">' + ui.icon("download") + " Скачать</button>";
-      actions += '<button class="btn" data-act="versions">' + ui.icon("package") + " Версии</button>";
+      actions += '<button class="btn" data-act="versions">' + ui.icon("package") + " Все версии</button>";
     }
     actions += '<button class="btn btn-ghost" data-act="back">' + ui.icon("back") + " Назад</button>";
 
     box.innerHTML =
-      '<div class="card disco-hero">' + iconHtml +
-        '<div class="grow">' +
-          "<h2>" + ui.esc(title) + "</h2>" +
-          '<div class="page-sub">' + ui.esc(stripTags(p.description || "")) + "</div>" +
-          '<div class="meta">' + meta + "</div>" +
-          '<div class="actions">' + actions + "</div>" +
+      '<div class="card">' +
+        '<div class="disco-p-head">' + iconHtml +
+          '<div class="grow">' +
+            "<h2>" + ui.esc(title) + "</h2>" +
+            (p.description ? '<p class="lead">' + ui.esc(stripTags(p.description)) + "</p>" : "") +
+            '<div class="disco-p-meta">' + meta + "</div>" +
+          "</div>" +
+          '<div class="disco-p-actions">' + actions + "</div>" +
         "</div>" +
+        '<div class="disco-p-chips">' + chips + "</div>" +
       "</div>" +
-      '<div class="tabs" id="disco-tabs">' +
-        '<button class="tab active" data-tab="about">О проекте</button>' +
-        '<button class="tab" data-tab="versions">Версии</button>' +
-      "</div>" +
-      '<div id="disco-tab"></div>';
+      '<div class="disco-p-grid">' +
+        '<div class="disco-p-main" id="disco-tab"></div>' +
+        '<aside class="disco-p-side" id="disco-side"></aside>' +
+      "</div>";
 
-    S.els.tabs = box.querySelector("#disco-tabs");
+    S.els.tabs = null;
     S.els.tab = box.querySelector("#disco-tab");
-    S.els.tabs.querySelectorAll("[data-tab]").forEach(function (b) {
-      b.onclick = function () {
-        S.tab = b.dataset.tab;
-        renderTab();
-        if (S.tab === "versions") loadVersions();
-      };
+    S.els.side = box.querySelector("#disco-side");
+    S.els.side.innerHTML = renderSidebar();
+    S.els.side.querySelectorAll("[data-link]").forEach(function (b) {
+      b.onclick = function () { api("system.openUrl", { url: b.dataset.link }).catch(function (e) { ui.notifyError(e); }); };
     });
     box.querySelector('[data-act="back"]').onclick = closeDetail;
     var openMr = box.querySelector('[data-act="open-mr"]');
