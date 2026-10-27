@@ -64,6 +64,17 @@
 .disco-md table { border-collapse: collapse; margin: 0 0 10px; }
 .disco-md td, .disco-md th { border: 1px solid var(--line); padding: 5px 8px; }
 .disco-md hr { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
+.disco-md center, .disco-md [align="center"] { text-align: center; }
+.disco-md [align="right"] { text-align: right; }
+.disco-md p[align="center"] { text-align: center; }
+.disco-md details {
+  margin: 0 0 10px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card-2); padding: 9px 13px;
+}
+.disco-md details summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.disco-md details[open] summary { margin-bottom: 8px; }
+.disco-md h1 { font-size: 20px; }
+.disco-md h2 { font-size: 17px; }
 
 .disco-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .disco-gallery img {
@@ -997,6 +1008,23 @@
         continue;
       }
       if (!ln.trim()) { flushPara(); closeList(); continue; }
+      // сырой HTML из описаний Modrinth: <center>, <details>, <img>, <h1>, <br> и т.п.
+      // — отдаём как есть (sanitizeHtml вычищает скрипты и обработчики),
+      // но сначала оборачиваем markdown-ссылки вокруг HTML: [<img .../>](url) → <a><img></a>
+      if (/<\/?[a-z][^>]*>/i.test(ln)) {
+        flushPara(); closeList();
+        out.push(ln
+          .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, function (_, alt, url) {
+            if (url.charAt(0) === "/") url = "https://modrinth.com" + url;
+            return '<img src="' + url + '" alt="' + alt + '" loading="lazy">';
+          })
+          .replace(/\[([\s\S]*?)\]\(([^)\s]+)\)/g, function (mm, inner, url) {
+            if (inner.indexOf("<") < 0) return mm;
+            if (url.charAt(0) === "/") url = "https://modrinth.com" + url;
+            return '<a href="' + url + '" target="_blank" rel="noopener">' + inner + "</a>";
+          }));
+        continue;
+      }
       if ((m = ln.match(/^(#{1,6})\s+(.*)$/))) {
         flushPara(); closeList();
         var lv = m[1].length;
