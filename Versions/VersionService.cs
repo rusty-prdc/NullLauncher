@@ -296,20 +296,56 @@ public sealed class VersionService
         }
         catch (Exception ex) when (ex is not OperationCanceledException) { Log.Debug($"Forge promos: {ex.Message}"); }
 
-        // NeoForge: maven-metadata + фильтр по схеме версий NeoForged
+        // NeoForge: список версий — из Maven API (быстрее и надёжнее, чем maven-metadata.xml),
+        // при недоступности — из maven-metadata.xml. Для 1.20.1 загрузчик живёт в группе
+        // net.neoforged/forge с версиями вида «1.20.1-47.1.106».
         try
         {
-            var xml = await http.GetStringAsync(
-                "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml", ct)
-                .ConfigureAwait(false);
-            var versions = System.Text.RegularExpressions.Regex.Matches(xml, @"<version>([^<]+)</version>")
-                .Select(m => m.Groups[1].Value)
-                .Where(v => v.Contains('.') && !v.Contains('-') && v.Split('.')[0].All(char.IsDigit))
-                .ToList();
+            var list = new List<string>();
+            try
+            {
+                var json = await http.GetStringAsync(
+                    "https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge", ct)
+                    .ConfigureAwait(false);
+                if (JsonNode.Parse(json)?["versions"] is JsonArray arr)
+                    foreach (var item in arr)
+                        if (item is JsonValue jv && jv.TryGetValue<string>(out var sv) && !string.IsNullOrWhiteSpace(sv))
+                            list.Add(sv);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Log.Debug($"NeoForge api: {ex.Message}");
+                var xml = await http.GetStringAsync(
+                    "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml", ct)
+                    .ConfigureAwait(false);
+                list.AddRange(System.Text.RegularExpressions.Regex.Matches(xml, @"<version>([^<]+)</version>")
+                    .Select(m => m.Groups[1].Value));
+            }
+
             var prefix = NeoForgePrefix(mcVersion);
-            var matched = versions.Where(v => v.StartsWith(prefix + ".")).ToList();
-            if (matched.Count == 0) matched = versions.Where(v => v.StartsWith(prefix)).ToList();
-            foreach (var v in matched.Take(5))
+            var top = list
+                .Where(v => v.Contains('.') && !v.Contains('-') && v.Split('.')[0].All(char.IsDigit))
+                .Where(v => v.StartsWith(prefix + ".") || v == prefix)
+                .OrderByDescending(v => v, VersionTextComparer.Instance)   // самые новые, а не первые из файла
+                .Take(5)
+                .ToList();
+
+            // NeoForge для 1.20.1: отдельная группа net.neoforged/forge
+            if (top.Count == 0 && mcVersion == "1.20.1")
+            {
+                var xml2 = await http.GetStringAsync(
+                    "https://maven.neoforged.net/releases/net/neoforged/forge/maven-metadata.xml", ct)
+                    .ConfigureAwait(false);
+                top = System.Text.RegularExpressions.Regex.Matches(xml2, @"<version>([^<]+)</version>")
+                    .Select(m => m.Groups[1].Value)
+                    .Where(v => v.StartsWith("1.20.1-") && !v.Contains("beta"))
+                    .Select(v => v["1.20.1-".Length..])
+                    .OrderByDescending(v => v, VersionTextComparer.Instance)
+                    .Take(5)
+                    .ToList();
+            }
+
+            foreach (var v in top)
                 result.Add(new { loader = "neoforge", version = v, stable = true });
         }
         catch (Exception ex) when (ex is not OperationCanceledException) { Log.Debug($"NeoForge maven: {ex.Message}"); }

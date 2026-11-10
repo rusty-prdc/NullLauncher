@@ -355,6 +355,7 @@
       { label: "Проверить целостность", icon: "shield", onClick: verifyDialog },
       { label: "Клонировать", icon: "copy", onClick: duplicateInstance },
       { label: "Экспорт", icon: "upload", onClick: function () { exportDialog(); } },
+      { label: "Перенести на Rust", icon: "globe", onClick: rustTransfer },
       "-",
       { label: "Безопасный запуск", icon: "zap", onClick: function () { startLaunch(true); } },
       { label: "Открыть папку", icon: "folder", onClick: function () {
@@ -1990,6 +1991,10 @@
         '<div class="p-inst-card"><h3>Поделиться файлом сборки</h3>' +
           '<p class="p-inst-note">Создаст архив и откроет его в Проводнике, чтобы вы могли отправить его друзьям.</p>' +
           '<div><button class="btn" data-act="share">' + ic("external") + " Создать архив…</button></div></div>" +
+        '<div class="p-inst-card"><h3>Перенести на Rust — Horizon</h3>' +
+          '<p class="p-inst-note">Horizon — неофициальная Rust-версия Minecraft: Java Edition 26.3. ' +
+          'Выгрузим сборку в .mrpack, чтобы импортировать её в Horizon.</p>' +
+          '<div><button class="btn" data-act="rust">' + ic("globe") + " Перенести…</button></div></div>" +
       "</div>" +
       '<div class="banner info">' + ic("globe") +
         '<span class="grow">Онлайн-синхронизация сборок между устройствами появится позже — сейчас доступна только локальная работа с файлами.</span></div>';
@@ -1997,6 +2002,68 @@
     S.els.body.querySelector('[data-act="exp"]').onclick = function () { exportDialog(false); };
     S.els.body.querySelector('[data-act="share"]').onclick = function () { exportDialog(true); };
     S.els.body.querySelector('[data-act="imp"]').onclick = importInstanceArchive;
+    S.els.body.querySelector('[data-act="rust"]').onclick = rustTransfer;
+  }
+
+  /* ================= перенос сборки на Rust (Horizon) ================= */
+  async function rustTransfer() {
+    var st = null;
+    try { st = await api("horizon.status"); } catch (e) { /* Horizon может быть не установлен */ }
+    if (S.dead) return;
+    var installed = !!(st && st.installed);
+
+    var bodyEl = document.createElement("div");
+    bodyEl.className = "col";
+    bodyEl.innerHTML =
+      '<div class="p-inst-note">Horizon (playhorizon.dev) — игра, переписанная на Rust, но не официальная версия ' +
+        'от Mojang. Ей нужна ваша копия Minecraft: Java Edition в аккаунте Microsoft, поэтому лаунчер не может ' +
+        'просто «пересобрать» сборку на Rust.</div>' +
+      '<div class="p-inst-note">Переносятся миры, конфиги, ресурспаки и данные модов. Java-моды (Fabric, Forge, ' +
+        'NeoForge) в Horizon не работают — у него свои моды (.hmod и .hnmod).</div>' +
+      '<div class="hint small dim">' + (installed
+        ? "Horizon найден: " + esc(st.path || "")
+        : "Horizon не установлен — сначала скачайте и поставьте его лаунчер.") + "</div>";
+
+    ui.openDialog({
+      title: "Перенести сборку на Rust",
+      sub: "Экспорт сборки в .mrpack и передача в Horizon",
+      icon: "globe",
+      body: bodyEl,
+      buttons: [
+        { label: "Закрыть", role: "cancel" },
+        {
+          label: installed ? "Открыть Horizon" : "Скачать Horizon",
+          onClick: async function () {
+            try {
+              if (installed) {
+                var res = await api("horizon.open");
+                if (res && res.ok) return;
+              }
+              await api("horizon.site");
+            } catch (e) { ui.notifyError(e, "Не удалось открыть Horizon"); }
+          },
+        },
+        {
+          label: "Экспорт .mrpack…", role: "primary", keepOpen: true,
+          onClick: async function (ctx) {
+            try {
+              var dir = await api("system.pickDirectory", { title: "Куда сохранить .mrpack" });
+              if (!dir || !dir.path) return false;
+              var mr = await api("instances.exportMrpack", {
+                id: S.id, targetPath: dir.path,
+                meta: { name: S.inst.name, description: S.inst.description, mcVersion: S.inst.mcVersion, loader: S.inst.loader },
+              });
+              if (S.dead) return false;
+              ui.notifySuccess("Модпак .mrpack создан",
+                ((mr && mr.path) || "") + " — импортируйте его в Horizon");
+              if (mr && mr.path) await api("system.openPath", { path: mr.path, select: true });
+              ctx.close();
+            } catch (e) { ui.notifyError(e, "Не удалось экспортировать модпак"); }
+            return false;
+          },
+        },
+      ],
+    });
   }
 
   function exportDialog(share) {

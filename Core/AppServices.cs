@@ -86,6 +86,7 @@ public sealed class AppServices
     private void RegisterAll()
     {
         Modules.SystemIpc.Register(Router, this);
+        Modules.HorizonIpc.Register(Router, this);
         Modules.SettingsIpc.Register(Router, this);
         NullLauncher.Instances.InstanceIpc.Register(Router, this);
         NullLauncher.Groups.GroupIpc.Register(Router, this);

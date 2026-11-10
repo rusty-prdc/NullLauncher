@@ -157,10 +157,60 @@ public static class LoaderInstaller
         var id = $"neoforge-{neoVersion}";
         if (File.Exists(versions.VersionJsonPath(id))) return id;
 
-        var installerUrl =
-            $"https://maven.neoforged.net/releases/net/neoforged/neoforge/{neoVersion}/neoforge-{neoVersion}-installer.jar";
+        var candidates = NeoForgeInstallerUrls(mc, neoVersion).ToList();
+        var installerUrl = await FindWorkingUrlAsync(candidates, ct).ConfigureAwait(false)
+            ?? throw new LauncherException("Не удалось скачать NeoForge",
+                $"Инсталлятор не найден по адресам:{Environment.NewLine}{string.Join(Environment.NewLine, candidates)}");
         return await RunOfficialInstallerAsync(paths, versions, downloads,
             installerUrl, id, mc, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Адреса installer.jar NeoForge. До 1.20.2 включительно загрузчик публиковался
+    /// в группе net.neoforged/forge (версии 47.x), позже — в net.neoforged/neoforge.
+    /// </summary>
+    private static IEnumerable<string> NeoForgeInstallerUrls(string mc, string version)
+    {
+        if (version.StartsWith("47.") || mc == "1.20.1")
+            yield return $"https://maven.neoforged.net/releases/net/neoforged/forge/{mc}-{version}/forge-{mc}-{version}-installer.jar";
+        yield return $"https://maven.neoforged.net/releases/net/neoforged/neoforge/{version}/neoforge-{version}-installer.jar";
+        if (!version.StartsWith("47.") && mc != "1.20.1")
+            yield return $"https://maven.neoforged.net/releases/net/neoforged/forge/{mc}-{version}/forge-{mc}-{version}-installer.jar";
+    }
+
+    /// <summary>
+    /// Проверяет адреса по порядку и возвращает первый доступный файл.
+    /// Раньше лаунчер сразу качал installer.jar и падал с «404», если версия
+    /// загрузчика лежала в другой Maven-группе.
+    /// </summary>
+    private static async Task<string?> FindWorkingUrlAsync(IEnumerable<string> urls, CancellationToken ct)
+    {
+        using var http = HttpFactory.Get(AppServices.Current!);
+        foreach (var url in urls)
+        {
+            try
+            {
+                using var head = new HttpRequestMessage(HttpMethod.Head, url);
+                using var res = await http.SendAsync(head, HttpCompletionOption.ResponseHeadersRead, ct)
+                    .ConfigureAwait(false);
+                if (res.IsSuccessStatusCode) return url;
+
+                // часть Maven-серверов не отвечает на HEAD — проверяем обычным GET без тела
+                if (res.StatusCode is System.Net.HttpStatusCode.MethodNotAllowed or System.Net.HttpStatusCode.NotImplemented)
+                {
+                    using var get = new HttpRequestMessage(HttpMethod.Get, url);
+                    using var res2 = await http.SendAsync(get, HttpCompletionOption.ResponseHeadersRead, ct)
+                        .ConfigureAwait(false);
+                    if (res2.IsSuccessStatusCode) return url;
+                }
+                Log.Warn($"NeoForge: {url} → {(int)res.StatusCode}");
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Log.Warn($"NeoForge: {url} — {ex.Message}");
+            }
+        }
+        return null;
     }
 
     /* ------------------------------------------------------------ общий прогон инсталлятора */
