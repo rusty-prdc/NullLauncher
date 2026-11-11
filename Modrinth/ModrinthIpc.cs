@@ -14,6 +14,9 @@ public static class ModrinthIpc
     private static ModrinthService? _service;
     private static CurseForge.CurseForgeService? _cf;
 
+    /// <summary>Сервис Modrinth для внутренних модулей (например установки CustomSkinLoader).</summary>
+    internal static ModrinthService? Current => _service;
+
     public static void Register(IpcRouter r, AppServices s)
     {
         var svc = _service = new ModrinthService(s);

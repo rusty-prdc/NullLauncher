@@ -9,6 +9,7 @@
       <div class="page-sub" id="wdb-sub">Сохраняйте скины, примеряйте в 3D и меняйте в один клик</div>
     </div>
     <div class="page-actions">
+      <select id="wdb-acc" style="width:auto;min-width:160px" hidden></select>
       <button class="btn btn-sm btn-ghost" id="wdb-refresh"><svg><use href="#i-refresh"/></svg> Обновить</button>
       <button class="btn btn-sm btn-primary" id="wdb-add"><svg><use href="#i-plus"/></svg> Добавить скин</button>
     </div>
@@ -23,7 +24,7 @@
   if (!Pages.register) Pages.register = function (route, def) { Pages[route] = def; };
 
   var S = {
-    dead: false, unsubs: [], skins: [], accounts: [], acc: null,
+    dead: false, unsubs: [], skins: [], accounts: [], acc: null, accUuid: null,
     sel: null, viewer: null, anim: "walk", autoRotate: true, zoom: 1, faceCache: {}, nametag: true,
   };
 
@@ -146,6 +147,8 @@
   /* ---------------------------------- разметка ---------------------------------- */
 
   function hasMs() { return S.acc && S.acc.type === "microsoft"; }
+  function isOffline() { return S.acc && S.acc.type === "offline"; }
+  function appliedToAcc(sk) { return !!(S.acc && sk.accountUuid && sk.accountUuid === S.acc.uuid); }
 
   function paint() {
     var box = document.getElementById("wdb-body");
@@ -196,9 +199,12 @@
               '<button class="btn btn-ghost" id="wdb-open">' + ui.icon("external") + " Открыть PNG</button>" +
               '<button class="btn btn-ghost" id="wdb-del" style="color:var(--danger)">' + ui.icon("trash") + " Удалить</button>" +
             "</div>" +
-            (hasMs() ? "" : '<div class="banner warn" style="margin-top:10px">' + ui.icon("alert") +
-              '<span class="grow">Применение скина доступно только для лицензионного (Microsoft) аккаунта.</span>' +
-              '<button class="btn btn-sm btn-primary" id="wdb-login">Войти</button></div>') +
+            (hasMs() ? "" : (isOffline()
+              ? '<div class="banner info" style="margin-top:10px">' + ui.icon("globe") +
+                '<span class="grow">Офлайн-аккаунт: скин хранится на этом компьютере. При запуске сборки лаунчер подставит его через CustomSkinLoader — мод поставится сам в сборки с Fabric, Forge, NeoForge или Quilt.</span></div>'
+              : '<div class="banner warn" style="margin-top:10px">' + ui.icon("alert") +
+                '<span class="grow">Добавьте офлайн-аккаунт или войдите через Microsoft, чтобы применить скин.</span>' +
+                '<button class="btn btn-sm btn-primary" id="wdb-login">Войти</button></div>')) +
           "</div>" +
         "</div>" +
         '<div class="wdb-grid" id="wdb-grid">' +
@@ -209,6 +215,7 @@
               '<div class="wdb-thumb"><div data-face="' + sk.id + '" style="width:100%;height:100%;background:var(--card-3)"></div>' +
                 '<span class="wdb-badge">' + (sk.slim ? "слим" : "classic") + "</span></div>" +
               '<div class="wdb-card-name" title="' + ui.esc(sk.name) + '">' + ui.esc(sk.name) + "</div>" +
+              (appliedToAcc(sk) ? '<div class="wdb-applied">' + ui.icon("check") + " на аккаунте</div>" : "") +
             "</div>";
           }).join("") +
           '<div class="wdb-add" id="wdb-add-tile">' + ui.icon("plus") + "<div>Добавить скин</div></div>" +
@@ -324,8 +331,13 @@
 
   async function applySel() {
     if (!S.sel) return;
+    if (!S.acc) {
+      ui.notifyWarn("Нет аккаунта", "Добавьте офлайн-аккаунт в разделе «Аккаунты» или войдите через Microsoft.");
+      return;
+    }
+    if (isOffline()) return applySelOffline();
     if (!hasMs()) {
-      ui.notifyWarn("Нужен лицензионный аккаунт", "Смена скина работает только с аккаунтом Microsoft.");
+      ui.notifyWarn("Нужен лицензионный аккаунт", "Смена скина на серверах Mojang работает только с аккаунтом Microsoft.");
       return;
     }
     var ok = await ui.confirmDialog({
@@ -342,6 +354,25 @@
       ui.notifySuccess("Скин применён", "Обновлён для " + (acc && acc.name ? acc.name : "аккаунта"));
       await load(true);
     } catch (e) { ui.notifyError(e, "Не удалось применить скин"); }
+    finally { var b = document.getElementById("wdb-apply"); if (b) b.classList.remove("loading"); }
+  }
+
+  async function applySelOffline() {
+    var ok = await ui.confirmDialog({
+      title: "Скин для офлайн-аккаунта",
+      messageHtml: true,
+      message: "Скин <b>" + ui.esc(S.sel.name) + "</b> будет привязан к аккаунту <b>" + ui.esc(S.acc.name) + "</b>. " +
+        "Скин хранится на этом компьютере: лаунчер подставит его в сборки при запуске, а в сборки с модлоадером поставит CustomSkinLoader.",
+      okLabel: "Привязать",
+    });
+    if (!ok) return;
+    var btn = document.getElementById("wdb-apply");
+    if (btn) btn.classList.add("loading");
+    try {
+      await api("skins.applyOffline", { id: S.sel.id, accountUuid: S.acc.uuid });
+      ui.notifySuccess("Скин выбран", "Применится при следующем запуске сборки этого аккаунта.");
+      await load(true);
+    } catch (e) { ui.notifyError(e, "Не удалось привязать скин"); }
     finally { var b = document.getElementById("wdb-apply"); if (b) b.classList.remove("loading"); }
   }
 
@@ -378,6 +409,41 @@
 
   /* ---------------------------------- загрузка ---------------------------------- */
 
+  function renderAccSelect() {
+    var sel = document.getElementById("wdb-acc");
+    if (!sel) return;
+    sel.hidden = S.accounts.length < 2;
+    sel.innerHTML = S.accounts.map(function (a) {
+      return '<option value="' + ui.esc(a.uuid) + '"' + (a.uuid === S.accUuid ? " selected" : "") + ">" +
+        ui.esc(a.name) + " · " + (a.type === "offline" ? "офлайн" : "Microsoft") + "</option>";
+    }).join("");
+    sel.onchange = function () {
+      S.accUuid = sel.value;
+      S.acc = S.accounts.find(function (a) { return a.uuid === S.accUuid; }) || null;
+      refreshAccUi();
+      paint();
+    };
+  }
+
+  function refreshAccUi() {
+    var sub = document.getElementById("wdb-sub");
+    if (sub) sub.textContent = S.skins.length + " скинов в гардеробе" + (S.acc ? " · аккаунт: " + S.acc.name : "");
+
+    var banner = document.getElementById("wdb-banner");
+    if (!banner) return;
+    banner.innerHTML = (S.acc && S.acc.type === "microsoft")
+      ? ""
+      : (S.acc && S.acc.type === "offline"
+        ? '<div class="banner info" style="margin-bottom:14px">' + ui.icon("globe") +
+          '<span class="grow">Скин офлайн-аккаунта «' + ui.esc(S.acc.name) + '» хранится на этом компьютере: лаунчер подставит его в сборки при запуске, а в сборки с модлоадером поставит CustomSkinLoader.</span>' +
+          '<button class="btn btn-sm btn-primary" id="wdb-banner-login">Войти через Microsoft</button></div>'
+        : '<div class="banner warn" style="margin-bottom:14px">' + ui.icon("alert") +
+          '<span class="grow">Добавьте офлайн-аккаунт или войдите через Microsoft, чтобы применять скины. Гардероб доступен и без входа.</span>' +
+          '<button class="btn btn-sm btn-primary" id="wdb-banner-login">Войти через Microsoft</button></div>');
+    var bl = document.getElementById("wdb-banner-login");
+    if (bl) bl.onclick = function () { AccUI.openMicrosoft({ onDone: function () { load(); } }); };
+  }
+
   async function load(silent) {
     if (S.dead) return;
     var box = document.getElementById("wdb-body");
@@ -387,21 +453,15 @@
       if (S.dead) return;
       S.skins = pair[0] || [];
       S.accounts = pair[1] || [];
-      S.acc = S.accounts.find(function (a) { return a.default; }) || S.accounts[0] || null;
 
-      var sub = document.getElementById("wdb-sub");
-      if (sub) sub.textContent = S.skins.length + " скинов в гардеробе" + (S.acc ? " · аккаунт: " + S.acc.name : "");
-
-      var banner = document.getElementById("wdb-banner");
-      if (banner) {
-        banner.innerHTML = (!S.acc || S.acc.type !== "microsoft")
-          ? '<div class="banner warn" style="margin-bottom:14px">' + ui.icon("alert") +
-            '<span class="grow">Войдите через Microsoft, чтобы применять скины к аккаунту. Гардероб доступен и без входа.</span>' +
-            '<button class="btn btn-sm btn-primary" id="wdb-banner-login">Войти через Microsoft</button></div>'
-          : "";
-        var bl = document.getElementById("wdb-banner-login");
-        if (bl) bl.onclick = function () { AccUI.openMicrosoft({ onDone: function () { load(); } }); };
+      // выбор аккаунта: гардероб общий, но применять скин можно к любому — лицензии или офлайн
+      if (!S.accUuid || !S.accounts.some(function (a) { return a.uuid === S.accUuid; })) {
+        var defAcc = S.accounts.find(function (a) { return a.default; }) || S.accounts[0];
+        S.accUuid = defAcc ? defAcc.uuid : null;
       }
+      S.acc = S.accounts.find(function (a) { return a.uuid === S.accUuid; }) || null;
+      renderAccSelect();
+      refreshAccUi();
       paint();
     } catch (e) {
       if (S.dead || !box || !box.isConnected) return;

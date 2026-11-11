@@ -45,6 +45,15 @@ public static class SkinsIpc
             return (object?)acc;
         });
 
+        // { id, accountUuid? } — скин для офлайн-аккаунта: хранится локально, попадает в сборки при запуске
+        r.Register("skins.applyOffline", (p, _) =>
+        {
+            var id = p?.Str("id") ?? throw new LauncherException("Не указан скин");
+            var acc = s.Skins.ApplyOffline(id, p?.Str("accountUuid"));
+            s.Emit("accounts.changed", new { action = "skin", uuid = acc.Uuid });
+            return Task.FromResult<object?>(acc);
+        });
+
         // data URL превью одного скина
         r.Register("skins.image", (p, _) =>
         {

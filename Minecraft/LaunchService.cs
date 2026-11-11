@@ -427,6 +427,15 @@ public sealed class LaunchService
 
             var account = await _s.Accounts.ResolveForLaunchAsync(inst.AccountUuid, ct).ConfigureAwait(false);
 
+            // офлайн-аккаунт: скин живёт локально (CustomSkinLoader/LocalSkin), ставим мод при необходимости
+            if (string.Equals(account.Type, "offline", StringComparison.OrdinalIgnoreCase)
+                && _s.Skins.ActiveSkinFile(account.Uuid) is not null)
+            {
+                EmitProgress(req.InstanceId, "Подготовка", 4, 6, "Скин персонажа");
+                await _s.Skins.EnsureOfflineSkinModAsync(inst, ct).ConfigureAwait(false);
+                _s.Skins.PrepareLocalSkin(inst, account);
+            }
+
             EmitProgress(req.InstanceId, "Запуск", 5, 6, "Сборка команды");
             var args = BuildArguments(inst, versionId, node, account, safeMode, req);
 

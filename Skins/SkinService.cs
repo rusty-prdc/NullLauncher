@@ -17,7 +17,8 @@ public sealed class SkinService
 
     public sealed record SkinDto(
         string Id, string Name, string Variant, bool Slim, string? Sha1, string Source,
-        DateTime CreatedAt, DateTime? LastUsedAt, string? Preview, long SizeBytes, int SortOrder);
+        DateTime CreatedAt, DateTime? LastUsedAt, string? Preview, long SizeBytes, int SortOrder,
+        string? AccountUuid);
 
     public SkinService(Core.AppServices s) => _s = s;
 
@@ -39,7 +40,7 @@ public sealed class SkinService
             ParseIso(r.CreatedAt), ParseIso(r.LastUsedAt),
             PreviewDataUrl(r.File),
             File.Exists(r.File) ? new FileInfo(r.File).Length : 0,
-            r.SortOrder)).ToList();
+            r.SortOrder, r.AccountUuid)).ToList();
     }
 
     /* ------------------------------------------------------------ добавление */
@@ -144,6 +145,104 @@ public sealed class SkinService
             new { T = DateTime.UtcNow.ToString("o"), Id = id });
         _s.Emit("skins.changed", new { action = "applied", id, uuid = acc.Uuid });
         return acc;
+    }
+
+    /// <summary>
+    /// Привязывает скин к офлайн-аккаунту. Серверы Mojang офлайн-ников не знают, поэтому скин
+    /// хранится локально и при запуске сборки попадает в CustomSkinLoader/LocalSkin.
+    /// </summary>
+    public Accounts.AccountDto ApplyOffline(string id, string? accountUuid)
+    {
+        var rows = _s.Accounts.List();
+        var acc = (string.IsNullOrWhiteSpace(accountUuid)
+                ? rows.FirstOrDefault(a => a.Default) ?? rows.FirstOrDefault()
+                : rows.FirstOrDefault(a => string.Equals(a.Uuid, accountUuid, StringComparison.OrdinalIgnoreCase)))
+            ?? throw new LauncherException("Аккаунт не найден", accountUuid ?? "по умолчанию");
+        if (!string.Equals(acc.Type, "offline", StringComparison.OrdinalIgnoreCase))
+            throw new LauncherException("Для лицензионного аккаунта скин меняется на серверах Mojang",
+                "Выберите офлайн-аккаунт или примените скин как обычно.");
+
+        var row = Database.DatabaseService.QueryFirstOrDefault<SkinRow>(
+            "SELECT * FROM skins WHERE id=@Id", new { Id = id })
+            ?? throw new LauncherException("Скин не найден", id);
+        if (!File.Exists(row.File))
+            throw new LauncherException("Файл скина отсутствует", row.File);
+
+        Database.DatabaseService.Execute(
+            "UPDATE skins SET account_uuid=NULL WHERE account_uuid=@U", new { U = acc.Uuid });
+        Database.DatabaseService.Execute(
+            "UPDATE skins SET account_uuid=@U, last_used_at=@T WHERE id=@Id",
+            new { U = acc.Uuid, T = DateTime.UtcNow.ToString("o"), Id = id });
+
+        Log.Info($"Гардероб: скин '{row.Name}' привязан к офлайн-аккаунту {acc.Name}");
+        _s.Emit("skins.changed", new { action = "applied", id, uuid = acc.Uuid });
+        return acc;
+    }
+
+    /// <summary>Скин, выбранный для офлайн-аккаунта (или null).</summary>
+    public string? ActiveSkinFile(string accountUuid) =>
+        Database.DatabaseService.QueryFirstOrDefault<string>(
+            "SELECT file FROM skins WHERE account_uuid=@U LIMIT 1", new { U = accountUuid });
+
+    /// <summary>
+    /// Кладёт скин офлайн-аккаунта в CustomSkinLoader/LocalSkin сборки. Мод читает
+    /// &lt;ник&gt;.png при входе в мир, поэтому это единственный способ показать скин
+    /// игроку без лицензии.
+    /// </summary>
+    public void PrepareLocalSkin(Instances.InstanceRecord inst, Accounts.AccountSession account)
+    {
+        if (!string.Equals(account.Type, "offline", StringComparison.OrdinalIgnoreCase)) return;
+        var file = ActiveSkinFile(account.Uuid);
+        if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) return;
+
+        try
+        {
+            var dir = Path.Combine(inst.GameDir, "CustomSkinLoader", "LocalSkin", "skins");
+            Directory.CreateDirectory(dir);
+            var target = Path.Combine(dir, account.Name + ".png");
+            if (File.Exists(target) && new FileInfo(target).Length == new FileInfo(file).Length) return;
+            File.Copy(file, target, overwrite: true);
+            Log.Info($"Скины: {account.Name}.png подготовлен для сборки «{inst.Name}»");
+        }
+        catch (Exception ex) { Log.Warn($"Скины: не удалось положить локальный скин — {ex.Message}"); }
+    }
+
+    /// <summary>
+    /// Ставит CustomSkinLoader в сборку офлайн-аккаунта, если его там нет: без мода
+    /// локальный PNG никто не прочитает. Ванильные сборки пропускаем — там модов нет.
+    /// </summary>
+    public async Task EnsureOfflineSkinModAsync(Instances.InstanceRecord inst, CancellationToken ct)
+    {
+        if (string.Equals(inst.Loader, "vanilla", StringComparison.OrdinalIgnoreCase)) return;
+
+        try
+        {
+            var mods = inst.ModsDir;
+            if (Directory.Exists(mods) && Directory.EnumerateFiles(mods, "*.jar")
+                    .Any(f => Path.GetFileName(f).Contains("customskinloader", StringComparison.OrdinalIgnoreCase)))
+                return;
+
+            var svc = Modrinth.ModrinthIpc.Current;
+            if (svc is null) return;
+
+            using var http = HttpFactory.Get(_s);
+            var qs = "?loaders=" + Uri.EscapeDataString("[\"" + inst.Loader.ToLowerInvariant() + "\"]") +
+                     "&game_versions=" + Uri.EscapeDataString("[\"" + inst.McVersion + "\"]");
+            var json = await http.GetStringAsync(
+                "https://api.modrinth.com/v2/project/customskinloader/version" + qs, ct).ConfigureAwait(false);
+            var arr = JsonNode.Parse(json) as JsonArray;
+            var versionId = arr?.FirstOrDefault()?["id"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(versionId))
+            {
+                Log.Info($"Скины: CustomSkinLoader не поддерживает {inst.McVersion}/{inst.Loader} — скин не подключён");
+                return;
+            }
+
+            await svc.InstallAsync(inst.Id, versionId, "mods", ct, installDependencies: false).ConfigureAwait(false);
+            Log.Info($"Скины: CustomSkinLoader {versionId} установлен в «{inst.Name}»");
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { Log.Warn($"Скины: не удалось установить CustomSkinLoader — {ex.Message}"); }
     }
 
     /// <summary>Возвращает путь к файлу скина (для переименования/открытия).</summary>
