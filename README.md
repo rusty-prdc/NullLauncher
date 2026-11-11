@@ -2,7 +2,7 @@
 
 A Minecraft launcher for Windows 10/11, built with .NET 8, WPF, WebView2, HTML/CSS/JavaScript and SQLite.
 
-**Current release:** [1.0.4](https://github.com/rusty-prdc/NullLauncher/releases/tag/v1.0.4) · **License:** MIT
+**Current release:** [1.0.7](https://github.com/rusty-prdc/NullLauncher/releases/tag/v1.0.7) · **License:** MIT
 
 ## Features
 

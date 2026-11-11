@@ -2,6 +2,43 @@
 
 English is the primary language for release notes. Russian translations follow each release.
 
+## 1.0.7 - 2026-11-11
+
+- Redesigned the Modrinth project page: a header with metadata and category chips, and two columns (description, gallery and latest versions on the left; statistics, loaders, Minecraft versions and links on the right). Versions open with a button instead of tabs.
+- Project descriptions now render the raw HTML that authors publish on Modrinth (`<center>`, `<details>`, `<img>`, headings) with sanitization preserved, and markdown-wrapped images are converted into real links.
+- Catalog improvements: section counters and descriptions, Russian category names, a "Newest" sort, per-project version counts, "Download <version>" buttons and a preview of the latest versions.
+- Fixed NeoForge installation. Version lists now come from the Maven API with newest versions first, the 1.20.1 line is resolved from the legacy `net.neoforged/forge` group, and installer URLs are verified before download. Previously valid loader versions could fail with HTTP 404.
+- Added "Move to Rust" on an instance's Access tab: it explains Horizon (the unofficial Rust reimplementation of Minecraft: Java Edition 26.3), opens or downloads Horizon, and exports the instance as a `.mrpack` for import.
+- Added local skins for offline accounts. A skin bound to an offline profile is copied into `CustomSkinLoader/LocalSkin` at launch, and CustomSkinLoader is installed automatically into modded instances. The wardrobe now has an account picker, so skins can be applied to either Microsoft or offline accounts.
+
+### Русский
+
+- Переработана страница проекта в каталоге Modrinth: шапка с метаданными и категориями, две колонки (описание, галерея и последние версии слева; статистика, загрузчики, версии Minecraft и ссылки справа). Версии открываются кнопкой, вкладки убраны.
+- Описания проектов теперь показывают сырой HTML, который авторы публикуют на Modrinth (`<center>`, `<details>`, `<img>`, заголовки), с сохранением очистки, а картинки, обёрнутые в markdown-ссылки, превращаются в настоящие ссылки.
+- Улучшения каталога: счётчики и описания разделов, русские названия категорий, сортировка «Новейшие», количество версий, кнопки «Скачать <версия>» и превью последних версий.
+- Исправлена установка NeoForge. Список версий берётся из Maven API (сначала новые), для 1.20.1 используется legacy-группа `net.neoforged/forge`, а адреса инсталлятора проверяются до скачивания. Раньше корректные версии загрузчика могли падать с ошибкой 404.
+- В сборке на вкладке «Доступ» появился перенос на Rust: объясняет, что такое Horizon (неофициальная Rust-реализация Minecraft: Java Edition 26.3), открывает или скачивает Horizon и выгружает сборку в `.mrpack` для импорта.
+- Добавлены локальные скины для офлайн-аккаунтов. Скин, привязанный к офлайн-профилю, при запуске копируется в `CustomSkinLoader/LocalSkin`, а в сборки с модлоадером автоматически ставится CustomSkinLoader. В гардеробе появился выбор аккаунта — скин можно применить и к Microsoft, и к офлайн-аккаунту.
+
+## 1.0.6 - 2026-10-26
+
+- Added Ely.by sign-in: a button on the sign-in screen, `nulllauncher://auth?token=` deep-link handling (single instance with a named pipe), and skin/cape loading from Ely.by.
+
+### Русский
+
+- Добавлен вход через Ely.by: кнопка на экране входа, обработка ссылки `nulllauncher://auth?token=` (один экземпляр приложения и именованный канал), загрузка скинов и плащей Ely.by.
+
+## 1.0.5 - 2026-10-25
+
+- Added a "now playing" media panel in the title bar (Windows SMTC): cover art, player logo, equalizer and playback controls, driven by player events with a safety poll; stopping playback hides the panel.
+- Added NullCoin daily rewards, an account page (sign-in, profile, hours played), a server-provided cover image, server ping and deep links, and a "Mods" tab.
+
+### Русский
+
+- Добавлена плашка «сейчас играет» в заголовке окна (Windows SMTC): обложка, логотип плеера, эквалайзер и управление; события плеера плюс страховочный опрос, остановка скрывает плашку.
+- Добавлены ежедневные награды NullCoin, страница аккаунта (вход, профиль, часы игры), обложка с сервера, пинг и deep-link серверов, вкладка «Моды».
+
+
 ## 1.0.4 — 2026-10-23
 
 - Added a skin wardrobe with a high-quality 3D preview: save skins, try them on in 3D (animations, rotation, zoom, name tag) and apply one to a Microsoft account in a single click. Slim/classic arms are detected automatically, and Steve/Alex are included by default.
